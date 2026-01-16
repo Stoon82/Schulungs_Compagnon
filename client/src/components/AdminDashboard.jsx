@@ -10,12 +10,14 @@ import AdminParticipants from './AdminParticipants';
 import AdminAnalytics from './AdminAnalytics';
 import AdminControls from './AdminControls';
 import ProjectorMode from './ProjectorMode';
+import ModuleEditor from './ModuleEditor';
 
 function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showProjector, setShowProjector] = useState(false);
+  const [showModuleEditor, setShowModuleEditor] = useState(false);
 
   useEffect(() => {
     loadStats();
