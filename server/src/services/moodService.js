@@ -30,19 +30,23 @@ class MoodService {
 
     // Emit special feedback events for pause and overwhelmed
     if (mood === 'pause_request') {
-      eventBus.emit('feedback:pause', {
+      const pauseData = {
         participantId,
         nickname: participant?.nickname,
         moduleId,
         timestamp: new Date().toISOString()
-      });
+      };
+      console.log('⏸️ Emitting feedback:pause event:', pauseData);
+      eventBus.emit('feedback:pause', pauseData);
     } else if (mood === 'overwhelmed') {
-      eventBus.emit('feedback:overwhelmed', {
+      const overwhelmedData = {
         participantId,
         nickname: participant?.nickname,
         moduleId,
         timestamp: new Date().toISOString()
-      });
+      };
+      console.log('🚨 Emitting feedback:overwhelmed event:', overwhelmedData);
+      eventBus.emit('feedback:overwhelmed', overwhelmedData);
     }
 
     return {

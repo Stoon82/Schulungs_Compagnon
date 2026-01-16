@@ -7,6 +7,8 @@ import ModuleList from './components/ModuleList'
 import FloatingMoodBar from './components/FloatingMoodBar'
 import AdminLogin from './components/AdminLogin'
 import AdminDashboard from './components/AdminDashboard'
+import AdminProjectorView from './components/AdminProjectorView'
+import QRCodeButton from './components/QRCodeButton'
 import { useLanguage } from './contexts/LanguageContext'
 import './App.css'
 
@@ -19,6 +21,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [adminMode, setAdminMode] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [showFullDashboard, setShowFullDashboard] = useState(false)
 
   // Apply theme function
   const applyTheme = (theme) => {
@@ -177,6 +180,17 @@ function App() {
   const handleJoin = async (data) => {
     setParticipant(data)
     await loadModules()
+    
+    // Apply saved theme on join
+    const savedTheme = localStorage.getItem('compagnon_theme')
+    if (savedTheme) {
+      try {
+        const theme = JSON.parse(savedTheme)
+        applyTheme(theme)
+      } catch (error) {
+        console.error('Failed to apply saved theme on join:', error)
+      }
+    }
   }
 
   const handleModuleClick = (module) => {
@@ -198,11 +212,17 @@ function App() {
   const handleAdminLogin = (data) => {
     setIsAdmin(true)
     setAdminMode(true)
+    setShowFullDashboard(false)
   }
 
   const handleAdminLogout = () => {
     setIsAdmin(false)
     setAdminMode(false)
+    setShowFullDashboard(false)
+  }
+
+  const handleBackToProjector = () => {
+    setShowFullDashboard(false)
   }
 
   const handleLogout = () => {
@@ -223,7 +243,21 @@ function App() {
     if (!isAdmin) {
       return <AdminLogin onLogin={handleAdminLogin} />
     }
-    return <AdminDashboard onLogout={handleAdminLogout} />
+    
+    // Show full dashboard if requested, otherwise show projector view
+    if (showFullDashboard) {
+      return <AdminDashboard onLogout={handleAdminLogout} onBackToProjector={handleBackToProjector} />
+    }
+    
+    // Default admin view: Projector mode with admin sidebar
+    return (
+      <AdminProjectorView
+        participant={participant}
+        modules={modules}
+        onLogout={handleAdminLogout}
+        onDashboard={() => setShowFullDashboard(true)}
+      />
+    )
   }
 
   if (!participant) {
@@ -245,6 +279,8 @@ function App() {
             </div>
             
             <div className="flex items-center gap-3">
+              <QRCodeButton isAdmin={false} />
+              
               <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
                 connected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
               }`}>

@@ -143,10 +143,12 @@ eventBus.on('admin:system_resume', (data) => {
 });
 
 eventBus.on('feedback:pause', (data) => {
+  console.log('📡 Broadcasting feedback:pause to all clients:', data);
   io.emit('feedback:pause', data);
 });
 
 eventBus.on('feedback:overwhelmed', (data) => {
+  console.log('📡 Broadcasting feedback:overwhelmed to all clients:', data);
   io.emit('feedback:overwhelmed', data);
 });
 

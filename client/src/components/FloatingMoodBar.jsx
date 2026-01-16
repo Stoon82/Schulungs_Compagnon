@@ -31,23 +31,23 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
 
   const handlePauseRequest = async () => {
     try {
-      await api.sendMood('pause_request', currentModuleId);
+      console.log('⏸️ Client sending pause request...');
+      const result = await api.sendMood('pause_request', currentModuleId);
+      console.log('⏸️ Pause request sent successfully:', result);
       setShowPauseConfirm(false);
-      
-      // Could emit socket event for admin notification
     } catch (error) {
-      console.error('Failed to send pause request:', error);
+      console.error('❌ Failed to send pause request:', error);
     }
   };
 
   const handleOverwhelmedAlert = async () => {
     try {
-      await api.sendMood('overwhelmed', currentModuleId);
+      console.log('🚨 Client sending overwhelmed alert...');
+      const result = await api.sendMood('overwhelmed', currentModuleId);
+      console.log('🚨 Overwhelmed alert sent successfully:', result);
       setShowOverwhelmedConfirm(false);
-      
-      // Could emit socket event for admin notification
     } catch (error) {
-      console.error('Failed to send overwhelmed alert:', error);
+      console.error('❌ Failed to send overwhelmed alert:', error);
     }
   };
 

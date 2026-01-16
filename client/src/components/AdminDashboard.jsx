@@ -13,7 +13,7 @@ import ProjectorMode from './ProjectorMode';
 import ModuleEditor from './ModuleEditor';
 import DesignEditor from './DesignEditor';
 
-function AdminDashboard({ onLogout }) {
+function AdminDashboard({ onLogout, onBackToProjector }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -74,6 +74,17 @@ function AdminDashboard({ onLogout }) {
             </div>
 
             <div className="flex items-center gap-3">
+              {onBackToProjector && (
+                <button
+                  onClick={onBackToProjector}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all"
+                  title="Back to Projector View"
+                >
+                  <Presentation size={18} />
+                  <span>Back to Projector</span>
+                </button>
+              )}
+              
               <button
                 onClick={() => setShowProjector(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 rounded-lg transition-all"
