@@ -68,6 +68,14 @@ function AdminDashboard({ onLogout }) {
             </div>
 
             <button
+              onClick={() => setShowProjector(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 rounded-lg text-cyan-400 hover:text-cyan-300 transition-all"
+            >
+              <Presentation size={18} />
+              <span>Projector Mode</span>
+            </button>
+
+            <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 hover:text-white transition-all"
             >
