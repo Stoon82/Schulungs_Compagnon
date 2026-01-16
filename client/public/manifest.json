@@ -1,0 +1,43 @@
+{
+  "name": "The Compagnon - KI Schulungssystem",
+  "short_name": "Compagnon",
+  "description": "Immersives KI-Schulungssystem für das Ambulant Betreute Wohnen",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#00fff2",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Module Overview",
+      "short_name": "Modules",
+      "description": "View all training modules",
+      "url": "/modules",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Material Hub",
+      "short_name": "Materials",
+      "description": "Access training materials",
+      "url": "/materials",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

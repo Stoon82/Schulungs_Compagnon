@@ -23,13 +23,13 @@
 - [x] Set up SQLite database with schema
 - [x] Install Ollama client integration
 - [x] Configure CORS and security middleware
-- [ ] Set up event bus system for real-time communication
+- [x] Set up event bus system for real-time communication
 
 ### ✅ Frontend Setup
 - [x] Initialize React application (Vite or Create React App)
 - [x] Install and configure Tailwind CSS
 - [x] Set up Socket.io client
-- [ ] Configure PWA manifest and service worker
+- [x] Configure PWA manifest and service worker
 - [x] Install additional UI libraries (Chart.js, Monaco Editor)
 
 ### ✅ Database Schema Implementation

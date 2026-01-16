@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import eventBus from './eventBus.js';
 
 dotenv.config();
 
@@ -64,4 +65,4 @@ httpServer.listen(PORT, () => {
   console.log(`⏰ Started at ${new Date().toISOString()}`);
 });
 
-export { app, io };
+export { app, io, eventBus };
