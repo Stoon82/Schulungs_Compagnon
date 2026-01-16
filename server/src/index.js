@@ -15,6 +15,9 @@ import adminRoutes from './routes/admin.js';
 import gdprRoutes from './routes/gdpr.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import sessionManager from './services/sessionManager.js';
+import monitoring from './middleware/monitoring.js';
+import backupManager from './utils/backup.js';
+import debugTools from './utils/debugTools.js';
 
 dotenv.config();
 
@@ -51,6 +54,13 @@ app.get('/health', (req, res) => {
     service: 'The Compagnon API'
   });
 });
+
+app.get('/api/admin/monitoring/stats', (req, res) => {
+  const stats = monitoring.getStats();
+  res.json({ success: true, data: stats });
+});
+
+app.use(monitoring.errorHandler());
 
 app.get('/', (req, res) => {
   res.json({ 
@@ -93,7 +103,19 @@ io.on('connection', (socket) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log('🚀 The Compagnon Server Started');
+  debugTools.success(`Server running on port ${PORT}`);
+  
+  // Schedule auto-backup every 24 hours
+  if (process.env.AUTO_BACKUP === 'true') {
+    backupManager.scheduleAutoBackup(24);
+  }
+  
+  // Log stats every hour
+  if (process.env.STATS_LOGGING === 'true') {
+    monitoring.scheduleStatsLogging(60);
+  }
+  
+  debugTools.info('The Compagnon API is ready! 🚀');
   console.log(`📍 Server running on http://localhost:${PORT}`);
   console.log(`🔌 WebSocket server ready`);
   console.log(`⏰ Started at ${new Date().toISOString()}`);
