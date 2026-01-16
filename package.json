@@ -14,7 +14,10 @@
     "full-demo": "concurrently \"npm run dev\" \"npm run tunnel\"",
     "setup": "npm install && cd client && npm install",
     "db:init": "node database/init.js",
-    "db:seed": "node database/seed.js"
+    "db:seed": "node database/seed.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
   },
   "keywords": [
     "ai-training",
