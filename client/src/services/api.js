@@ -96,6 +96,53 @@ class ApiService {
 
     return await response.json();
   }
+
+  async sendChatMessage(message, conversationHistory = []) {
+    const response = await fetch(`${API_BASE_URL}/chat/message`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ message, conversationHistory })
+    });
+
+    return await response.json();
+  }
+
+  async getChatHistory(limit = 20) {
+    const response = await fetch(`${API_BASE_URL}/chat/history?limit=${limit}`, {
+      headers: this.getHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async getChatStatus() {
+    const response = await fetch(`${API_BASE_URL}/chat/status`);
+    return await response.json();
+  }
+
+  async getMaterials() {
+    const response = await fetch(`${API_BASE_URL}/materials`, {
+      headers: this.getHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async getMaterial(materialId) {
+    const response = await fetch(`${API_BASE_URL}/materials/${materialId}`, {
+      headers: this.getHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async getMaterialSummary(materialId) {
+    const response = await fetch(`${API_BASE_URL}/materials/${materialId}/summary`, {
+      headers: this.getHeaders()
+    });
+
+    return await response.json();
+  }
 }
 
 export default new ApiService();

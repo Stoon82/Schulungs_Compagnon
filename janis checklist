@@ -89,23 +89,19 @@
 - [x] Add rate limiting (5 requests/minute)
 - [x] Create error handling and fallback messages
 - [x] Add response time indicators
-- [ ] Implement system prompts for ABW context
-- [ ] Add rate limiting (5 requests/minute)
-- [ ] Create error handling and fallback messages
-- [ ] Add response time indicators
 
 ### ✅ Material Hub
-- [ ] Create resource structure (PDFs, audio, videos)
-- [ ] Implement AI-generated summaries
-- [ ] Add text-to-speech functionality
-- [ ] Create download functionality
-- [ ] Add external links management
+- [x] Create resource structure (PDFs, audio, videos)
+- [x] Implement AI-generated summaries
+- [x] Add text-to-speech functionality
+- [x] Create download functionality
+- [x] Add external links management
 
 ### ✅ Connection Management
 - [x] Create connection status indicator (ampel)
 - [x] Implement reconnection logic with exponential backoff
-- [ ] Add offline mode functionality
-- [ ] Create admin notification system
+- [x] Add offline mode functionality
+- [x] Create admin notification system
 
 ---
 
