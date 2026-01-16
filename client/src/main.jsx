@@ -10,4 +10,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-registerServiceWorker()
+// Only register service worker in production
+if (import.meta.env.PROD) {
+  registerServiceWorker()
+}
