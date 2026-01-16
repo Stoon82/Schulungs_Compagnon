@@ -143,6 +143,200 @@ class ApiService {
 
     return await response.json();
   }
+
+  // Admin API methods
+  setAdminToken(token) {
+    localStorage.setItem('admin_token', token);
+  }
+
+  getAdminToken() {
+    return localStorage.getItem('admin_token');
+  }
+
+  clearAdminToken() {
+    localStorage.removeItem('admin_token');
+  }
+
+  getAdminHeaders() {
+    const token = this.getAdminToken();
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  }
+
+  async adminLogin(password) {
+    const response = await fetch(`${API_BASE_URL}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+
+    const result = await response.json();
+    if (result.success && result.data.token) {
+      this.setAdminToken(result.data.token);
+    }
+    return result;
+  }
+
+  async adminLogout() {
+    const response = await fetch(`${API_BASE_URL}/admin/logout`, {
+      method: 'POST',
+      headers: this.getAdminHeaders()
+    });
+
+    this.clearAdminToken();
+    return await response.json();
+  }
+
+  async getAdminStats() {
+    const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async getAdminParticipants() {
+    const response = await fetch(`${API_BASE_URL}/admin/participants`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async getAdminParticipantDetails(participantId) {
+    const response = await fetch(`${API_BASE_URL}/admin/participants/${participantId}`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async getAdminMoodAnalytics(timeRange = '1 hour') {
+    const response = await fetch(`${API_BASE_URL}/admin/analytics/moods?timeRange=${timeRange}`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async getAdminEngagementData() {
+    const response = await fetch(`${API_BASE_URL}/admin/analytics/engagement`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async adminUnlockModule(moduleId, participantId = null, unlockForAll = false) {
+    const response = await fetch(`${API_BASE_URL}/admin/modules/unlock`, {
+      method: 'POST',
+      headers: this.getAdminHeaders(),
+      body: JSON.stringify({ moduleId, participantId, unlockForAll })
+    });
+
+    return await response.json();
+  }
+
+  async adminBroadcast(message, type = 'info') {
+    const response = await fetch(`${API_BASE_URL}/admin/broadcast`, {
+      method: 'POST',
+      headers: this.getAdminHeaders(),
+      body: JSON.stringify({ message, type })
+    });
+
+    return await response.json();
+  }
+
+  async adminKickParticipant(participantId) {
+    const response = await fetch(`${API_BASE_URL}/admin/participants/${participantId}/kick`, {
+      method: 'POST',
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async adminPauseSystem() {
+    const response = await fetch(`${API_BASE_URL}/admin/system/pause`, {
+      method: 'POST',
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async adminResumeSystem() {
+    const response = await fetch(`${API_BASE_URL}/admin/system/resume`, {
+      method: 'POST',
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async adminGenerateCode(moduleId, description) {
+    const response = await fetch(`${API_BASE_URL}/admin/codes/generate`, {
+      method: 'POST',
+      headers: this.getAdminHeaders(),
+      body: JSON.stringify({ moduleId, description })
+    });
+
+    return await response.json();
+  }
+
+  async adminGetCodes() {
+    const response = await fetch(`${API_BASE_URL}/admin/codes`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async adminDeactivateCode(code) {
+    const response = await fetch(`${API_BASE_URL}/admin/codes/${code}/deactivate`, {
+      method: 'POST',
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async adminToggleAppFeatured(appId, featured) {
+    const response = await fetch(`${API_BASE_URL}/admin/apps/${appId}/feature`, {
+      method: 'POST',
+      headers: this.getAdminHeaders(),
+      body: JSON.stringify({ featured })
+    });
+
+    return await response.json();
+  }
+
+  async adminDeactivateApp(appId) {
+    const response = await fetch(`${API_BASE_URL}/admin/apps/${appId}/deactivate`, {
+      method: 'POST',
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async adminGetLogs(limit = 50) {
+    const response = await fetch(`${API_BASE_URL}/admin/logs?limit=${limit}`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async adminExportData(type = 'all') {
+    const response = await fetch(`${API_BASE_URL}/admin/export?type=${type}`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
 }
 
 export default new ApiService();

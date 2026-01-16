@@ -11,6 +11,7 @@ import moodRoutes from './routes/mood.js';
 import sandboxRoutes from './routes/sandbox.js';
 import chatRoutes from './routes/chat.js';
 import materialsRoutes from './routes/materials.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.use('/api/mood', moodRoutes);
 app.use('/api/sandbox', sandboxRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/materials', materialsRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ 
@@ -57,6 +59,22 @@ app.get('/', (req, res) => {
       admin: '/admin/*'
     }
   });
+});
+
+eventBus.on('admin:broadcast', (data) => {
+  io.emit('admin:broadcast', data);
+});
+
+eventBus.on('admin:kick', (data) => {
+  io.emit('admin:kick', data);
+});
+
+eventBus.on('admin:system_pause', (data) => {
+  io.emit('admin:system_pause', data);
+});
+
+eventBus.on('admin:system_resume', (data) => {
+  io.emit('admin:system_resume', data);
 });
 
 io.on('connection', (socket) => {
