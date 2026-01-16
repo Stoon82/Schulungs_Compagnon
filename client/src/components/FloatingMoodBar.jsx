@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { Pause, AlertTriangle, X, ChevronUp, ChevronDown } from 'lucide-react';
 import api from '../services/api';
+import { useLanguage } from '../contexts/LanguageContext';
 
 function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
+  const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedMood, setSelectedMood] = useState(null);
   const [showPauseConfirm, setShowPauseConfirm] = useState(false);
   const [showOverwhelmedConfirm, setShowOverwhelmedConfirm] = useState(false);
 
   const moods = [
-    { id: 'confused', emoji: '😕', label: 'Verwirrt', color: 'from-red-500 to-orange-500' },
-    { id: 'thinking', emoji: '🤔', label: 'Nachdenklich', color: 'from-yellow-500 to-orange-500' },
-    { id: 'aha', emoji: '💡', label: 'Aha!', color: 'from-blue-500 to-cyan-500' },
-    { id: 'wow', emoji: '🤩', label: 'Wow!', color: 'from-purple-500 to-pink-500' }
+    { id: 'confused', emoji: '😕', label: t('moodBar.confused'), color: 'from-red-500 to-orange-500' },
+    { id: 'thinking', emoji: '🤔', label: t('moodBar.thinking'), color: 'from-yellow-500 to-orange-500' },
+    { id: 'aha', emoji: '💡', label: t('moodBar.aha'), color: 'from-blue-500 to-cyan-500' },
+    { id: 'wow', emoji: '🤩', label: t('moodBar.wow'), color: 'from-purple-500 to-pink-500' }
   ];
 
   const handleMoodClick = async (mood) => {
@@ -69,8 +71,8 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
             <div className="p-4 space-y-4">
               {/* Title */}
               <div className="text-center">
-                <h3 className="text-white font-semibold mb-1">Wie fühlst du dich?</h3>
-                <p className="text-xs text-gray-400">Teile deine Reaktion</p>
+                <h3 className="text-white font-semibold mb-1">{t('moodBar.title')}</h3>
+                <p className="text-xs text-gray-400">{t('moodBar.subtitle')}</p>
               </div>
 
               {/* Mood Buttons */}
@@ -105,7 +107,7 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
                   className="w-full px-4 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 rounded-lg text-yellow-300 font-medium transition-all flex items-center justify-center gap-2"
                 >
                   <Pause size={18} />
-                  <span>Pause bitte</span>
+                  <span>{t('moodBar.pauseButton')}</span>
                 </button>
 
                 <button
@@ -113,7 +115,7 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
                   className="w-full px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 rounded-lg text-red-300 font-medium transition-all flex items-center justify-center gap-2"
                 >
                   <AlertTriangle size={18} />
-                  <span>Überfordert</span>
+                  <span>{t('moodBar.overwhelmedButton')}</span>
                 </button>
               </div>
             </div>
@@ -131,10 +133,10 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
               </div>
               
               <h3 className="text-2xl font-bold text-white mb-2">
-                Pause anfordern?
+                {t('moodBar.pauseTitle')}
               </h3>
               <p className="text-gray-300 mb-6">
-                Der Trainer wird benachrichtigt, dass du eine kurze Pause benötigst.
+                {t('moodBar.pauseMessage')}
               </p>
 
               <div className="flex gap-3">
@@ -142,13 +144,13 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
                   onClick={() => setShowPauseConfirm(false)}
                   className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 font-semibold transition-all"
                 >
-                  Abbrechen
+                  {t('moodBar.cancel')}
                 </button>
                 <button
                   onClick={handlePauseRequest}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg text-white font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all"
                 >
-                  Ja, Pause
+                  {t('moodBar.yesPause')}
                 </button>
               </div>
             </div>
@@ -166,10 +168,10 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
               </div>
               
               <h3 className="text-2xl font-bold text-white mb-2">
-                Fühlst du dich überfordert?
+                {t('moodBar.overwhelmedTitle')}
               </h3>
               <p className="text-gray-300 mb-6">
-                Das ist völlig in Ordnung! Der Trainer wird benachrichtigt und kann dir helfen.
+                {t('moodBar.overwhelmedMessage')}
               </p>
 
               <div className="flex gap-3">
@@ -177,13 +179,13 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
                   onClick={() => setShowOverwhelmedConfirm(false)}
                   className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 font-semibold transition-all"
                 >
-                  Abbrechen
+                  {t('moodBar.cancel')}
                 </button>
                 <button
                   onClick={handleOverwhelmedAlert}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg text-white font-semibold hover:from-red-600 hover:to-pink-600 transition-all"
                 >
-                  Ja, Hilfe
+                  {t('moodBar.yesHelp')}
                 </button>
               </div>
             </div>
