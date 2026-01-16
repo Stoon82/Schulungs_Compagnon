@@ -2,18 +2,20 @@ import { useState, useEffect } from 'react';
 import { 
   Users, Activity, MessageSquare, Code, TrendingUp, 
   Settings, LogOut, Unlock, Radio, Pause, Play,
-  Key, Download, AlertCircle
+  Key, Download, AlertCircle, Presentation
 } from 'lucide-react';
 import api from '../services/api';
 import AdminStats from './AdminStats';
 import AdminParticipants from './AdminParticipants';
 import AdminAnalytics from './AdminAnalytics';
 import AdminControls from './AdminControls';
+import ProjectorMode from './ProjectorMode';
 
 function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showProjector, setShowProjector] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -66,14 +68,6 @@ function AdminDashboard({ onLogout }) {
                 <p className="text-sm text-gray-400">The Compagnon Control Center</p>
               </div>
             </div>
-
-            <button
-              onClick={() => setShowProjector(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 rounded-lg text-cyan-400 hover:text-cyan-300 transition-all"
-            >
-              <Presentation size={18} />
-              <span>Projector Mode</span>
-            </button>
 
             <button
               onClick={handleLogout}
