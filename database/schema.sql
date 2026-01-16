@@ -130,11 +130,25 @@ CREATE INDEX idx_events_timestamp ON system_events(timestamp);
 -- Admin Actions Log
 CREATE TABLE IF NOT EXISTS admin_actions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  action_type TEXT NOT NULL,
-  action_data TEXT,
-  admin_id TEXT DEFAULT 'admin',
+  action TEXT NOT NULL,
+  data TEXT,
   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_admin_actions_type ON admin_actions(action_type);
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  action TEXT NOT NULL,
+  participant_id TEXT,
+  admin_id TEXT,
+  data TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  success INTEGER DEFAULT 1,
+  error_message TEXT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (participant_id) REFERENCES participants(id)
+);
+
+CREATE INDEX idx_admin_actions_type ON admin_actions(action);
 CREATE INDEX idx_admin_actions_timestamp ON admin_actions(timestamp);
+CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);

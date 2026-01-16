@@ -12,6 +12,9 @@ import sandboxRoutes from './routes/sandbox.js';
 import chatRoutes from './routes/chat.js';
 import materialsRoutes from './routes/materials.js';
 import adminRoutes from './routes/admin.js';
+import gdprRoutes from './routes/gdpr.js';
+import { apiLimiter } from './middleware/rateLimiter.js';
+import sessionManager from './services/sessionManager.js';
 
 dotenv.config();
 
