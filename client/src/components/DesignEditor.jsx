@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Palette, Type, Layout, Save, X, RotateCcw } from 'lucide-react';
+import { Palette, Type, Layout, Save, X, RotateCcw, Users, Shield, Globe } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 function DesignEditor({ onClose }) {
   const [theme, setTheme] = useState({
@@ -7,6 +8,9 @@ function DesignEditor({ onClose }) {
     secondaryColor: '#ff00ff',
     accentColor: '#ffff00',
     backgroundColor: '#0a0e1a',
+    backgroundGradientStart: '#0f172a',
+    backgroundGradientMiddle: '#581c87',
+    backgroundGradientEnd: '#0f172a',
     textColor: '#ffffff',
     fontFamily: 'Inter',
     fontSize: 'medium',
@@ -14,15 +18,65 @@ function DesignEditor({ onClose }) {
     layout: 'default'
   });
 
+  const [scope, setScope] = useState('all'); // 'all', 'admin', 'client'
   const [previewMode, setPreviewMode] = useState(false);
+  const [broadcasting, setBroadcasting] = useState(false);
 
   const colorPresets = [
-    { name: 'Cyber Neon', primary: '#00fff2', secondary: '#ff00ff', accent: '#ffff00' },
-    { name: 'Ocean Blue', primary: '#0ea5e9', secondary: '#3b82f6', accent: '#06b6d4' },
-    { name: 'Forest Green', primary: '#10b981', secondary: '#059669', accent: '#34d399' },
-    { name: 'Sunset Orange', primary: '#f97316', secondary: '#ea580c', accent: '#fb923c' },
-    { name: 'Purple Dream', primary: '#a855f7', secondary: '#9333ea', accent: '#c084fc' },
-    { name: 'Rose Gold', primary: '#f43f5e', secondary: '#e11d48', accent: '#fb7185' }
+    { 
+      name: 'Cyber Neon', 
+      primary: '#00fff2', 
+      secondary: '#ff00ff', 
+      accent: '#ffff00',
+      bgStart: '#0f172a',
+      bgMiddle: '#581c87',
+      bgEnd: '#0f172a'
+    },
+    { 
+      name: 'Ocean Blue', 
+      primary: '#0ea5e9', 
+      secondary: '#3b82f6', 
+      accent: '#06b6d4',
+      bgStart: '#0c4a6e',
+      bgMiddle: '#1e40af',
+      bgEnd: '#0c4a6e'
+    },
+    { 
+      name: 'Forest Green', 
+      primary: '#10b981', 
+      secondary: '#059669', 
+      accent: '#34d399',
+      bgStart: '#064e3b',
+      bgMiddle: '#065f46',
+      bgEnd: '#064e3b'
+    },
+    { 
+      name: 'Sunset Orange', 
+      primary: '#f97316', 
+      secondary: '#ea580c', 
+      accent: '#fb923c',
+      bgStart: '#7c2d12',
+      bgMiddle: '#c2410c',
+      bgEnd: '#7c2d12'
+    },
+    { 
+      name: 'Purple Dream', 
+      primary: '#a855f7', 
+      secondary: '#9333ea', 
+      accent: '#c084fc',
+      bgStart: '#3b0764',
+      bgMiddle: '#6b21a8',
+      bgEnd: '#3b0764'
+    },
+    { 
+      name: 'Rose Gold', 
+      primary: '#f43f5e', 
+      secondary: '#e11d48', 
+      accent: '#fb7185',
+      bgStart: '#881337',
+      bgMiddle: '#be123c',
+      bgEnd: '#881337'
+    }
   ];
 
   const fontOptions = [
@@ -54,14 +108,47 @@ function DesignEditor({ onClose }) {
       ...theme,
       primaryColor: preset.primary,
       secondaryColor: preset.secondary,
-      accentColor: preset.accent
+      accentColor: preset.accent,
+      backgroundGradientStart: preset.bgStart,
+      backgroundGradientMiddle: preset.bgMiddle,
+      backgroundGradientEnd: preset.bgEnd
     });
   };
 
-  const handleSave = () => {
-    localStorage.setItem('compagnon_theme', JSON.stringify(theme));
-    alert('Design gespeichert! Seite wird neu geladen...');
-    window.location.reload();
+  const handleSave = async () => {
+    setBroadcasting(true);
+    
+    try {
+      // Save to localStorage
+      localStorage.setItem('compagnon_theme', JSON.stringify(theme));
+      localStorage.setItem('compagnon_theme_scope', scope);
+      
+      // Broadcast to all connected clients via Socket.IO
+      const socket = io(window.location.origin, {
+        path: '/socket.io'
+      });
+      
+      socket.emit('design:update', {
+        theme,
+        scope,
+        timestamp: Date.now()
+      });
+      
+      // Wait a moment for the broadcast to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      socket.close();
+      
+      alert(`Design gespeichert und an ${scope === 'all' ? 'alle Clients' : scope === 'admin' ? 'Admin-Bereich' : 'Client-Bereich'} gesendet!`);
+      
+      // Reload to apply changes
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to broadcast design:', error);
+      alert('Design gespeichert, aber Broadcast fehlgeschlagen.');
+    } finally {
+      setBroadcasting(false);
+    }
   };
 
   const handleReset = () => {
@@ -97,6 +184,19 @@ function DesignEditor({ onClose }) {
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
+              <span className="text-sm text-gray-400">Anwenden auf:</span>
+              <select
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+                className="bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+              >
+                <option value="all" className="bg-slate-800">🌐 Gesamte App</option>
+                <option value="admin" className="bg-slate-800">🛡️ Nur Admin</option>
+                <option value="client" className="bg-slate-800">👥 Nur Clients</option>
+              </select>
+            </div>
+            
             <button
               onClick={() => setPreviewMode(!previewMode)}
               className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 rounded-lg transition-all"
@@ -112,10 +212,11 @@ function DesignEditor({ onClose }) {
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all flex items-center gap-2"
+              disabled={broadcasting}
+              className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={18} />
-              <span>Speichern</span>
+              <span>{broadcasting ? 'Sende...' : 'Speichern & Senden'}</span>
             </button>
             <button
               onClick={onClose}
@@ -164,7 +265,6 @@ function DesignEditor({ onClose }) {
                   { key: 'primaryColor', label: 'Primärfarbe' },
                   { key: 'secondaryColor', label: 'Sekundärfarbe' },
                   { key: 'accentColor', label: 'Akzentfarbe' },
-                  { key: 'backgroundColor', label: 'Hintergrund' },
                   { key: 'textColor', label: 'Textfarbe' }
                 ].map((color) => (
                   <div key={color.key} className="flex items-center justify-between">
@@ -178,6 +278,34 @@ function DesignEditor({ onClose }) {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Background Gradient */}
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">Hintergrund Verlauf</h3>
+              <div className="space-y-3">
+                {[
+                  { key: 'backgroundGradientStart', label: 'Start' },
+                  { key: 'backgroundGradientMiddle', label: 'Mitte' },
+                  { key: 'backgroundGradientEnd', label: 'Ende' }
+                ].map((color) => (
+                  <div key={color.key} className="flex items-center justify-between">
+                    <label className="text-sm text-gray-400">{color.label}</label>
+                    <input
+                      type="color"
+                      value={theme[color.key]}
+                      onChange={(e) => handleColorChange(color.key, e.target.value)}
+                      className="w-16 h-8 rounded cursor-pointer"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div 
+                className="mt-3 h-20 rounded-lg"
+                style={{
+                  background: `linear-gradient(to bottom right, ${theme.backgroundGradientStart}, ${theme.backgroundGradientMiddle}, ${theme.backgroundGradientEnd})`
+                }}
+              ></div>
             </div>
 
             {/* Typography */}

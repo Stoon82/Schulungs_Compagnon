@@ -25,8 +25,26 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    methods: ['GET', 'POST']
+    origin: (origin, callback) => {
+      // Allow localhost and all ngrok domains
+      const allowedOrigins = [
+        'http://localhost:5173',
+        'http://localhost:3000'
+      ];
+      const isNgrok = origin && (
+        origin.includes('.ngrok-free.dev') ||
+        origin.includes('.ngrok.io') ||
+        origin.includes('.ngrok.app')
+      );
+      
+      if (!origin || allowedOrigins.includes(origin) || isNgrok) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
@@ -35,7 +53,27 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet({
   contentSecurityPolicy: false
 }));
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow localhost and all ngrok domains
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ];
+    const isNgrok = origin && (
+      origin.includes('.ngrok-free.dev') ||
+      origin.includes('.ngrok.io') ||
+      origin.includes('.ngrok.app')
+    );
+    
+    if (!origin || allowedOrigins.includes(origin) || isNgrok) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -46,6 +84,20 @@ app.use('/api/sandbox', sandboxRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/materials', materialsRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Ngrok tunnel detection endpoint (bypasses CORS)
+app.get('/api/ngrok/tunnel', async (req, res) => {
+  try {
+    const response = await fetch('http://127.0.0.1:4040/api/tunnels');
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(503).json({ 
+      error: 'Ngrok not available',
+      message: error.message 
+    });
+  }
+});
 
 app.get('/health', (req, res) => {
   res.json({ 
@@ -90,6 +142,14 @@ eventBus.on('admin:system_resume', (data) => {
   io.emit('admin:system_resume', data);
 });
 
+eventBus.on('feedback:pause', (data) => {
+  io.emit('feedback:pause', data);
+});
+
+eventBus.on('feedback:overwhelmed', (data) => {
+  io.emit('feedback:overwhelmed', data);
+});
+
 io.on('connection', (socket) => {
   console.log(`✅ Client connected: ${socket.id}`);
   
@@ -99,6 +159,12 @@ io.on('connection', (socket) => {
   
   socket.on('ping', () => {
     socket.emit('pong', { timestamp: Date.now() });
+  });
+  
+  socket.on('design:update', (data) => {
+    console.log(`🎨 Design update received - Scope: ${data.scope}`);
+    // Broadcast design changes to all connected clients
+    io.emit('design:update', data);
   });
 });
 

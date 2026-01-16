@@ -3,7 +3,7 @@ import eventBus from '../eventBus.js';
 
 class MoodService {
   constructor() {
-    this.validMoods = ['confused', 'thinking', 'aha', 'wow'];
+    this.validMoods = ['confused', 'thinking', 'aha', 'wow', 'pause_request', 'overwhelmed'];
   }
 
   isValidMood(mood) {
@@ -22,7 +22,28 @@ class MoodService {
 
     const result = await db.run(sql, [participantId, mood, moduleId]);
 
+    // Get participant info for feedback events
+    const participant = await db.get('SELECT nickname FROM participants WHERE id = ?', [participantId]);
+
+    // Emit regular mood update
     eventBus.emitMoodUpdate(participantId, mood, moduleId);
+
+    // Emit special feedback events for pause and overwhelmed
+    if (mood === 'pause_request') {
+      eventBus.emit('feedback:pause', {
+        participantId,
+        nickname: participant?.nickname,
+        moduleId,
+        timestamp: new Date().toISOString()
+      });
+    } else if (mood === 'overwhelmed') {
+      eventBus.emit('feedback:overwhelmed', {
+        participantId,
+        nickname: participant?.nickname,
+        moduleId,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     return {
       id: result.id,

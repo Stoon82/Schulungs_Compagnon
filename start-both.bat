@@ -13,10 +13,15 @@ echo.
 start "Compagnon Backend" cmd /k "cd /d %~dp0 && node server/src/index.js"
 timeout /t 3 /nobreak >nul
 start "Compagnon Frontend" cmd /k "cd /d %~dp0client && npm run dev"
+timeout /t 2 /nobreak >nul
+start "Ngrok Tunnel" cmd /k "ngrok http 5173 --log=stdout"
 
 echo.
-echo Both servers are starting...
-echo Check the new windows for server output
+echo All services are starting...
+echo - Backend: Check backend window
+echo - Frontend: Check frontend window  
+echo - Ngrok Tunnel: Check ngrok window for public URL
 echo.
+echo The ngrok tunnel URL will be automatically detected
 echo Close this window when done
 pause

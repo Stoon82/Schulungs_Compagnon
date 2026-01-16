@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Users, Activity, MessageSquare, Code, TrendingUp, 
   Settings, LogOut, Unlock, Radio, Pause, Play,
-  Key, Download, AlertCircle, Presentation
+  Key, Download, AlertCircle, Presentation, Edit, Palette
 } from 'lucide-react';
 import api from '../services/api';
 import AdminStats from './AdminStats';
@@ -73,13 +73,42 @@ function AdminDashboard({ onLogout }) {
               </div>
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 hover:text-white transition-all"
-            >
-              <LogOut size={18} />
-              <span>Logout</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowProjector(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 rounded-lg transition-all"
+                title="Open Projector Mode"
+              >
+                <Presentation size={18} />
+                <span>Projector</span>
+              </button>
+              
+              <button
+                onClick={() => setShowModuleEditor(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all"
+                title="Edit Module Content"
+              >
+                <Edit size={18} />
+                <span>Modules</span>
+              </button>
+              
+              <button
+                onClick={() => setShowDesignEditor(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 rounded-lg transition-all"
+                title="Design Editor"
+              >
+                <Palette size={18} />
+                <span>Design</span>
+              </button>
+              
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 hover:text-white transition-all"
+              >
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -167,6 +196,21 @@ function AdminDashboard({ onLogout }) {
           </>
         )}
       </div>
+
+      {/* Projector Mode Modal */}
+      {showProjector && (
+        <ProjectorMode onClose={() => setShowProjector(false)} />
+      )}
+
+      {/* Module Editor Modal */}
+      {showModuleEditor && (
+        <ModuleEditor onClose={() => setShowModuleEditor(false)} />
+      )}
+
+      {/* Design Editor Modal */}
+      {showDesignEditor && (
+        <DesignEditor onClose={() => setShowDesignEditor(false)} />
+      )}
     </div>
   );
 }

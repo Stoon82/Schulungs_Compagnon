@@ -20,8 +20,58 @@ function App() {
   const [adminMode, setAdminMode] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Apply theme function
+  const applyTheme = (theme) => {
+    if (!theme) return
+    
+    const root = document.documentElement
+    root.style.setProperty('--primary-color', theme.primaryColor)
+    root.style.setProperty('--secondary-color', theme.secondaryColor)
+    root.style.setProperty('--accent-color', theme.accentColor)
+    root.style.setProperty('--bg-color', theme.backgroundColor)
+    root.style.setProperty('--text-color', theme.textColor)
+    
+    // Apply background gradient
+    if (theme.backgroundGradientStart) {
+      root.style.setProperty('--bg-gradient-start', theme.backgroundGradientStart)
+    }
+    if (theme.backgroundGradientMiddle) {
+      root.style.setProperty('--bg-gradient-middle', theme.backgroundGradientMiddle)
+    }
+    if (theme.backgroundGradientEnd) {
+      root.style.setProperty('--bg-gradient-end', theme.backgroundGradientEnd)
+    }
+    
+    if (theme.fontFamily) {
+      root.style.fontFamily = theme.fontFamily
+    }
+    
+    if (theme.fontSize) {
+      const size = theme.fontSize === 'small' ? '14px' : theme.fontSize === 'large' ? '18px' : '16px'
+      root.style.fontSize = size
+    }
+    
+    // Force re-render by toggling a data attribute
+    root.setAttribute('data-theme-updated', Date.now().toString())
+  }
+
+  // Load saved theme on mount
   useEffect(() => {
-    const newSocket = io('http://localhost:3000')
+    const savedTheme = localStorage.getItem('compagnon_theme')
+    if (savedTheme) {
+      try {
+        const theme = JSON.parse(savedTheme)
+        applyTheme(theme)
+      } catch (error) {
+        console.error('Failed to load saved theme:', error)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const newSocket = io(window.location.origin, {
+      path: '/socket.io'
+    })
     
     newSocket.on('connect', () => {
       console.log('Connected to server')
@@ -42,6 +92,30 @@ function App() {
       console.log('Participant joined:', data)
     })
 
+    newSocket.on('design:update', (data) => {
+      console.log('Design update received:', data)
+      const { theme, scope } = data
+      
+      // Check if this update applies to current context
+      const isAdminContext = window.location.pathname.includes('admin') || adminMode
+      const shouldApply = 
+        scope === 'all' || 
+        (scope === 'admin' && isAdminContext) || 
+        (scope === 'client' && !isAdminContext)
+      
+      if (shouldApply) {
+        // Save theme to localStorage
+        localStorage.setItem('compagnon_theme', JSON.stringify(theme))
+        localStorage.setItem('compagnon_theme_scope', scope)
+        
+        // Apply theme immediately without reload
+        applyTheme(theme)
+        
+        // Show notification
+        console.log('🎨 Design updated and applied!')
+      }
+    })
+
     setSocket(newSocket)
 
     checkExistingSession()
@@ -54,8 +128,22 @@ function App() {
     const adminToken = api.getAdminToken()
     
     if (adminToken) {
-      setIsAdmin(true)
-      setAdminMode(true)
+      // Validate admin token by trying to fetch stats
+      try {
+        const statsResult = await api.getAdminStats()
+        if (statsResult.success) {
+          setIsAdmin(true)
+          setAdminMode(true)
+        } else {
+          // Token invalid, clear it
+          api.clearAdminToken()
+          console.log('Admin token expired, please login again')
+        }
+      } catch (error) {
+        // Token invalid or server error, clear it
+        api.clearAdminToken()
+        console.log('Admin session invalid, please login again')
+      }
     }
     
     if (sessionToken) {
