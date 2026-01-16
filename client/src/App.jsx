@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react'
 import { io } from 'socket.io-client'
+import api from './services/api'
+import JoinScreen from './components/JoinScreen'
+import ModuleList from './components/ModuleList'
 import './App.css'
 
 function App() {
   const [connected, setConnected] = useState(false)
   const [socket, setSocket] = useState(null)
+  const [participant, setParticipant] = useState(null)
+  const [modules, setModules] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const newSocket = io('http://localhost:3000')
@@ -19,67 +25,107 @@ function App() {
       setConnected(false)
     })
 
-    newSocket.on('pong', (data) => {
-      console.log('Pong received:', data)
+    newSocket.on('module:unlock', (data) => {
+      console.log('Module unlocked:', data)
+      loadModules()
+    })
+
+    newSocket.on('participant:joined', (data) => {
+      console.log('Participant joined:', data)
     })
 
     setSocket(newSocket)
 
+    checkExistingSession()
+
     return () => newSocket.close()
   }, [])
 
-  const sendPing = () => {
-    if (socket) {
-      socket.emit('ping')
+  const checkExistingSession = async () => {
+    const sessionToken = localStorage.getItem('sessionToken')
+    
+    if (sessionToken) {
+      try {
+        const result = await api.getSession()
+        
+        if (result.success) {
+          setParticipant(result.data)
+          await loadModules()
+        }
+      } catch (error) {
+        console.error('Session recovery failed:', error)
+      }
     }
+    
+    setLoading(false)
+  }
+
+  const loadModules = async () => {
+    try {
+      const result = await api.getModules()
+      
+      if (result.success) {
+        setModules(result.data)
+      }
+    } catch (error) {
+      console.error('Failed to load modules:', error)
+    }
+  }
+
+  const handleJoin = async (data) => {
+    setParticipant(data)
+    await loadModules()
+  }
+
+  const handleModuleClick = (module) => {
+    console.log('Module clicked:', module)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Lade...</div>
+      </div>
+    )
+  }
+
+  if (!participant) {
+    return <JoinScreen onJoin={handleJoin} />
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center">
-          <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-            The Compagnon
-          </h1>
-          <p className="text-2xl text-gray-300 mb-8">
-            Immersives KI-Schulungssystem für ABW
-          </p>
-          
-          <div className="mb-8">
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
+      <div className="container mx-auto px-4 py-8">
+        <header className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                The Compagnon
+              </h1>
+              <p className="text-gray-300 mt-1">
+                Willkommen, {participant.nickname || 'Entdecker:in'}
+              </p>
+            </div>
+            
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
               connected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
             }`}>
               <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`}></div>
               {connected ? 'Verbunden' : 'Nicht verbunden'}
             </div>
           </div>
+        </header>
 
-          <div className="max-w-2xl mx-auto bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl">
-            <h2 className="text-3xl font-semibold mb-4">🚀 Setup erfolgreich!</h2>
-            <p className="text-lg text-gray-300 mb-6">
-              Das Backend läuft und die WebSocket-Verbindung ist aktiv.
+        <main>
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold mb-2">Deine Reise</h2>
+            <p className="text-gray-400">
+              Folge den Modulen und entdecke die Welt der KI
             </p>
-            
-            <button
-              onClick={sendPing}
-              disabled={!connected}
-              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg font-semibold hover:from-cyan-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Test Ping senden
-            </button>
-
-            <div className="mt-8 text-left text-sm text-gray-400">
-              <p className="mb-2">✅ Backend Server: http://localhost:3000</p>
-              <p className="mb-2">✅ Frontend Client: http://localhost:5173</p>
-              <p className="mb-2">✅ Database: SQLite initialisiert</p>
-              <p>✅ Ollama: Bereits installiert</p>
-            </div>
           </div>
 
-          <div className="mt-12 text-gray-400">
-            <p className="text-sm">Version 2.0 | Ready for Development</p>
-          </div>
-        </div>
+          <ModuleList modules={modules} onModuleClick={handleModuleClick} />
+        </main>
       </div>
     </div>
   )
