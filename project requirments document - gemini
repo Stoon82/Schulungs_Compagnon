@@ -1,0 +1,75 @@
+Product Requirements Document (PRD): "The Compagnon"
+Projekt: Immersives KI-Schulungssystem für das Ambulant Betreute Wohnen (ABW) Version: 2.0 (Integrated Final) Status: Ready for Implementation
+1. Executive Summary
+"The Compagnon" ist ein lokales, hochgradig interaktives Schulungssystem, das Fachkräfte im ABW durch eine "Heldenreise" in die Welt der Künstlichen Intelligenz führt. Das System demonstriert technische Souveränität durch einen Local-First-Ansatz (Ollama) und befähigt Teilnehmer, von passiven Konsumenten zu aktiven Schöpfern digitaler Werkzeuge zu werden.
+Die App fungiert während der Schulung als interaktiver Begleiter (Client) und als visuelles Leitmedium (Admin/Projektor), das Theorie und Praxis nahtlos verschmilzt.
+2. Zielgruppe & User Personas
+Persona A (Sarah, Fachkraft): Motiviert, aber technisch unsicher. Braucht Barrierefreiheit und sofortigen Alltagsbezug.
+Persona B (Michael, Skeptiker): Hinterfragt Datenschutz und Nutzen. Braucht Beweise für lokale Datensicherheit.
+Persona C (Du, der Admin): Braucht volle Kontrolle über den Raumfluss und eine beeindruckende Visualisierung auf dem Beamer.
+3. Die "Heldenreise" (Trainingsplan & Storytelling)
+Das System folgt einer dramaturgischen Struktur (Steve Jobs Stil):
+Phase
+Story-Element
+Modul-Inhalt (App-Freischaltung)
+System-Aktion
+0. Intro
+Der Hook
+"Schock-Modus": Textwüste auf Beamer.
+Client-App zeigt nur Verbindungs-Ampel.
+1. Reveal
+Die Auflösung
+Begrüßung & Vision. Erste Audio-Zusammenfassung.
+Admin schaltet Modul 1 frei -> Client vibriert.
+2. Journey
+Das Training
+KI-Grundlagen & NotebookLM.
+Freischaltung von Quiz & Live-Mood-Polls.
+3. Climax
+Die Schöpfung
+App-Building Workshop (Einkaufsbegleiter).
+Sandbox-Uploader wird auf Client aktiv.
+4. Encore
+Das Geschenk
+Material-Hub & Quellcode-Release.
+Alle Module offen; PDF-Zertifikat Generator.
+
+4. Funktionale Anforderungen
+4.1 Teilnehmer-App (Client PWA)
+Echtzeit-Interaktion: "Mood-Thermometer" (Aha, Hä?, Wow) mit sofortigem Feedback an Admin.
+Modul-Navigator: Dynamische Anzeige von Texten, Audio-Files (NotebookLM-Podcasts) und Video-Zusammenfassungen.
+Sandbox-Uploader: Sicherer Bereich zum Einfügen von KI-generiertem HTML/JS Code.
+Lokaler Chat: Interface für direkte Anfragen an die lokale Ollama-Instanz (gemma3:4b).
+PWA Features: "Install-to-Homescreen", Verbindungs-Statusanzeige (Ampel).
+4.2 Admin-Dashboard (Projektor-Ansicht)
+Dual-Purpose UI: Das Dashboard dient als Präsentationstool. Es spiegelt die Inhalte der Teilnehmer (für den Fokus), bietet aber Overlays für:
+Live-Analytics: Echtzeit-Visualisierung der Gruppenstimmung (Graphen).
+Orchestrierung: "Force Push" (Alle Teilnehmer auf ein Modul ziehen) oder "Free Roam" (Teilnehmer erkunden selbst).
+App-Galerie: Präsentation der im Workshop erstellten Teilnehmer-Apps zur gemeinsamen Bewertung.
+Code-Management: Trigger für "Easter Eggs" und Quellcode-Anzeigen via Secret-Codes.
+5. Technische Spezifikationen (Die "Claude-Korrektur")
+5.1 Tech Stack
+Backend: Node.js (Express) + Socket.io.
+Database: SQLite (für ACID-Konformität bei Live-Votings & Session-Persistence).
+Local AI: Ollama API Anbindung (Modell: gemma3:4b).
+Frontend: React/Tailwind CSS mit dynamischem Theming (High-Tech Dark vs. Social Light).
+5.2 Sicherheit (Sandbox-Architektur)
+Code-Execution: Teilnehmer-Apps werden in einem iFrame mit strikten Sandbox-Attributen ausgeführt: sandbox="allow-scripts".
+Sanitization: Eingebauter DOMPurify-Check für hochgeladenen Code im Backend.
+Content Security Policy (CSP): Strikte Header, um Datenaustausch nach außen (außer via Tunnel) zu unterbinden.
+5.3 Infrastruktur
+Tunneling: ngrok für externe Erreichbarkeit der lokalen Node-Instanz.
+Backup: Automatisierter Export des SQLite-States in JSON pro Modul-Abschluss.
+6. UX & Design Prinzipien
+High Fidelity Visuals: Animierte Hintergründe und Micro-Interactions für den "Wow-Effekt".
+Barrierefreiheit: Fokus auf Leichte Sprache (per Schalter in der App simulierbar).
+Feedback-Loops: Jede Interaktion (Button-Klick, Mood-Send) wird haptisch (Vibration auf Mobilgeräten) oder visuell bestätigt.
+7. Erfolgskriterien (KPIs)
+Stabilität: 0 Systemabstürze bei bis zu 20 gleichzeitigen Socket-Verbindungen.
+Latenz: Mood-Updates erscheinen in < 200ms auf dem Admin-Dashboard.
+Engagement: Durchschnittlich 15+ Interaktionen pro Teilnehmer im Stimmungsbarometer.
+Transfer: Mindestens 3 funktionsfähige "Mini-Apps" in der Galerie am Ende der Schulung.
+8. Risiko-Einschätzung & Fallbacks
+Risiko: Tunnel-Abbruch (ngrok). Fallback: Lokale IP-Anzeige für Teilnehmer im selben WLAN.
+Risiko: Ollama Performance-Einbruch. Fallback: Vordefinierte statische KI-Antworten ("Simulations-Modus").
+Risiko: Überforderung der Teilnehmer. Fallback: Admin schaltet "Pause-Modus" (App-Sperre mit Atemübung).

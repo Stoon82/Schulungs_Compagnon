@@ -1,0 +1,4389 @@
+# Product Requirements Document (PRD)
+## "The Compagnon" - Immersives Schulungssystem für KI im ABW
+
+**Version:** 1.0  
+**Datum:** 16. Januar 2026  
+**Projekt-Lead:** [Dein Name]  
+**Zielgruppe:** Interne Fortbildung für ABW-Mitarbeiter (6-12 Teilnehmer)
+
+---
+
+## Executive Summary
+
+"The Compagnon" ist ein lokales, story-getriebenes Schulungssystem, das Mitarbeitern im Ambulant Betreuten Wohnen die Möglichkeiten von Local-First AI und No-Code-Entwicklung näherbringt. Das System demonstriert moderne Webtechnologien in einem geschützten Raum und verwandelt technische Schulungsinhalte in eine interaktive Heldenreise.
+
+**Kernversprechen:** "Erlebe KI nicht als abstraktes Konzept, sondern als magischen Begleiter, der mit dir gemeinsam lernt."
+
+**Philosophie:** Overengineering als didaktisches Mittel – jede technische Entscheidung wird sichtbar und erlebbar gemacht.
+
+---
+
+## User Personas
+
+### Persona 1: Die neugierige Fachkraft
+**Name:** Sarah, 34, Heilerziehungspflegerin  
+**Tech-Level:** Nutzt WhatsApp und Word, unsicher bei "technischen" Themen  
+**Motivation:** Will verstehen, wie KI ihre Arbeit erleichtern kann, ohne Angst vor Überwachung  
+**Needs:** 
+- Klare, nicht-technische Sprache
+- Sofortiges Erfolgserlebnis
+- Sicherer Experimentierraum
+
+### Persona 2: Der skeptische Veteran
+**Name:** Michael, 52, seit 20 Jahren im ABW  
+**Tech-Level:** "Das haben wir immer so gemacht"  
+**Motivation:** Muss bei der Fortbildung dabei sein, sieht aber keinen Mehrwert  
+**Needs:**
+- Konkrete Praxisbeispiele aus dem ABW-Alltag
+- Kontrollgefühl über die Technologie
+- Beweis, dass es Zeit spart statt kostet
+
+### Persona 3: Der Admin/Facilitator
+**Name:** Du :)  
+**Tech-Level:** JavaScript-Entwickler, experimentierfreudig  
+**Motivation:** Unvergessliche Lernerfahrung schaffen  
+**Needs:**
+- Echtzeit-Einblick in Verständnis der Gruppe
+- Flexible Anpassung des Tempos
+- "Wow"-Momente orchestrieren können
+
+---
+
+## System-Architektur
+
+### Technology Stack
+
+```
+┌─────────────────────────────────────────┐
+│           Client (PWA)                  │
+│  React + Tailwind CSS + Socket.io      │
+└─────────────┬───────────────────────────┘
+              │ WebSocket + HTTP
+┌─────────────▼───────────────────────────┐
+│         Node.js Server                  │
+│  Express + Socket.io + Event Bus        │
+├─────────────┬───────────────────────────┤
+│   SQLite    │    Ollama Client          │
+│  (State)    │  (localhost:11434)        │
+└─────────────┴───────────────────────────┘
+```
+
+**Begründung der Wahl:**
+- **SQLite statt JSON:** ACID-Garantie, keine Race Conditions, SQL-Demo als Lerninhalt
+- **Event Bus Pattern:** Entkopplung für live Code-Demonstrationen
+- **React:** Komponentendenken als Metapher für modulares Arbeiten
+
+### Deployment-Szenarien
+
+**Primär:** Laptop als lokaler Server + ngrok für Device-Zugriff  
+**Fallback:** Alle Teilnehmer auf einem WLAN, direkter LAN-Zugriff
+
+```bash
+# Start-Script
+npm run dev          # Startet Server auf :3000
+npm run tunnel       # Startet ngrok und zeigt QR-Code
+npm run full-demo    # Startet Server + Ollama + öffnet Admin-Dashboard
+```
+
+---
+
+## Funktionale Anforderungen
+
+### 1. Teilnehmer-App (Client)
+
+#### 1.1 Authentifizierung & Session-Management
+
+**Anforderung:** Einfacher, anonymer Zugang mit persistenter Session
+
+**Implementierung:**
+```javascript
+// Beim ersten Besuch
+POST /api/join
+Body: { nickname: "Sarah" } // Optional
+Response: { sessionToken: "abc123", participantId: "p_001" }
+
+// Token wird in localStorage gespeichert
+// Bei jedem Request in Header: Authorization: Bearer abc123
+```
+
+**Fallback:** Bei Token-Verlust kann Teilnehmer über Admin-Dashboard reaktiviert werden
+
+**UI-Flow:**
+1. Landing Page: "Willkommen beim Compagnon" + Nickname-Eingabe (optional)
+2. System generiert Avatar (basierend auf Hash des Nicknames)
+3. Animierter Übergang: "Dein Compagnon erwacht..."
+
+#### 1.2 Dynamische Modul-Freischaltung
+
+**Story-Struktur (Heldenreise):**
+
+```
+Prolog: "Der Ruf" 
+  → Was ist KI eigentlich? (Immer sichtbar)
+
+Modul 1: "Schwelle überschreiten"
+  → Local vs. Cloud AI (Freigeschaltet bei Start)
+
+Modul 2: "Verbündete finden"
+  → Erste Ollama-Interaktion (Admin-Push nach 15 Min)
+
+Modul 3: "Die Prüfung"
+  → Code-Playground & App-Erstellung (Admin-Push nach Modul 2)
+
+Modul 4: "Rückkehr mit dem Elixier"
+  → Integration in ABW-Alltag (Freischaltung via Code)
+
+Epilog: "Material-Hub & Community-Apps"
+  → Immer zugänglich
+```
+
+**Technische Umsetzung:**
+```javascript
+// Server sendet an alle Clients
+socket.emit('module:unlock', { 
+  moduleId: 'module_2',
+  title: 'Verbündete finden',
+  animation: 'fadeInUp',
+  soundEffect: 'chime.mp3' // Optional
+});
+
+// Client State
+const [unlockedModules, setUnlockedModules] = useState(['prolog', 'module_1']);
+```
+
+**UI-Verhalten:**
+- Gesperrte Module: Grau, mit Schloss-Icon + "Wird freigeschaltet von deinem Compagnon"
+- Freischaltung: 3-Sekunden-Animation + Konfetti-Effekt
+- Notification: Toast-Message "Neues Kapitel verfügbar!"
+
+#### 1.3 Live-Stimmungs-Barometer
+
+**Konzept:** Permanentes Feedback ohne Unterbrechung des Flows
+
+**UI-Design:**
+```
+┌─────────────────────────┐
+│ 😕  🤔  💡  🤯         │  ← Sticky Footer
+│ Hä? Aha! Wow! Mind=Blown│
+└─────────────────────────┘
+```
+
+**Interaktion:**
+- Single-Tap auf Icon sendet Mood
+- Visuelles Feedback: Icon pulsiert kurz
+- Keine Bestätigung nötig (Micro-Interaction)
+
+**Datenübertragung:**
+```javascript
+socket.emit('mood:update', {
+  participantId: 'p_001',
+  mood: 'wow',
+  moduleId: 'module_2',
+  timestamp: Date.now()
+});
+```
+
+**Privacy:** Moods sind für andere Teilnehmer nicht sichtbar, nur aggregiert im Admin-Dashboard
+
+#### 1.4 Sandbox-Uploader (Code-Playground)
+
+**User Story:** Sarah hat mit ChatGPT einen "Tagesplan-Generator" erstellt und will ihn der Gruppe zeigen.
+
+**Workflow:**
+1. Teilnehmer öffnet "Mein Labor" (Modul 3)
+2. Paste HTML/CSS/JS in Monaco Editor (Syntax-Highlighting)
+3. "Live-Vorschau" Button → Öffnet isoliertes Preview
+4. "In Galerie teilen" → App wird für alle sichtbar
+
+**Sicherheits-Implementierung:**
+
+```javascript
+// Server: Code wird gespeichert, aber nie direkt ausgeführt
+POST /api/sandbox/create
+Body: { 
+  code: "<html>...</html>",
+  title: "Sarahs Tagesplan-Tool",
+  participantId: "p_001"
+}
+Response: { 
+  appId: "app_001",
+  previewUrl: "/sandbox/preview/app_001"
+}
+
+// Preview Route
+app.get('/sandbox/preview/:appId', (req, res) => {
+  const app = db.getApp(req.params.appId);
+  
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta http-equiv="Content-Security-Policy" 
+              content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline';">
+      </head>
+      <body>
+        <iframe 
+          sandbox="allow-scripts allow-same-origin"
+          srcdoc="${escapeHtml(app.code)}"
+          style="width:100%;height:100%;border:none">
+        </iframe>
+      </body>
+    </html>
+  `);
+});
+```
+
+**Code-Sanitization:**
+```javascript
+const sanitizeHtml = require('sanitize-html');
+
+const cleanCode = sanitizeHtml(userCode, {
+  allowedTags: sanitizeHtml.defaults.allowedTags.concat(['style']),
+  allowedAttributes: {
+    '*': ['class', 'id', 'style']
+  },
+  allowedSchemes: ['http', 'https', 'data']
+});
+```
+
+**Limitations (transparent kommuniziert):**
+- Keine externen API-Calls möglich
+- Keine File-System-Zugriffe
+- Max. Code-Size: 50KB
+- Timeout nach 5 Sekunden
+
+#### 1.5 App-Galerie
+
+**Layout:** Card-Grid mit Voting-System
+
+```
+┌──────────────┐  ┌──────────────┐
+│ Sarahs Tool  │  │ Michaels App │
+│ [Preview]    │  │ [Preview]    │
+│ 👍 8  👎 1   │  │ 👍 3  👎 0   │
+│ "Super Idee!"│  │ "Praktisch!" │
+└──────────────┘  └──────────────┘
+```
+
+**Voting-Regeln:**
+- Ein Vote pro App pro Teilnehmer
+- Kann geändert werden (Toggle)
+- Eigene Apps nicht votebar
+
+**Real-Time Updates:**
+```javascript
+socket.on('gallery:vote', ({ appId, votes }) => {
+  updateGalleryCard(appId, votes);
+});
+```
+
+#### 1.6 Local-Chat mit Ollama
+
+**UI-Konzept:** Chat-Interface mit "AI-Persona"
+
+```
+┌─────────────────────────────────────┐
+│ 🤖 Dein lokaler Compagnon           │
+├─────────────────────────────────────┤
+│ Du: Wie dokumentiere ich ein        │
+│     Entwicklungsgespräch?           │
+│                                      │
+│ 💬 Compagnon:                        │
+│    Ein strukturiertes Entwicklungs- │
+│    gespräch im ABW sollte...        │
+│    [Antwort]                         │
+│                                      │
+│ ⚡ Antwort in 2.3s generiert        │
+│ 🖥️  Läuft auf diesem Laptop!       │
+└─────────────────────────────────────┘
+```
+
+**Technische Specs:**
+- **Model:** gemma2:4b (lokaler Fallback auf gemma:2b)
+- **Context:** System-Prompt mit ABW-Kontext
+- **Timeout:** 30 Sekunden, dann Fallback-Message
+- **Rate-Limiting:** Max. 5 Requests/Minute pro Teilnehmer
+
+**System-Prompt:**
+```
+Du bist ein hilfreicher Assistent für Fachkräfte im Ambulant Betreuten Wohnen.
+Deine Antworten sind:
+- Kurz und praxisnah (max. 150 Wörter)
+- Fachlich korrekt, aber nicht zu akademisch
+- Empathisch und wertschätzend
+
+Kontext dieser Session: Fortbildung zu Local AI und No-Code Tools.
+```
+
+**Error-Handling:**
+```javascript
+// Ollama offline
+if (!ollamaAvailable) {
+  return {
+    message: "Dein Compagnon schläft gerade 😴. Der Trainer kann ihn aufwecken!",
+    fallbackLinks: [
+      "Siehe Material-Hub für offline Ressourcen"
+    ]
+  };
+}
+
+// Timeout
+if (responseTime > 30000) {
+  return {
+    message: "Dein Compagnon denkt noch nach... Das dauert manchmal etwas länger bei komplexen Fragen.",
+    suggestion: "Versuche die Frage einfacher zu formulieren"
+  };
+}
+```
+
+#### 1.7 Material-Hub
+
+**Struktur:**
+```
+📚 Material-Hub
+├─ 📄 Handouts (PDF-Links)
+│  ├─ "Prompt Engineering Basics"
+│  └─ "DSGVO und Local AI"
+├─ 🎧 Audio-Zusammenfassungen (NotebookLM)
+│  └─ "Die Fortbildung in 10 Minuten"
+├─ 🎥 Video-Tutorials
+│  ├─ "Ollama installieren" (Loom Embed)
+│  └─ "Cursor.ai Einführung"
+└─ 🔗 Externe Links
+   ├─ Claude.ai
+   └─ Ollama Docs
+```
+
+**Besonderheit:** KI-generierte Zusammenfassungen
+- Nach jedem Modul: "Lass dir das Wichtigste von deinem Compagnon zusammenfassen"
+- Button triggert Ollama-Request mit Modul-Content
+- Ergebnis wird als Audio-File generiert (Text-to-Speech via Browser API)
+
+#### 1.8 Verbindungs-Ampel
+
+**Position:** Top-Right Corner, 3-State Indicator
+
+```javascript
+const ConnectionStates = {
+  CONNECTED: { 
+    color: 'green', 
+    icon: '🟢', 
+    text: 'Live'
+  },
+  RECONNECTING: { 
+    color: 'yellow', 
+    icon: '🟡', 
+    text: 'Verbinde...'
+  },
+  OFFLINE: { 
+    color: 'red', 
+    icon: '🔴', 
+    text: 'Offline',
+    action: 'Admin informieren'
+  }
+};
+```
+
+**Reconnection-Logic:**
+```javascript
+socket.on('disconnect', () => {
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  const reconnectInterval = setInterval(() => {
+    attempts++;
+    if (attempts > maxAttempts) {
+      clearInterval(reconnectInterval);
+      showOfflineMode();
+    }
+    socket.connect();
+  }, 3000);
+});
+```
+
+**Offline-Mode:**
+- Alle bereits geladenen Module bleiben zugänglich
+- Chat-Funktion deaktiviert mit Hinweis
+- "Auto-Sync wenn Verbindung wieder da" Promise
+
+---
+
+### 2. Admin-Dashboard
+
+**URL:** `/admin` (Passwort-geschützt, simpler Auth-Endpoint)
+
+#### 2.1 Control-Center
+
+**Layout:** Fullscreen Command-Center Ästhetik
+
+```
+┌─────────────────────────────────────────────────────┐
+│  THE COMPAGNON - MISSION CONTROL                    │
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│  📊 Live Status         🎭 Teilnehmer (8 online)   │
+│  ┌─────────────────┐    ┌──────────────────────┐   │
+│  │ Modul 2 aktiv   │    │ Sarah    💡 (Aha!)   │   │
+│  │ ⏱️  24:15       │    │ Michael  🤔 (Denkt)  │   │
+│  └─────────────────┘    │ ...                  │   │
+│                         └──────────────────────┘   │
+│  🚀 Module freischalten                            │
+│  [Modul 2] [Modul 3] [Modul 4] [Geheim-Code]      │
+│                                                      │
+│  📈 Stimmungskurve (Live)                           │
+│  [Chart: Letzten 10 Minuten]                        │
+│                                                      │
+│  🏆 App-Galerie Ranking                             │
+│  1. Sarahs Tagesplan-Tool (8👍)                     │
+│  2. ...                                             │
+└─────────────────────────────────────────────────────┘
+```
+
+**Interaktionen:**
+
+```javascript
+// Modul freischalten
+<button onClick={() => unlockModule('module_2')}>
+  Modul 2: Verbündete finden 🔓
+</button>
+
+// Broadcast an alle
+function unlockModule(moduleId) {
+  fetch('/api/admin/unlock', {
+    method: 'POST',
+    body: JSON.stringify({ moduleId }),
+    headers: { 'Authorization': `Bearer ${adminToken}` }
+  });
+  
+  // Server macht:
+  io.emit('module:unlock', { moduleId, timestamp: Date.now() });
+}
+```
+
+**Emergency Controls:**
+- **Pause All:** Freezt alle Client-UIs (für Erklärungen)
+- **Reset Session:** Setzt alle Teilnehmer auf Modul 1 zurück
+- **Kick Participant:** Entfernt Session (bei Bedarf)
+
+#### 2.2 Live-Analytics
+
+**Chart 1: Mood-Timeline**
+```javascript
+// Chart.js Line Chart
+const moodData = {
+  labels: ['14:00', '14:05', '14:10', ...],
+  datasets: [
+    {
+      label: '😕 Hä?',
+      data: [2, 1, 0, ...],
+      borderColor: '#ef4444'
+    },
+    {
+      label: '💡 Aha!',
+      data: [3, 5, 7, ...],
+      borderColor: '#10b981'
+    },
+    // ...
+  ]
+};
+```
+
+**Chart 2: Engagement-Heatmap**
+- Zeigt welche Module die meisten Moods auslösen
+- Farb-Kodierung: Grün = hohes Engagement, Rot = Verwirrung
+
+**Chart 3: Progress-Overview**
+```
+Sarah    [████████░░] 80% (bei Modul 4)
+Michael  [█████░░░░░] 50% (bei Modul 2)
+...
+```
+
+#### 2.3 Code-Generator für Easter Eggs
+
+**Feature:** Admin kann spontan "Geheim-Codes" erstellen
+
+**UI:**
+```
+┌────────────────────────────────┐
+│  Geheim-Feature freischalten   │
+├────────────────────────────────┤
+│  Feature: [ Quellcode ansehen] │
+│  Code:    [GENERATED: A7F2]    │
+│  Gültig:  [30 Minuten]         │
+│                                 │
+│  [Code generieren] [Broadcast] │
+└────────────────────────────────┘
+```
+
+**Verwendung:**
+- Admin generiert Code
+- Teilt Code mündlich: "Wer den Quellcode dieser App sehen will, gebt A7F2 ein"
+- Teilnehmer: Button "Code einlösen" erscheint
+- Nach Eingabe: Neues Feature wird freigeschaltet
+
+**Mögliche Easter Eggs:**
+- Quellcode-Ansicht der eigenen Session
+- "Dark-Mode Ultra" Theme
+- Direkter Zugriff auf Server-Logs (read-only)
+- Badge: "Code-Entdecker 🕵️"
+
+#### 2.4 Emergency-Sandbox-Override
+
+**Scenario:** Eine Teilnehmer-App crasht Preview-iFrame
+
+**Controls:**
+- **Disable App:** Entfernt App aus Galerie (mit Benachrichtigung an Creator)
+- **Whitelist-Mode:** Nur Admin-approved Apps sichtbar
+- **Full Reset:** Löscht alle Sandbox-Apps (mit Confirmation-Dialog)
+
+---
+
+## Data Schema & State Management
+
+### SQLite-Schema
+
+```sql
+-- Teilnehmer-Sessions
+CREATE TABLE participants (
+  id TEXT PRIMARY KEY,
+  nickname TEXT,
+  session_token TEXT UNIQUE,
+  avatar_seed TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_seen DATETIME
+);
+
+-- Modul-Fortschritt
+CREATE TABLE progress (
+  participant_id TEXT,
+  module_id TEXT,
+  unlocked_at DATETIME,
+  completed BOOLEAN DEFAULT 0,
+  PRIMARY KEY (participant_id, module_id),
+  FOREIGN KEY (participant_id) REFERENCES participants(id)
+);
+
+-- Mood-Tracking
+CREATE TABLE moods (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  participant_id TEXT,
+  mood TEXT CHECK(mood IN ('confused', 'thinking', 'aha', 'wow')),
+  module_id TEXT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (participant_id) REFERENCES participants(id)
+);
+
+-- Sandbox-Apps
+CREATE TABLE sandbox_apps (
+  id TEXT PRIMARY KEY,
+  participant_id TEXT,
+  title TEXT,
+  code TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  is_active BOOLEAN DEFAULT 1,
+  FOREIGN KEY (participant_id) REFERENCES participants(id)
+);
+
+-- App-Votes
+CREATE TABLE votes (
+  app_id TEXT,
+  participant_id TEXT,
+  vote_type TEXT CHECK(vote_type IN ('up', 'down')),
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (app_id, participant_id),
+  FOREIGN KEY (app_id) REFERENCES sandbox_apps(id),
+  FOREIGN KEY (participant_id) REFERENCES participants(id)
+);
+
+-- Geheim-Codes
+CREATE TABLE secret_codes (
+  code TEXT PRIMARY KEY,
+  feature_id TEXT,
+  expires_at DATETIME,
+  created_by TEXT DEFAULT 'admin'
+);
+
+-- Code-Einlösungen
+CREATE TABLE code_redemptions (
+  participant_id TEXT,
+  code TEXT,
+  redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (participant_id, code),
+  FOREIGN KEY (code) REFERENCES secret_codes(code)
+);
+```
+
+### Server-State (In-Memory für Performance)
+
+```javascript
+// Event-Bus für Echtzeit-Events
+const systemEvents = new EventEmitter();
+
+// Connected Clients Map
+const connectedClients = new Map(); // sessionToken -> socket
+
+// Cached Analytics (updated every 30s)
+let analyticsCache = {
+  moodTimeline: [],
+  participantProgress: [],
+  lastUpdated: null
+};
+
+// Feature-Flags (Admin-togglebar)
+const featureFlags = {
+  sandboxEnabled: true,
+  aiChatEnabled: true,
+  votingEnabled: true,
+  darkModeForced: false
+};
+```
+
+---
+
+## API & Socket Events
+
+### REST API Endpoints
+
+```javascript
+// === PUBLIC ===
+POST   /api/join                  // Session erstellen
+GET    /api/modules               // Verfügbare Module laden
+GET    /api/gallery               // Alle Apps abrufen
+POST   /api/sandbox/create        // Neue App hochladen
+POST   /api/gallery/:id/vote      // App voten
+POST   /api/chat                  // Ollama-Request
+POST   /api/codes/redeem          // Geheim-Code einlösen
+
+// === ADMIN ===
+POST   /admin/login               // Admin-Auth
+POST   /admin/unlock              // Modul freischalten
+POST   /admin/codes/generate      // Code erstellen
+GET    /admin/analytics           // Live-Stats
+DELETE /admin/sandbox/:id         // App entfernen
+POST   /admin/broadcast           // Custom Message an alle
+```
+
+### Socket.io Events
+
+**Client → Server:**
+```javascript
+// Mood-Update
+socket.emit('mood:update', {
+  mood: 'aha',
+  moduleId: 'module_2'
+});
+
+// Chat-Message
+socket.emit('chat:message', {
+  message: 'Wie dokumentiere ich ein Gespräch?',
+  context: 'module_3'
+});
+
+// Heartbeat (jede Minute)
+socket.emit('ping', { timestamp: Date.now() });
+```
+
+**Server → Client:**
+```javascript
+// Modul freischalten
+socket.emit('module:unlock', {
+  moduleId: 'module_3',
+  animation: 'fadeInUp'
+});
+
+// Neue App in Galerie
+socket.broadcast.emit('gallery:new', {
+  appId: 'app_042',
+  title: 'Sarahs Tool',
+  author: 'Sarah'
+});
+
+// Live-Vote-Update
+socket.emit('gallery:vote', {
+  appId: 'app_042',
+  votes: { up: 8, down: 1 }
+});
+
+// Admin-Broadcast
+io.emit('admin:message', {
+  type: 'info',
+  message: 'Pause für 5 Minuten ☕',
+  priority: 'high'
+});
+
+// Emergency-Pause
+io.emit('system:pause', {
+  reason: 'Admin erklärt gerade etwas',
+  resumeIn: 120 // Sekunden
+});
+```
+
+---
+
+## UI/UX Flow: Die Heldenreise
+
+### Einstieg (0-5 Min)
+
+**Scene:** Landing Page mit Ambient-Animation (Partikel-Effekt)
+
+```
+[Animiertes Compagnon-Logo erscheint]
+
+"Willkommen, tapfere:r Entdecker:in.
+
+Du stehst am Anfang einer Reise in die Welt der künstlichen Intelligenz.
+Aber keine Sorge - du bist nicht allein.
+
+Ich bin dein Compagnon. Ich laufe hier, auf diesem Laptop.
+Ich bin keine Cloud. Ich bin hier. Bei dir."
+
+[Nickname-Eingabe]
+[Button: "Die Reise beginnen"]
+```
+
+**Transition:** Fade-to-Black → Modul-Übersicht erscheint
+
+### Prolog: "Der Ruf" (5-10 Min)
+
+**Inhalt:**
+- Video: "Was ist KI eigentlich?" (3 Min, Embedded)
+- Interaktiv: "Welche dieser Aufgaben erledigt KI heute schon?"
+  - Multiple-Choice mit sofortigem Feedback
+- Mood-Check: "Wie fühlst du dich nach diesem Einstieg?"
+
+**Übergang:** "Bereit für den nächsten Schritt? Dein Compagnon wartet..."
+
+### Modul 1: "Die Schwelle überschreiten" (10-20 Min)
+
+**Narrative:**
+```
+"Die Welt ist voller KI-Versprechen. Aber wo laufen diese KIs?
+In riesigen Rechenzentren, auf Servern irgendwo auf der Welt.
+
+Doch was, wenn die KI hier sein könnte? Bei dir? Auf deinem Laptop?
+Das ist Local AI. Und das ist, wo ich lebe."
+```
+
+**Interaktive Demo:**
+- Split-Screen: "Cloud vs. Local"
+- Button: "Frag mich etwas" → Ollama antwortet in Echtzeit
+- Counter zeigt: "Antwort in 2.1 Sekunden generiert - offline!"
+
+**Aufgabe:**
+"Stelle deinem lokalen Compagnon eine Frage über deinen Arbeitsalltag im ABW."
+
+**Success-Metric:** Mindestens 1 Chat-Nachricht verschickt
+
+### Modul 2: "Verbündete finden" (20-35 Min)
+
+**Admin triggert Freischaltung nach kurzer Einführung**
+
+**Narrative:**
+```
+"KI ist mächtig. Aber sie ist nicht magisch.
+Sie braucht die richtigen Worte. Die richtige Anleitung.
+Das nennt man einen 'Prompt'."
+```
+
+**Interaktive Challenges:**
+
+**Challenge 1:** "Der schlechte Prompt"
+```
+"Schreib eine Doku."
+→ Compagnon antwortet verwirrend
+
+"Schreibe eine strukturierte Dokumentation für ein Entwicklungsgespräch
+mit einem Klienten im ABW. Berücksichtige: Ziele, Fortschritte, Herausforderungen."
+→ Compagnon liefert perfekte Vorlage
+```
+
+**Challenge 2:** "Deine erste echte Aufgabe"
+- Teilnehmer bekommen reales ABW-Szenario
+- Müssen Prompt selbst formulieren
+- Compagnon gibt Feedback zur Prompt-Qualität
+
+**Gamification:**
+- Badge bei erfolgreicher Challenge: "Prompt-Meister 🏅"
+- Leaderboard (optional): Wer die beste Antwort bekommt
+
+### Modul 3: "Die Prüfung" (35-60 Min)
+
+**Admin schaltet frei nach Modul 2-Abschluss**
+
+**Narrative:**
+```
+"Du hast gelernt, mit deinem Compagnon zu sprechen.
+Jetzt ist es Zeit, gemeinsam etwas zu erschaffen.
+
+Heute wirst du zum Entwickler. Ohne Code zu schreiben.
+Klingt unmöglich? Dein Compagnon wird dir zeigen, wie."
+```
+
+**Live-Demo durch Admin:**
+1. ChatGPT/Claude öffnen
+2. Prompt: "Erstelle mir eine HTML-Seite mit einem Tagesplan-Generator"
+3. Code kopieren → In Compagnon-Sandbox einfügen
+4. Live-Preview zeigen
+5. In Galerie teilen
+
+**Teilnehmer-Aufgabe:**
+```
+"Wähle eine dieser Ideen oder entwickle deine eigene:
+
+1. Dokumentations-Vorlage für Krisengespräche
+2. Medikamenten-Erinnerungs-Timer
+3. Stimmungs-Tracker für Klienten
+4. Wochenplan-Generator
+
+Nutze eine KI deiner Wahl (ChatGPT, Claude, DeepSeek)
+um eine Mini-App zu erstellen.
+
+Teile sie dann mit der Gruppe!"
+```
+
+**Hilfestellung:**
+- "So gibst du einen guten Prompt für Code"
+- "Sandbox-Tutorial" Video (2 Min)
+- Live-Support durch Admin
+
+**Social-Element:**
+- Alle Apps erscheinen in Echtzeit in der Galerie
+- Vote für Lieblings-App
+- Kurze Show & Tell-Runde am Ende
+
+**Success-Metric:** Mindestens 50% der Teilnehmer teilen eine App
+
+### Modul 4: "Rückkehr mit dem Elixier" (60-75 Min)
+
+**Freischaltung via Geheim-Code (Admin verkündet mündlich)**
+
+**Narrative:**
+```
+"Du hast die Werkzeuge kennengelernt.
+Du hast deine erste App erschaffen.
+Jetzt die wichtigste Frage:
+
+Wie bringst du das in deinen Alltag?"
+```
+
+**Interaktive Workshop-Phase:**
+
+**Teil 1: Konkrete Use-Cases (15 Min)**
+```
+Diskussion (moderiert durch Admin):
+- Wo verlierst du im ABW-Alltag am meisten Zeit?
+- Welche wiederkehrenden Texte schreibst du?
+- Welche Informationen suchst du immer wieder?
+
+Live-Brainstorming im Compagnon:
+Teilnehmer können Ideen in Shared-Notepad eingeben
+(Einfaches Textarea-Feld, alle Eingaben sichtbar)
+```
+
+**Teil 2: Datenschutz & Grenzen (10 Min)**
+```
+Wichtige Prinzipien:
+✓ Niemals Klienten-Namen in Cloud-KI eingeben
+✓ Local AI (wie Ollama) für sensible Daten nutzen
+✓ KI ist Werkzeug, nicht Entscheidungsträger
+✗ Keine vollautomatisierten Berichte ohne Prüfung
+
+Interaktiv: "Welches Szenario ist OK?"
+- Multiple Choice mit Begründungen
+```
+
+**Teil 3: Deine nächsten Schritte (10 Min)**
+```
+Persönlicher Aktionsplan:
+
+1. Diese Woche: [________]
+   Beispiel: "Ich probiere ChatGPT für E-Mail-Entwürfe"
+
+2. Diesen Monat: [________]
+   Beispiel: "Ich installiere Ollama auf meinem Laptop"
+
+3. Mein Learning-Buddy: [________]
+   Beispiel: "Sarah und ich tauschen uns wöchentlich aus"
+
+[Button: "Plan speichern"] 
+→ Wird als PDF generiert und zum Download angeboten
+```
+
+**Abschluss-Animation:**
+```
+[Compagnon-Avatar erscheint]
+
+"Die Reise endet hier nicht.
+Ich bleibe bei dir.
+
+Alle Materialien findest du im Material-Hub.
+Dein Account bleibt aktiv - komm jederzeit zurück.
+
+Danke, dass du mir vertraut hast.
+Jetzt bist du dran. 🚀"
+
+[Konfetti-Regen]
+[Badge erscheint: "Compagnon-Absolvent ✨"]
+```
+
+### Epilog: Material-Hub & Community (Jederzeit zugänglich)
+
+**Persistente Ressourcen:**
+
+```
+📚 MATERIAL-HUB
+├─ Deine Fortschritte
+│  ├─ Absolvierte Module: [████░] 4/4
+│  ├─ Deine Apps: 1 erstellt, 12 Votes
+│  └─ Dein Aktionsplan (PDF-Download)
+│
+├─ Zum Nachlesen
+│  ├─ "Prompt-Engineering Cheat Sheet" (PDF)
+│  ├─ "50 ABW-Use-Cases für KI" (PDF)
+│  └─ "DSGVO-Leitfaden für Local AI" (PDF)
+│
+├─ Zum Nachhören
+│  ├─ 🎧 "Die Fortbildung in 10 Min" (NotebookLM)
+│  └─ 🎧 "Interview mit dem Trainer" (Bonus-Content)
+│
+├─ Zum Weiterlernen
+│  ├─ 🎥 "Ollama Installation Tutorial" (5 Min)
+│  ├─ 🎥 "Cursor.ai Walkthrough" (8 Min)
+│  └─ 🔗 Claude.ai Einladungs-Link
+│
+└─ Community-Apps
+   ├─ Top 5 Apps dieser Session (mit Code)
+   └─ "Hall of Fame" vergangener Workshops
+```
+
+**Besonderheit: "Nach der Session"**
+
+```javascript
+// 7 Tage nach der Fortbildung
+if (daysSinceWorkshop === 7) {
+  sendEmail({
+    to: participant.email, // Falls hinterlegt
+    subject: "Wie geht's deinem Compagnon?",
+    body: `
+      Hey ${participant.nickname},
+      
+      Eine Woche ist vergangen. Hast du schon etwas ausprobiert?
+      
+      Falls du Fragen hast: [Kontakt zum Trainer]
+      Falls du Erfolge teilen willst: [Community-Link]
+      
+      Dein Compagnon wartet auf dich: ${workshopUrl}
+    `
+  });
+}
+```
+
+---
+
+## Visual Design System
+
+### Theme 1: "High-Tech Dark Mode" (Standard)
+
+**Farbpalette:**
+```css
+:root {
+  --bg-primary: #0a0e1a;      /* Deep Space */
+  --bg-secondary: #1a1f35;    /* Midnight Blue */
+  --accent-neon: #00fff2;     /* Cyan Glow */
+  --accent-purple: #b47aff;   /* Violet */
+  --text-primary: #e8edf5;    /* Soft White */
+  --text-secondary: #8b93a7;  /* Muted Gray */
+  --success: #00ff88;         /* Neon Green */
+  --warning: #ffaa00;         /* Amber */
+  --error: #ff4466;           /* Pink Red */
+}
+```
+
+**Typografie:**
+```css
+font-family: 
+  'Inter', /* Body Text */
+  'JetBrains Mono', /* Code */
+  system-ui;
+
+/* Hierarchie */
+.hero-title {
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--accent-neon), var(--accent-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.module-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent-neon);
+}
+
+.body-text {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+```
+
+**Animationen:**
+```css
+/* Ambient Background */
+@keyframes particleFloat {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, -20px); }
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: var(--accent-neon);
+  border-radius: 50%;
+  animation: particleFloat 20s infinite ease-in-out;
+  opacity: 0.3;
+}
+
+/* Modul-Unlock Animation */
+@keyframes moduleUnlock {
+  0% {
+    transform: scale(0.9) rotateX(90deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1) rotateX(0);
+    opacity: 1;
+  }
+}
+
+/* Neon-Glow auf Buttons */
+.btn-primary {
+  box-shadow: 
+    0 0 20px rgba(0, 255, 242, 0.3),
+    0 0 40px rgba(0, 255, 242, 0.1),
+    inset 0 0 10px rgba(0, 255, 242, 0.2);
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  box-shadow: 
+    0 0 30px rgba(0, 255, 242, 0.6),
+    0 0 60px rgba(0, 255, 242, 0.3);
+  transform: translateY(-2px);
+}
+```
+
+**UI-Komponenten:**
+
+```jsx
+// Card mit Glassmorphism
+<div className="
+  bg-white/5
+  backdrop-blur-xl
+  border border-white/10
+  rounded-2xl
+  p-6
+  shadow-2xl
+  hover:border-accent-neon/50
+  transition-all
+  duration-300
+">
+  {content}
+</div>
+
+// Mood-Button mit Micro-Interaction
+<button className="
+  text-4xl
+  transition-transform
+  hover:scale-125
+  active:scale-90
+  relative
+" onClick={sendMood}>
+  💡
+  <span className="
+    absolute
+    inset-0
+    rounded-full
+    bg-accent-neon/20
+    animate-ping
+  "></span>
+</button>
+```
+
+### Theme 2: "Social-Work Mode" (Toggle via Admin)
+
+**Farbpalette:**
+```css
+:root {
+  --bg-primary: #f8fafc;      /* Soft White */
+  --bg-secondary: #ffffff;    /* Pure White */
+  --accent-primary: #0ea5e9;  /* Sky Blue */
+  --accent-secondary: #8b5cf6;/* Purple */
+  --text-primary: #1e293b;    /* Dark Slate */
+  --text-secondary: #64748b;  /* Slate Gray */
+  --success: #10b981;         /* Green */
+  --warning: #f59e0b;         /* Orange */
+  --error: #ef4444;           /* Red */
+}
+```
+
+**Accessibility-Features:**
+```css
+/* WCAG AAA Kontraste */
+.text-primary { 
+  color: #1e293b; 
+  /* Kontrast-Ratio: 14.5:1 auf weißem Hintergrund */
+}
+
+/* Focus-Styles für Tastatur-Navigation */
+*:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduced-Motion für Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dyslexie-freundliche Schrift (optional) */
+.readable-mode {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif;
+  letter-spacing: 0.05em;
+  word-spacing: 0.2em;
+  line-height: 2;
+}
+```
+
+**Theme-Toggle-Implementierung:**
+```javascript
+// Admin kann Theme für alle switchen
+socket.on('theme:change', ({ theme }) => {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('compagnon-theme', theme);
+});
+
+// CSS
+[data-theme="dark"] {
+  /* High-Tech Variablen */
+}
+
+[data-theme="light"] {
+  /* Social-Work Variablen */
+}
+```
+
+---
+
+## Non-Functional Requirements
+
+### Performance
+
+**Ladezeiten:**
+- Initial Load: < 3 Sekunden (auf 4G Netzwerk)
+- Modul-Navigation: < 500ms
+- Ollama-Response: < 10 Sekunden (gemma2:4b), Median 2-3s
+- Socket-Latenz: < 100ms (LAN), < 300ms (ngrok)
+
+**Optimierungen:**
+```javascript
+// Code-Splitting für Module
+const Module1 = lazy(() => import('./modules/Module1'));
+const Module2 = lazy(() => import('./modules/Module2'));
+
+// Image Optimization
+<img 
+  src="hero-image.webp" 
+  loading="lazy"
+  srcSet="hero-small.webp 480w, hero-large.webp 1024w"
+/>
+
+// Service-Worker für Offline-Caching
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open('compagnon-v1').then((cache) => {
+      return cache.addAll([
+        '/',
+        '/styles.css',
+        '/app.js',
+        '/modules/prolog.html'
+      ]);
+    })
+  );
+});
+```
+
+### Skalierbarkeit
+
+**Getestet für:**
+- 12 gleichzeitige Teilnehmer
+- 50 Mood-Updates/Minute
+- 20 Ollama-Requests/Minute (Queue-System)
+
+**Resource-Limits:**
+```javascript
+// Server-Config
+const config = {
+  maxParticipants: 15,
+  maxAppsPerParticipant: 3,
+  maxAppSize: 50 * 1024, // 50KB
+  ollamaQueueSize: 5,
+  ollamaTimeout: 30000,
+  socketPingInterval: 60000
+};
+
+// Graceful Degradation
+if (connectedClients.size > config.maxParticipants) {
+  socket.emit('error', {
+    code: 'CAPACITY_REACHED',
+    message: 'Workshop ist voll. Bitte warten...'
+  });
+  socket.disconnect();
+}
+```
+
+### Browser-Kompatibilität
+
+**Supported:**
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+- Mobile Safari (iOS 14+)
+- Chrome Mobile (Android 10+)
+
+**Progressive Enhancement:**
+```javascript
+// Feature Detection
+const features = {
+  webSocket: 'WebSocket' in window,
+  serviceWorker: 'serviceWorker' in navigator,
+  webGL: (() => {
+    try {
+      const canvas = document.createElement('canvas');
+      return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+    } catch(e) {
+      return false;
+    }
+  })()
+};
+
+// Fallbacks
+if (!features.webSocket) {
+  // Long-Polling statt WebSocket
+  enableLongPolling();
+}
+
+if (!features.webGL) {
+  // Keine 3D-Animationen, flat design
+  disableParticleEffects();
+}
+```
+
+### Security
+
+**Threat Model:**
+```
+Scope: Trusted, small group (6-12 persons)
+Threat Level: LOW
+Primary Concerns: 
+  1. Accidental data exposure (nicht böswillig)
+  2. XSS via Sandbox
+  3. Denial of Service (unabsichtlich)
+```
+
+**Mitigations:**
+
+**1. XSS Prevention:**
+```javascript
+const sanitizeHtml = require('sanitize-html');
+const DOMPurify = require('isomorphic-dompurify');
+
+// Server-Side
+app.post('/api/sandbox/create', (req, res) => {
+  const cleanCode = sanitizeHtml(req.body.code, {
+    allowedTags: ['div', 'span', 'p', 'h1', 'h2', 'h3', 'button', 'input', 'style', 'script'],
+    allowedAttributes: {
+      '*': ['class', 'id', 'style'],
+      'button': ['onclick'],
+      'input': ['type', 'value', 'onchange']
+    },
+    allowedSchemes: ['http', 'https', 'data'],
+    // Entfernt: javascript:, data:text/html, vbscript:
+  });
+  
+  // Speichern in DB
+});
+
+// Client-Side (zusätzlich)
+const displayCode = DOMPurify.sanitize(code);
+```
+
+**2. CSP Header:**
+```javascript
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', 
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: https:; " +
+    "connect-src 'self' ws: wss:; " +
+    "frame-src 'self';"
+  );
+  next();
+});
+```
+
+**3. Rate-Limiting:**
+```javascript
+const rateLimit = require('express-rate-limit');
+
+// Ollama-Requests
+const ollamaLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 Minute
+  max: 5, // 5 Requests pro Teilnehmer
+  keyGenerator: (req) => req.sessionToken,
+  message: { error: 'Zu viele Anfragen. Dein Compagnon braucht eine Pause 😅' }
+});
+
+app.post('/api/chat', ollamaLimiter, async (req, res) => {
+  // ...
+});
+
+// Sandbox-Upload
+const sandboxLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 Minuten
+  max: 3,
+  message: { error: 'Max. 3 Apps pro Teilnehmer' }
+});
+```
+
+**4. Admin-Auth:**
+```javascript
+const bcrypt = require('bcrypt');
+
+// Simpler, aber ausreichender Schutz
+const ADMIN_PASSWORD_HASH = bcrypt.hashSync(
+  process.env.ADMIN_PASSWORD || 'compagnon2026', 
+  10
+);
+
+app.post('/admin/login', async (req, res) => {
+  const { password } = req.body;
+  
+  if (await bcrypt.compare(password, ADMIN_PASSWORD_HASH)) {
+    const token = crypto.randomBytes(32).toString('hex');
+    adminSessions.set(token, { createdAt: Date.now() });
+    
+    res.json({ token });
+  } else {
+    // Rate-Limiting nach 3 Fehlversuchen
+    res.status(401).json({ error: 'Falsches Passwort' });
+  }
+});
+
+// Middleware
+const requireAdmin = (req, res, next) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (adminSessions.has(token)) {
+    next();
+  } else {
+    res.status(403).json({ error: 'Nicht autorisiert' });
+  }
+};
+```
+
+### Data Privacy (DSGVO-Light)
+
+**Prinzipien:**
+- **Datensparsamkeit:** Nur speichern, was nötig ist
+- **Transparenz:** Teilnehmer sehen, was gespeichert wird
+- **Löschbarkeit:** Daten können entfernt werden
+
+**Gespeicherte Daten:**
+```javascript
+const dataInventory = {
+  essential: [
+    'Session-Token (zufällig generiert)',
+    'Nickname (optional, selbst gewählt)',
+    'Modul-Fortschritt (Boolean-Flags)',
+    'Mood-Votes (anonymisiert nach 7 Tagen)',
+  ],
+  optional: [
+    'Sandbox-Apps (mit explizitem "Teilen"-Button)',
+    'Chat-History (nur während Session, dann gelöscht)'
+  ],
+  notStored: [
+    'IP-Adressen (werden nicht geloggt)',
+    'Browser-Fingerprints',
+    'Externe Identifikatoren'
+  ]
+};
+```
+
+**Privacy-UI:**
+```jsx
+// In den Einstellungen
+<PrivacyPanel>
+  <h3>Deine Daten</h3>
+  <ul>
+    <li>Nickname: {participant.nickname}</li>
+    <li>Beigetreten: {participant.createdAt}</li>
+    <li>Geteilte Apps: {participant.appCount}</li>
+  </ul>
+  
+  <button onClick={downloadMyData}>
+    📥 Meine Daten herunterladen (JSON)
+  </button>
+  
+  <button onClick={deleteMyData} className="text-red-500">
+    🗑️ Alle meine Daten löschen
+  </button>
+  
+  <p className="text-sm text-gray-500 mt-4">
+    Deine Daten werden nur auf diesem Server gespeichert
+    und nach 30 Tagen automatisch gelöscht.
+    Chat-Verläufe werden nicht dauerhaft gespeichert.
+  </p>
+</PrivacyPanel>
+```
+
+**Auto-Deletion:**
+```javascript
+// Cron-Job läuft täglich
+cron.schedule('0 2 * * *', async () => {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  
+  await db.run(`
+    DELETE FROM participants 
+    WHERE created_at < ? AND last_seen < ?
+  `, [thirtyDaysAgo, thirtyDaysAgo]);
+  
+  await db.run(`
+    DELETE FROM moods 
+    WHERE timestamp < ?
+  `, [thirtyDaysAgo]);
+  
+  console.log('🧹 Old data cleaned up');
+});
+```
+
+---
+
+## Testing Strategy
+
+### Unit Tests (Jest)
+
+```javascript
+// tests/api/sandbox.test.js
+describe('Sandbox API', () => {
+  test('sollte XSS-Code blockieren', async () => {
+    const maliciousCode = '<script>alert("XSS")</script>';
+    
+    const response = await request(app)
+      .post('/api/sandbox/create')
+      .send({ code: maliciousCode })
+      .set('Authorization', `Bearer ${testToken}`);
+    
+    expect(response.status).toBe(200);
+    expect(response.body.code).not.toContain('<script>');
+  });
+  
+  test('sollte Code-Größen-Limit durchsetzen', async () => {
+    const hugeCode = 'x'.repeat(100 * 1024); // 100KB
+    
+    const response = await request(app)
+      .post('/api/sandbox/create')
+      .send({ code: hugeCode });
+    
+    expect(response.status).toBe(413); // Payload Too Large
+  });
+});
+
+// tests/services/ollama.test.js
+describe('Ollama Service', () => {
+  test('sollte Timeout nach 30s haben', async () => {
+    jest.setTimeout(35000);
+    
+    // Mock langsamen Ollama-Server
+    nock('http://localhost:11434')
+      .post('/api/chat')
+      .delay(31000)
+      .reply(200, {});
+    
+    await expect(
+      ollamaService.chat('Test')
+    ).rejects.toThrow('Timeout');
+  });
+  
+  test('sollte Fallback-Message bei Offline-Server liefern', async () => {
+    nock('http://localhost:11434')
+      .post('/api/chat')
+      .replyWithError('ECONNREFUSED');
+    
+    const response = await ollamaService.chat('Test');
+    
+    expect(response.message).toContain('schläft gerade');
+    expect(response.fallback).toBe(true);
+  });
+});
+```
+
+### Integration Tests (Cypress)
+
+```javascript
+// cypress/e2e/participant-journey.cy.js
+describe('Teilnehmer Journey', () => {
+  beforeEach(() => {
+    cy.visit('/');
+  });
+  
+  it('sollte komplette Heldenreise durchlaufen', () => {
+    // Landing Page
+    cy.contains('Willkommen').should('be.visible');
+    cy.get('input[name="nickname"]').type('TestSarah');
+    cy.contains('Die Reise beginnen').click();
+    
+    // Prolog sollte sichtbar sein
+    cy.contains('Der Ruf').should('be.visible');
+    cy.get('[data-module="prolog"]').should('have.class', 'unlocked');
+    
+    // Mood senden
+    cy.get('[data-mood="aha"]').click();
+    cy.contains('Feedback gesendet').should('be.visible');
+    
+    // Admin schaltet Modul 2 frei (simuliert via Backend-Call)
+    cy.request('POST', '/admin/unlock', {
+      moduleId: 'module_2'
+    });
+    
+    // Modul 2 sollte erscheinen
+    cy.get('[data-module="module_2"]', { timeout: 3000 })
+      .should('have.class', 'unlocked');
+    
+    // Klicke auf Modul 2
+    cy.get('[data-module="module_2"]').click();
+    cy.contains('Verbündete finden').should('be.visible');
+  });
+  
+  it('sollte Sandbox-App erstellen und teilen', () => {
+    // Setup: Bereits in Modul 3
+    cy.login('TestUser');
+    cy.unlockModule('module_3');
+    
+    // Öffne Sandbox
+    cy.contains('Mein Labor').click();
+    
+    // Code eingeben
+    cy.get('.monaco-editor').type(
+      '<h1>Test App</h1><button>Click me</button>'
+    );
+    
+    // Preview testen
+    cy.contains('Live-Vorschau').click();
+    cy.get('iframe[sandbox]').then(($iframe) => {
+      const doc = $iframe.contents();
+      expect(doc.find('h1')).to.contain('Test App');
+    });
+    
+    // In Galerie teilen
+    cy.contains('In Galerie teilen').click();
+    cy.contains('App geteilt!').should('be.visible');
+    
+    // Galerie öffnen
+    cy.visit('/gallery');
+    cy.contains('Test App').should('be.visible');
+  });
+});
+
+// cypress/e2e/admin-controls.cy.js
+describe('Admin Dashboard', () => {
+  beforeEach(() => {
+    cy.loginAsAdmin();
+    cy.visit('/admin');
+  });
+  
+  it('sollte Module für alle freischalten', () => {
+    // Simuliere 3 verbundene Teilnehmer
+    cy.setupParticipants(3);
+    
+    // Klicke auf "Modul 2 freischalten"
+    cy.get('[data-unlock="module_2"]').click();
+    
+    // Alle Teilnehmer sollten Update bekommen
+    cy.window().then((win) => {
+      cy.wrap(win.io.sockets.sockets).should('have.length', 3);
+    });
+    
+    // Analytics sollten Update zeigen
+    cy.get('[data-analytics="unlocked-modules"]')
+      .should('contain', 'module_2');
+  });
+  
+  it('sollte Mood-Timeline anzeigen', () => {
+    // Simuliere Mood-Daten
+    cy.seedMoodData([
+      { mood: 'aha', count: 5, timestamp: Date.now() - 60000 },
+      { mood: 'wow', count: 3, timestamp: Date.now() }
+    ]);
+    
+    // Chart sollte sichtbar sein
+    cy.get('canvas[data-chart="mood-timeline"]').should('be.visible');
+    
+    // Interaktion: Hover zeigt Tooltip
+    cy.get('canvas').trigger('mouseover', 100, 50);
+    cy.contains('5 Aha-Momente').should('be.visible');
+  });
+});
+```
+
+### Load Testing (k6)
+
+```javascript
+// tests/load/workshop-simulation.js
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+import { WebSocket } from 'k6/ws';
+
+export const options = {
+  stages: [
+    { duration: '30s', target: 12 }, // Ramp-up auf 12 User
+    { duration: '2m', target: 12 },  // Hold
+    { duration: '30s', target: 0 },  // Ramp-down
+  ],
+  thresholds: {
+    http_req_duration: ['p(95)<500'], // 95% unter 500ms
+    ws_connecting: ['p(95)<1000'],    // WebSocket unter 1s
+  },
+};
+
+export default function () {
+  // Simuliere Teilnehmer-Session
+  const joinRes = http.post('http://localhost:3000/api/join', 
+    JSON.stringify({ nickname: `User${__VU}` }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  
+  check(joinRes, {
+    'join erfolgreich': (r) => r.status === 200,
+    'token erhalten': (r) => r.json('sessionToken') !== undefined,
+  });
+  
+  const token = joinRes.json('sessionToken');
+  
+  // WebSocket-Verbindung
+  const ws = new WebSocket(`ws://localhost:3000?token=${token}`);
+  
+  ws.on('open', () => {
+    // Simuliere Mood-Updates alle 30-60s
+    ws.send(JSON.stringify({
+      type: 'mood:update',
+      mood: ['confused', 'thinking', 'aha', 'wow'][Math.floor(Math.random() * 4)],
+      moduleId: 'module_2'
+    }));
+  });
+  
+  sleep(Math.random() * 30 + 30); // 30-60s
+  
+  ws.close();
+}
+```
+
+---
+
+## Implementation Roadmap
+
+### Phase 1: Foundation (Woche 1)
+
+**Tag 1-2: Setup & Core Backend**
+```bash
+# Projektstruktur
+mkdir compagnon && cd compagnon
+npm init -y
+
+# Dependencies
+npm install express socket.io sqlite3 bcrypt cors dotenv
+npm install -D nodemon jest supertest
+
+# Dev Setup
+mkdir -p src/{routes,services,models} public tests
+touch .env .gitignore
+```
+
+**Verzeichnisstruktur:**
+```
+compagnon/
+├── src/
+│   ├── server.js              # Express + Socket.io Setup
+│   ├── db.js                  # SQLite-Connection
+│   ├── routes/
+│   │   ├── api.js             # Public API-Routes
+│   │   └── admin.js           # Admin-Routes
+│   ├── services/
+│   │   ├── ollama.js          # Ollama-Client mit Retry-Logic
+│   │   ├── sandbox.js         # Code-Sanitization
+│   │   └── analytics.js       # Mood-Aggregation
+│   └── models/
+│       ├── Participant.js     # DB-Model
+│       ├── Module.js
+│       └── SandboxApp.js
+├── public/
+│   ├── index.html
+│   ├── admin.html
+│   ├── styles.css
+│   └── app.js
+├── tests/
+│   ├── api/
+│   ├── services/
+│   └── e2e/
+├── data/
+│   └── compagnon.db           # SQLite-Datei
+├── .env
+├── package.json
+└── README.md
+```
+
+**Deliverables:**
+- ✅ Express-Server läuft auf Port 3000
+- ✅ SQLite-Datenbank initialisiert mit Schema
+- ✅ Socket.io Handshake funktioniert
+- ✅ `/api/join` Endpoint erstellt Sessions
+
+**Tag 3-4: Frontend Foundation**
+```bash
+# Frontend Setup
+cd public
+npm create vite@latest client -- --template react
+cd client
+npm install tailwindcss postcss autoprefixer socket.io-client
+npx tailwindcss init -p
+```
+
+**React-Komponenten-Struktur:**
+```
+public/client/src/
+├── App.jsx                    # Main App mit Router
+├── main.jsx
+├── index.css
+├── components/
+│   ├── layout/
+│   │   ├── Header.jsx         # Mit Connection-Ampel
+│   │   ├── Navigation.jsx
+│   │   └── MoodBar.jsx        # Sticky Mood-Buttons
+│   ├── modules/
+│   │   ├── ModuleCard.jsx     # Locked/Unlocked States
+│   │   ├── ModuleContent.jsx
+│   │   └── ProgressTracker.jsx
+│   ├── shared/
+│   │   ├── Button.jsx
+│   │   ├── Card.jsx
+│   │   ├── Toast.jsx
+│   │   └── LoadingSpinner.jsx
+│   └── animations/
+│       ├── ParticleBackground.jsx
+│       ├── UnlockAnimation.jsx
+│       └── ConfettiEffect.jsx
+├── pages/
+│   ├── Landing.jsx            # Nickname-Eingabe
+│   ├── Dashboard.jsx          # Modul-Übersicht
+│   ├── ModuleView.jsx         # Einzelnes Modul
+│   ├── Gallery.jsx            # App-Galerie
+│   ├── MaterialHub.jsx
+│   └── Settings.jsx
+├── hooks/
+│   ├── useSocket.js           # WebSocket-Logic
+│   ├── useAuth.js             # Session-Management
+│   ├── useModules.js          # Modul-State
+│   └── useMood.js             # Mood-Tracking
+├── services/
+│   ├── api.js                 # HTTP-Client
+│   ├── socket.js              # Socket.io-Client
+│   └── storage.js             # localStorage-Wrapper
+├── context/
+│   ├── AuthContext.jsx
+│   ├── SocketContext.jsx
+│   └── ThemeContext.jsx
+└── utils/
+    ├── constants.js
+    ├── validators.js
+    └── formatters.js
+```
+
+**Core Implementation: useSocket Hook**
+```javascript
+// hooks/useSocket.js
+import { useEffect, useRef, useState } from 'react';
+import { io } from 'socket.io-client';
+
+export const useSocket = (token) => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionState, setConnectionState] = useState('connecting');
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const socket = io('http://localhost:3000', {
+      auth: { token },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 3000,
+    });
+
+    socket.on('connect', () => {
+      console.log('✅ Socket connected');
+      setIsConnected(true);
+      setConnectionState('connected');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('❌ Socket disconnected');
+      setIsConnected(false);
+      setConnectionState('reconnecting');
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket error:', error);
+      setConnectionState('offline');
+    });
+
+    socketRef.current = socket;
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [token]);
+
+  const emit = (event, data) => {
+    if (socketRef.current && isConnected) {
+      socketRef.current.emit(event, data);
+    } else {
+      console.warn('Cannot emit - socket not connected');
+    }
+  };
+
+  const on = (event, callback) => {
+    if (socketRef.current) {
+      socketRef.current.on(event, callback);
+    }
+  };
+
+  const off = (event, callback) => {
+    if (socketRef.current) {
+      socketRef.current.off(event, callback);
+    }
+  };
+
+  return { isConnected, connectionState, emit, on, off };
+};
+```
+
+**Deliverables:**
+- ✅ React-App rendert mit Tailwind
+- ✅ Routing funktioniert (React Router)
+- ✅ Socket-Verbindung stabil
+- ✅ Basis-Theme (Dark Mode) implementiert
+
+---
+
+### Phase 2: Core Features (Woche 2)
+
+**Tag 5-6: Dynamische Module**
+
+**Backend: Module-Controller**
+```javascript
+// src/services/moduleService.js
+const EventEmitter = require('events');
+const systemEvents = new EventEmitter();
+
+class ModuleService {
+  constructor(db) {
+    this.db = db;
+    this.modules = [
+      { id: 'prolog', title: 'Der Ruf', alwaysUnlocked: true },
+      { id: 'module_1', title: 'Schwelle überschreiten', alwaysUnlocked: true },
+      { id: 'module_2', title: 'Verbündete finden', alwaysUnlocked: false },
+      { id: 'module_3', title: 'Die Prüfung', alwaysUnlocked: false },
+      { id: 'module_4', title: 'Rückkehr mit Elixier', alwaysUnlocked: false },
+    ];
+  }
+
+  async getParticipantModules(participantId) {
+    const unlocked = await this.db.all(
+      'SELECT module_id FROM progress WHERE participant_id = ?',
+      [participantId]
+    );
+
+    const unlockedIds = new Set(unlocked.map(m => m.module_id));
+
+    return this.modules.map(module => ({
+      ...module,
+      unlocked: module.alwaysUnlocked || unlockedIds.has(module.id),
+    }));
+  }
+
+  async unlockModule(moduleId, io) {
+    // Unlock für alle Teilnehmer
+    const participants = await this.db.all('SELECT id FROM participants');
+
+    for (const p of participants) {
+      await this.db.run(
+        `INSERT OR IGNORE INTO progress (participant_id, module_id, unlocked_at) 
+         VALUES (?, ?, datetime('now'))`,
+        [p.id, moduleId]
+      );
+    }
+
+    // Broadcast an alle Clients
+    io.emit('module:unlock', {
+      moduleId,
+      title: this.modules.find(m => m.id === moduleId)?.title,
+      timestamp: Date.now(),
+    });
+
+    // Event für Analytics
+    systemEvents.emit('module:unlocked', { moduleId });
+
+    return { success: true, moduleId };
+  }
+
+  async markCompleted(participantId, moduleId) {
+    await this.db.run(
+      `UPDATE progress SET completed = 1 WHERE participant_id = ? AND module_id = ?`,
+      [participantId, moduleId]
+    );
+  }
+}
+
+module.exports = ModuleService;
+```
+
+**Frontend: Module-System**
+```jsx
+// pages/Dashboard.jsx
+import { useEffect, useState } from 'react';
+import { useSocket } from '../hooks/useSocket';
+import ModuleCard from '../components/modules/ModuleCard';
+import UnlockAnimation from '../components/animations/UnlockAnimation';
+
+export default function Dashboard() {
+  const [modules, setModules] = useState([]);
+  const [newUnlock, setNewUnlock] = useState(null);
+  const { on, off } = useSocket();
+
+  useEffect(() => {
+    // Lade initiale Module
+    fetch('/api/modules', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(res => res.json())
+      .then(data => setModules(data.modules));
+
+    // Listen für neue Freischaltungen
+    const handleUnlock = (data) => {
+      console.log('🔓 Modul freigeschaltet:', data);
+      
+      setNewUnlock(data);
+      
+      // Update Module-Liste
+      setModules(prev => 
+        prev.map(m => 
+          m.id === data.moduleId 
+            ? { ...m, unlocked: true } 
+            : m
+        )
+      );
+
+      // Animation abspielen
+      setTimeout(() => setNewUnlock(null), 3000);
+    };
+
+    on('module:unlock', handleUnlock);
+
+    return () => off('module:unlock', handleUnlock);
+  }, [on, off]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <h1 className="text-4xl font-bold text-white mb-8 text-center">
+        Deine Reise
+      </h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+        {modules.map(module => (
+          <ModuleCard 
+            key={module.id} 
+            module={module}
+            isNew={newUnlock?.moduleId === module.id}
+          />
+        ))}
+      </div>
+
+      {newUnlock && (
+        <UnlockAnimation 
+          title={newUnlock.title}
+          onComplete={() => setNewUnlock(null)}
+        />
+      )}
+    </div>
+  );
+}
+```
+
+**ModuleCard Component:**
+```jsx
+// components/modules/ModuleCard.jsx
+import { motion } from 'framer-motion';
+import { Lock, CheckCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+export default function ModuleCard({ module, isNew }) {
+  const { id, title, unlocked, completed } = module;
+
+  return (
+    <motion.div
+      initial={isNew ? { scale: 0.8, opacity: 0, rotateX: 90 } : false}
+      animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+      transition={{ 
+        type: 'spring', 
+        stiffness: 200,
+        damping: 20 
+      }}
+      className={`
+        relative overflow-hidden rounded-2xl p-6
+        ${unlocked 
+          ? 'bg-white/10 backdrop-blur-xl border-2 border-cyan-400/50 hover:border-cyan-400 cursor-pointer' 
+          : 'bg-white/5 backdrop-blur-xl border border-white/10 cursor-not-allowed'
+        }
+        transition-all duration-300
+        ${isNew ? 'animate-pulse' : ''}
+      `}
+    >
+      {/* Glow-Effect für freigeschaltete Module */}
+      {unlocked && (
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/20 to-purple-500/20 blur-xl" />
+      )}
+
+      <div className="relative z-10">
+        {/* Status-Icon */}
+        <div className="flex justify-between items-start mb-4">
+          <span className="text-sm text-cyan-400 font-mono">
+            {id.replace('_', ' ').toUpperCase()}
+          </span>
+          {completed ? (
+            <CheckCircle className="w-6 h-6 text-green-400" />
+          ) : !unlocked ? (
+            <Lock className="w-6 h-6 text-gray-500" />
+          ) : null}
+        </div>
+
+        {/* Titel */}
+        <h3 className={`text-2xl font-bold mb-3 ${unlocked ? 'text-white' : 'text-gray-500'}`}>
+          {title}
+        </h3>
+
+        {/* CTA */}
+        {unlocked ? (
+          <Link 
+            to={`/module/${id}`}
+            className="inline-block px-4 py-2 bg-cyan-400/20 hover:bg-cyan-400/30 
+                       border border-cyan-400 rounded-lg text-cyan-400 font-semibold
+                       transition-all duration-300"
+          >
+            {completed ? 'Erneut ansehen' : 'Starten'}
+          </Link>
+        ) : (
+          <p className="text-gray-400 text-sm">
+            Wird freigeschaltet von deinem Compagnon
+          </p>
+        )}
+      </div>
+
+      {/* Konfetti-Effekt bei Unlock */}
+      {isNew && <ConfettiOverlay />}
+    </motion.div>
+  );
+}
+```
+
+**Deliverables:**
+- ✅ Module werden dynamisch geladen
+- ✅ Unlock-Animation funktioniert
+- ✅ Admin kann Module freischalten
+- ✅ Client erhält Updates in Echtzeit
+
+**Tag 7-8: Mood-Tracking System**
+
+**Backend: Mood-Aggregation**
+```javascript
+// src/services/analyticsService.js
+class AnalyticsService {
+  constructor(db) {
+    this.db = db;
+    this.moodCache = [];
+    this.cacheTimeout = 30000; // 30s
+    this.lastCacheUpdate = 0;
+  }
+
+  async recordMood(participantId, mood, moduleId) {
+    await this.db.run(
+      `INSERT INTO moods (participant_id, mood, module_id) VALUES (?, ?, ?)`,
+      [participantId, mood, moduleId]
+    );
+
+    // Invalidate cache
+    this.lastCacheUpdate = 0;
+  }
+
+  async getMoodTimeline(minutes = 60) {
+    const cutoff = new Date(Date.now() - minutes * 60 * 1000).toISOString();
+
+    const moods = await this.db.all(
+      `SELECT 
+         strftime('%H:%M', timestamp) as time,
+         mood,
+         COUNT(*) as count
+       FROM moods 
+       WHERE timestamp > ?
+       GROUP BY strftime('%Y-%m-%d %H:%M', timestamp), mood
+       ORDER BY timestamp ASC`,
+      [cutoff]
+    );
+
+    // Transform für Chart.js
+    const timeline = {};
+    moods.forEach(({ time, mood, count }) => {
+      if (!timeline[time]) timeline[time] = {};
+      timeline[time][mood] = count;
+    });
+
+    return {
+      labels: Object.keys(timeline),
+      datasets: [
+        {
+          label: '😕 Hä?',
+          data: Object.values(timeline).map(t => t.confused || 0),
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        },
+        {
+          label: '🤔 Hmm',
+          data: Object.values(timeline).map(t => t.thinking || 0),
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        },
+        {
+          label: '💡 Aha!',
+          data: Object.values(timeline).map(t => t.aha || 0),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        },
+        {
+          label: '🤯 Wow!',
+          data: Object.values(timeline).map(t => t.wow || 0),
+          borderColor: '#8b5cf6',
+          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        },
+      ],
+    };
+  }
+
+  async getEngagementHeatmap() {
+    const moods = await this.db.all(
+      `SELECT 
+         module_id,
+         mood,
+         COUNT(*) as count
+       FROM moods
+       GROUP BY module_id, mood`
+    );
+
+    const heatmap = {};
+    moods.forEach(({ module_id, mood, count }) => {
+      if (!heatmap[module_id]) heatmap[module_id] = {};
+      heatmap[module_id][mood] = count;
+    });
+
+    return heatmap;
+  }
+}
+
+module.exports = AnalyticsService;
+```
+
+**Frontend: MoodBar Component**
+```jsx
+// components/layout/MoodBar.jsx
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useSocket } from '../../hooks/useSocket';
+
+const MOODS = [
+  { id: 'confused', emoji: '😕', label: 'Hä?', color: 'text-red-400' },
+  { id: 'thinking', emoji: '🤔', label: 'Hmm', color: 'text-yellow-400' },
+  { id: 'aha', emoji: '💡', label: 'Aha!', color: 'text-green-400' },
+  { id: 'wow', emoji: '🤯', label: 'Wow!', color: 'text-purple-400' },
+];
+
+export default function MoodBar({ currentModule }) {
+  const [lastSent, setLastSent] = useState(null);
+  const { emit } = useSocket();
+
+  const sendMood = (mood) => {
+    emit('mood:update', {
+      mood: mood.id,
+      moduleId: currentModule,
+    });
+
+    setLastSent(mood.id);
+    setTimeout(() => setLastSent(null), 1000);
+  };
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-white/10 z-50">
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="flex items-center justify-center gap-8">
+          {MOODS.map((mood) => (
+            <motion.button
+              key={mood.id}
+              onClick={() => sendMood(mood)}
+              whileHover={{ scale: 1.2 }}
+              whileTap={{ scale: 0.9 }}
+              className={`
+                relative flex flex-col items-center gap-1 p-2 rounded-lg
+                transition-all duration-200
+                ${lastSent === mood.id ? 'bg-white/10' : 'hover:bg-white/5'}
+              `}
+            >
+              <span className="text-4xl">{mood.emoji}</span>
+              <span className={`text-sm font-medium ${mood.color}`}>
+                {mood.label}
+              </span>
+
+              {/* Pulse-Animation beim Senden */}
+              {lastSent === mood.id && (
+                <motion.span
+                  initial={{ scale: 1, opacity: 0.5 }}
+                  animate={{ scale: 2, opacity: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="absolute inset-0 rounded-full bg-cyan-400"
+                />
+              )}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+**Admin: Live-Analytics Dashboard**
+```jsx
+// pages/admin/Analytics.jsx
+import { useEffect, useState } from 'react';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+
+export default function Analytics() {
+  const [moodData, setMoodData] = useState(null);
+  const [refreshInterval, setRefreshInterval] = useState(5000);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      const res = await fetch('/admin/analytics', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      const data = await res.json();
+      setMoodData(data.moodTimeline);
+    };
+
+    fetchAnalytics();
+    const interval = setInterval(fetchAnalytics, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [refreshInterval]);
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          color: '#e8edf5',
+          font: { size: 14 },
+        },
+      },
+      title: {
+        display: true,
+        text: 'Live Stimmungskurve (letzte 60 Min)',
+        color: '#00fff2',
+        font: { size: 18, weight: 'bold' },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { color: '#8b93a7' },
+        grid: { color: 'rgba(255,255,255,0.1)' },
+      },
+      x: {
+        ticks: { color: '#8b93a7' },
+        grid: { color: 'rgba(255,255,255,0.1)' },
+      },
+    },
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-white">Live Analytics</h2>
+        <select 
+          value={refreshInterval}
+          onChange={(e) => setRefreshInterval(Number(e.target.value))}
+          className="bg-slate-800 text-white px-4 py-2 rounded-lg border border-white/20"
+        >
+          <option value={5000}>Refresh: 5s</option>
+          <option value={10000}>Refresh: 10s</option>
+          <option value={30000}>Refresh: 30s</option>
+        </select>
+      </div>
+
+      <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+        {moodData ? (
+          <div style={{ height: '400px' }}>
+            <Line data={moodData} options={chartOptions} />
+          </div>
+        ) : (
+          <div className="h-96 flex items-center justify-center">
+            <p className="text-gray-400">Lade Daten...</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+**Deliverables:**
+- ✅ Mood-Buttons funktionieren
+- ✅ Admin sieht Live-Chart
+- ✅ Daten werden in DB gespeichert
+- ✅ Analytics-Cache für Performance
+
+---
+
+### Phase 3: Advanced Features (Woche 3)
+
+**Tag 9-11: Sandbox & Code-Playground**
+
+**Backend: Sandbox-Service mit Sicherheit**
+```javascript
+// src/services/sandboxService.js
+const sanitizeHtml = require('sanitize-html');
+const crypto = require('crypto');
+
+class SandboxService {
+  constructor(db) {
+    this.db = db;
+    this.maxAppSize = 50 * 1024; // 50KB
+    this.maxAppsPerUser = 3;
+  }
+
+  sanitizeCode(code) {
+    return sanitizeHtml(code, {
+      allowedTags: [
+        'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'ul', 'ol', 'li', 'a', 'button', 'input', 'textarea', 'select', 'option',
+        'table', 'thead', 'tbody', 'tr', 'td', 'th',
+        'img', 'br', 'hr', 'style', 'script', 'label', 'form'
+      ],
+      allowedAttributes: {
+        '*': ['class', 'id', 'style', 'data-*'],
+        'a': ['href', 'target'],
+        'img': ['src', 'alt', 'width', 'height'],
+        'button': ['type', 'onclick'],
+        'input': ['type', 'name', 'value', 'placeholder', 'onchange', 'oninput'],
+        'select': ['name', 'onchange'],
+        'option': ['value'],
+      },
+      allowedSchemes: ['http', 'https', 'data', 'mailto'],
+      allowedSchemesByTag: {
+        img: ['http', 'https', 'data'],
+      },
+      // Entfernt gefährliche Patterns
+      transformTags: {
+        'script': (tagName, attribs) => {
+          // Erlaube nur inline Scripts (keine external sources)
+          if (attribs.src) {
+            return { tagName: 'div', attribs: {} };
+          }
+          return { tagName, attribs };
+        },
+      },
+    });
+  }
+
+  async createApp(participantId, title, code) {
+    // Validierung
+    if (code.length > this.maxAppSize) {
+      throw new Error('Code zu groß (max. 50KB)');
+    }
+
+    const appCount = await this.db.get(
+      'SELECT COUNT(*) as count FROM sandbox_apps WHERE participant_id = ? AND is_active = 1',
+      [participantId]
+    );
+
+    if (appCount.count >= this.maxAppsPerUser) {
+      throw new Error('Maximale Anzahl Apps erreicht (3 pro Teilnehmer)');
+    }
+
+    // Sanitize
+    const cleanCode = this.sanitizeCode(code);
+
+    // Speichern
+    const appId = `app_${crypto.randomBytes(8).toString('hex')}`;
+    await this.db.run(
+      `INSERT INTO sandbox_apps (id, participant_id, title, code) VALUES (?, ?, ?, ?)`,
+      [appId, participantId, title, cleanCode]
+    );
+
+    return { appId, previewUrl: `/sandbox/preview/${appId}` };
+  }
+
+  async getApp(appId) {
+    return await this.db.get(
+      'SELECT * FROM sandbox_apps WHERE id = ? AND is_active = 1',
+      [appId]
+    );
+  }
+
+  async getAllApps() {
+    return await this.db.all(`
+      SELECT 
+        sa.id, sa.title, sa.created_at,
+        p.nickname as author,
+        (SELECT COUNT(*) FROM votes WHERE app_id = sa.id AND vote_type = 'up') as upvotes,
+        (SELECT COUNT(*) FROM votes WHERE app_id = sa.id AND vote_type = 'down') as downvotes
+      FROM sandbox_apps sa
+      JOIN participants p ON sa.participant_id = p.id
+      WHERE sa.is_active = 1
+      ORDER BY upvotes DESC, sa.created_at DESC
+    `);
+  }
+
+  generatePreviewHtml(code) {
+    return `
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" 
+        content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https:;">
+  <title>App Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    ${code}
+  </div>
+</body>
+</html>
+    `;
+  }
+}
+
+module.exports = SandboxService;
+```
+
+**Frontend: Code-Editor mit Monaco**
+```jsx
+// pages/Sandbox.jsx
+import { useState, useRef } from 'react';
+import Editor from '@monaco-editor/react';
+import { Play, Share2, Eye } from 'lucide-react';
+import Toast from '../components/shared/Toast';
+
+export default function Sandbox() {
+  const [code, setCode] = useState('<h1>Hallo Welt!</h1>\n<button onclick="alert(\'Clicked!\')">Klick mich</button>');
+  const [title, setTitle] = useState('');
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [toast, setToast] = useState(null);
+  const iframeRef = useRef(null);
+
+  const handlePreview = () => {
+    // Live-Preview im iFrame
+    if (iframeRef.current) {
+      const doc = iframeRef.current.contentDocument;
+      doc.open();
+      doc.write(code);
+      doc.close();
+    }
+  };
+
+  const handleShare = async () => {
+    if (!title.trim()) {
+      setToast({ type: 'error', message: 'Bitte gib einen Titel ein' });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/sandbox/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ title, code }),
+      });
+
+      if (!res.ok) throw new Error('Upload fehlgeschlagen');
+
+      const data = await res.json();
+      setPreviewUrl(data.previewUrl);
+      setToast({ type: 'success', message: 'App in Galerie geteilt! 🎉' });
+    } catch (error) {
+      setToast({ type: 'error', message: error.message });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-white mb-6">🧪 Mein Labor</h1>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Editor */}
+          <div className="bg-slate-800 rounded-2xl p-4 border border-white/10">
+            <div className="flex gap-4 mb-4">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Titel deiner App..."
+                className="flex-1 bg-slate-700 text-white px-4 py-2 rounded-lg border border-white/20 focus:border-cyan-400 outline-none"
+              />
+              <button
+                onClick={handlePreview}
+                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center gap-2 transition"
+              >
+                <Play size={18} />
+                Preview
+              </button>
+              <button
+                onClick={handleShare}
+                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg flex items-center gap-2 transition"
+              >
+                <Share2 size={18} />
+                Teilen
+              </button>
+            </div>
+
+            <Editor
+              height="600px"
+              defaultLanguage="html"
+              theme="vs-dark"
+              value={code}
+              onChange={(value) => setCode(value || '')}
+
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                lineNumbers: 'on',
+                roundedSelection: false,
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+              }}
+            />
+          </div>
+
+          {/* Preview */}
+          <div className="bg-slate-800 rounded-2xl p-4 border border-white/10">
+            <div className="flex items-center gap-2 mb-4 text-white">
+              <Eye size={20} className="text-cyan-400" />
+              <h2 className="text-lg font-semibold">Live-Vorschau</h2>
+            </div>
+            
+            <div className="bg-white rounded-lg overflow-hidden" style={{ height: '600px' }}>
+              <iframe
+                ref={iframeRef}
+                sandbox="allow-scripts allow-same-origin"
+                className="w-full h-full border-0"
+                title="App Preview"
+              />
+            </div>
+
+            {previewUrl && (
+              <div className="mt-4 p-4 bg-green-500/20 border border-green-500 rounded-lg">
+                <p className="text-green-400 text-sm">
+                  ✅ App geteilt! Jetzt in der Galerie sichtbar.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Hilfe-Sektion */}
+        <div className="mt-6 bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+          <h3 className="text-xl font-bold text-white mb-4">💡 Tipps für deine App</h3>
+          <ul className="space-y-2 text-gray-300">
+            <li>• Nutze ChatGPT, Claude oder DeepSeek um Code zu generieren</li>
+            <li>• Beispiel-Prompt: "Erstelle eine HTML-Seite mit einem Tagesplan-Generator für die Sozialarbeit"</li>
+            <li>• Du kannst HTML, CSS und JavaScript kombinieren</li>
+            <li>• Die App wird in einem sicheren iFrame ausgeführt</li>
+            <li>• Maximale Größe: 50KB</li>
+          </ul>
+        </div>
+      </div>
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
+    </div>
+  );
+}
+```
+
+**Preview-Route (Backend)**
+```javascript
+// src/routes/sandbox.js
+const express = require('express');
+const router = express.Router();
+
+module.exports = (sandboxService) => {
+  router.get('/preview/:appId', async (req, res) => {
+    try {
+      const app = await sandboxService.getApp(req.params.appId);
+      
+      if (!app) {
+        return res.status(404).send('App nicht gefunden');
+      }
+
+      const html = sandboxService.generatePreviewHtml(app.code);
+      
+      // Security Headers
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      
+      res.send(html);
+    } catch (error) {
+      console.error('Preview error:', error);
+      res.status(500).send('Fehler beim Laden der App');
+    }
+  });
+
+  return router;
+};
+```
+
+**App-Galerie mit Voting**
+```jsx
+// pages/Gallery.jsx
+import { useEffect, useState } from 'react';
+import { ThumbsUp, ThumbsDown, ExternalLink } from 'lucide-react';
+import { useSocket } from '../hooks/useSocket';
+
+export default function Gallery() {
+  const [apps, setApps] = useState([]);
+  const [myVotes, setMyVotes] = useState({});
+  const { on, off } = useSocket();
+
+  useEffect(() => {
+    loadApps();
+
+    // Real-Time Updates
+    const handleNewApp = (data) => {
+      setApps(prev => [data, ...prev]);
+    };
+
+    const handleVoteUpdate = (data) => {
+      setApps(prev => prev.map(app => 
+        app.id === data.appId 
+          ? { ...app, upvotes: data.upvotes, downvotes: data.downvotes }
+          : app
+      ));
+    };
+
+    on('gallery:new', handleNewApp);
+    on('gallery:vote', handleVoteUpdate);
+
+    return () => {
+      off('gallery:new', handleNewApp);
+      off('gallery:vote', handleVoteUpdate);
+    };
+  }, [on, off]);
+
+  const loadApps = async () => {
+    const res = await fetch('/api/gallery');
+    const data = await res.json();
+    setApps(data.apps);
+    setMyVotes(data.myVotes || {});
+  };
+
+  const vote = async (appId, voteType) => {
+    try {
+      await fetch(`/api/gallery/${appId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ voteType }),
+      });
+
+      setMyVotes(prev => ({ ...prev, [appId]: voteType }));
+    } catch (error) {
+      console.error('Vote error:', error);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-4xl font-bold text-white mb-2">🏆 App-Galerie</h1>
+        <p className="text-gray-400 mb-8">Von deinen Kolleg:innen erstellt</p>
+
+        {apps.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-gray-400 text-lg">Noch keine Apps geteilt.</p>
+            <p className="text-gray-500 mt-2">Sei die/der Erste!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {apps.map(app => (
+              <AppCard
+                key={app.id}
+                app={app}
+                myVote={myVotes[app.id]}
+                onVote={vote}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AppCard({ app, myVote, onVote }) {
+  const isMyApp = app.author === localStorage.getItem('nickname');
+
+  return (
+    <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden hover:border-cyan-400/50 transition-all duration-300">
+      {/* Preview-Thumbnail */}
+      <div className="h-48 bg-slate-800 border-b border-white/10 relative group">
+        <iframe
+          src={`/sandbox/preview/${app.id}`}
+          className="w-full h-full pointer-events-none"
+          title={app.title}
+        />
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <a
+            href={`/sandbox/preview/${app.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg flex items-center gap-2"
+          >
+            <ExternalLink size={18} />
+            Öffnen
+          </a>
+        </div>
+      </div>
+
+      {/* Info & Voting */}
+      <div className="p-4">
+        <h3 className="text-xl font-bold text-white mb-1">{app.title}</h3>
+        <p className="text-sm text-gray-400 mb-4">von {app.author}</p>
+
+        {/* Voting-Buttons */}
+        {!isMyApp && (
+          <div className="flex gap-3">
+            <button
+              onClick={() => onVote(app.id, myVote === 'up' ? null : 'up')}
+              className={`
+                flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all
+                ${myVote === 'up'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                }
+              `}
+            >
+              <ThumbsUp size={18} />
+              <span className="font-semibold">{app.upvotes}</span>
+            </button>
+
+            <button
+              onClick={() => onVote(app.id, myVote === 'down' ? null : 'down')}
+              className={`
+                flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all
+                ${myVote === 'down'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                }
+              `}
+            >
+              <ThumbsDown size={18} />
+              <span className="font-semibold">{app.downvotes}</span>
+            </button>
+          </div>
+        )}
+
+        {isMyApp && (
+          <div className="text-center py-2 bg-cyan-500/20 rounded-lg">
+            <span className="text-cyan-400 text-sm font-semibold">Deine App ✨</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+**Deliverables:**
+- ✅ Monaco-Editor integriert
+- ✅ Live-Preview funktioniert
+- ✅ Code-Sanitization aktiv
+- ✅ Galerie mit Real-Time Voting
+- ✅ Apps werden sicher in iFrames gerendert
+
+**Tag 12-13: Ollama-Integration & Local Chat**
+
+**Backend: Ollama-Service mit Queue**
+```javascript
+// src/services/ollamaService.js
+const axios = require('axios');
+const EventEmitter = require('events');
+
+class OllamaService extends EventEmitter {
+  constructor() {
+    super();
+    this.baseUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+    this.model = process.env.OLLAMA_MODEL || 'gemma2:4b';
+    this.queue = [];
+    this.processing = false;
+    this.isAvailable = false;
+    this.systemPrompt = `Du bist ein hilfreicher Assistent für Fachkräfte im Ambulant Betreuten Wohnen.
+Deine Antworten sind:
+- Kurz und praxisnah (max. 150 Wörter)
+- Fachlich korrekt, aber nicht zu akademisch
+- Empathisch und wertschätzend
+- Auf Deutsch
+
+Kontext: Du unterstützt bei einer Fortbildung zu Local AI und No-Code Tools.`;
+
+    this.checkAvailability();
+  }
+
+  async checkAvailability() {
+    try {
+      await axios.get(`${this.baseUrl}/api/tags`, { timeout: 5000 });
+      this.isAvailable = true;
+      console.log('✅ Ollama ist verfügbar');
+    } catch (error) {
+      this.isAvailable = false;
+      console.warn('⚠️  Ollama ist nicht verfügbar:', error.message);
+    }
+  }
+
+  async chat(userMessage, context = {}) {
+    if (!this.isAvailable) {
+      return {
+        message: 'Dein Compagnon schläft gerade 😴. Der Trainer kann ihn aufwecken!',
+        fallback: true,
+        suggestions: [
+          'Prüfe, ob Ollama läuft: `ollama serve`',
+          'Installiere Ollama von: https://ollama.ai',
+        ],
+      };
+    }
+
+    return new Promise((resolve, reject) => {
+      const request = {
+        userMessage,
+        context,
+        resolve,
+        reject,
+        timestamp: Date.now(),
+      };
+
+      this.queue.push(request);
+      this.processQueue();
+    });
+  }
+
+  async processQueue() {
+    if (this.processing || this.queue.length === 0) return;
+
+    this.processing = true;
+    const request = this.queue.shift();
+
+    try {
+      const startTime = Date.now();
+
+      const response = await axios.post(
+        `${this.baseUrl}/api/chat`,
+        {
+          model: this.model,
+          messages: [
+            { role: 'system', content: this.systemPrompt },
+            { role: 'user', content: request.userMessage },
+          ],
+          stream: false,
+        },
+        { timeout: 30000 }
+      );
+
+      const responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      request.resolve({
+        message: response.data.message.content,
+        responseTime,
+        model: this.model,
+        fallback: false,
+      });
+
+      this.emit('chat:success', { responseTime });
+    } catch (error) {
+      console.error('Ollama error:', error.message);
+
+      if (error.code === 'ECONNABORTED') {
+        request.resolve({
+          message: 'Dein Compagnon denkt noch nach... Das dauert manchmal etwas länger bei komplexen Fragen. Versuche die Frage einfacher zu formulieren.',
+          responseTime: '30+',
+          fallback: true,
+        });
+      } else {
+        request.reject(error);
+      }
+
+      this.emit('chat:error', { error: error.message });
+    } finally {
+      this.processing = false;
+      this.processQueue(); // Nächsten Request verarbeiten
+    }
+  }
+
+  getQueueLength() {
+    return this.queue.length;
+  }
+}
+
+module.exports = OllamaService;
+```
+
+**Frontend: Chat-Interface**
+```jsx
+// components/chat/LocalChat.jsx
+import { useState, useRef, useEffect } from 'react';
+import { Send, Loader2, Cpu, AlertCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+
+export default function LocalChat({ moduleId }) {
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: 'Hallo! Ich bin dein lokaler Compagnon. Stelle mir eine Frage über deinen Arbeitsalltag im ABW.',
+      timestamp: Date.now(),
+    },
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = {
+      role: 'user',
+      content: input,
+      timestamp: Date.now(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          message: input,
+          moduleId,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Fehler bei der Anfrage');
+      }
+
+      const data = await res.json();
+
+      const assistantMessage = {
+        role: 'assistant',
+        content: data.message,
+        responseTime: data.responseTime,
+        fallback: data.fallback,
+        timestamp: Date.now(),
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-[600px] bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-white/10">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-4 border-b border-white/10">
+        <div className="w-10 h-10 bg-cyan-500/20 rounded-full flex items-center justify-center">
+          <Cpu className="text-cyan-400" size={20} />
+        </div>
+        <div>
+          <h3 className="text-white font-semibold">Dein lokaler Compagnon</h3>
+          <p className="text-xs text-gray-400 flex items-center gap-1">
+            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            Läuft auf diesem Laptop
+          </p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`
+                max-w-[80%] rounded-2xl px-4 py-3
+                ${msg.role === 'user'
+                  ? 'bg-cyan-500 text-white'
+                  : msg.fallback
+                  ? 'bg-yellow-500/20 border border-yellow-500/50 text-yellow-100'
+                  : 'bg-white/10 text-gray-100'
+                }
+              `}
+            >
+              <ReactMarkdown className="prose prose-invert prose-sm">
+                {msg.content}
+              </ReactMarkdown>
+
+              {msg.role === 'assistant' && msg.responseTime && (
+                <div className="text-xs text-gray-400 mt-2 flex items-center gap-2">
+                  <span>⚡ {msg.responseTime}s</span>
+                  {!msg.fallback && <span>🖥️ Lokal generiert</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-white/10 rounded-2xl px-4 py-3 flex items-center gap-2">
+              <Loader2 className="animate-spin text-cyan-400" size={18} />
+              <span className="text-gray-300">Dein Compagnon denkt nach...</span>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex justify-center">
+            <div className="bg-red-500/20 border border-red-500 rounded-xl px-4 py-3 flex items-center gap-2">
+              <AlertCircle className="text-red-400" size={18} />
+              <span className="text-red-300">{error}</span>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="p-4 border-t border-white/10">
+        <div className="flex gap-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Stelle eine Frage..."
+            rows={1}
+            className="flex-1 bg-slate-700 text-white px-4 py-3 rounded-xl border border-white/20 focus:border-cyan-400 outline-none resize-none"
+            disabled={isLoading}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim() || isLoading}
+            className="px-6 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-all flex items-center gap-2"
+          >
+            <Send size={18} />
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-500 mt-2">
+          Enter zum Senden • Shift+Enter für neue Zeile
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
+**API-Route**
+```javascript
+// src/routes/api.js
+router.post('/chat', requireAuth, rateLimiters.ollama, async (req, res) => {
+  try {
+    const { message, moduleId } = req.body;
+    const participantId = req.participant.id;
+
+    // Log für Analytics
+    await db.run(
+      `INSERT INTO chat_logs (participant_id, message, module_id) VALUES (?, ?, ?)`,
+      [participantId, message, moduleId]
+    );
+
+    const response = await ollamaService.chat(message, { moduleId });
+
+    res.json(response);
+  } catch (error) {
+    console.error('Chat error:', error);
+    res.status(500).json({ error: 'Chat-Anfrage fehlgeschlagen' });
+  }
+});
+```
+
+**Deliverables:**
+- ✅ Ollama-Integration funktioniert
+- ✅ Chat-Interface mit Markdown-Support
+- ✅ Queue-System für parallele Requests
+- ✅ Fallback-Nachrichten bei Offline/Timeout
+- ✅ Response-Time wird angezeigt
+
+---
+
+### Phase 4: Polish & Deployment (Woche 4)
+
+**Tag 14-15: Material-Hub & Geheim-Codes**
+
+**Material-Hub Implementation**
+```jsx
+// pages/MaterialHub.jsx
+import { FileText, Headphones, Video, Link as LinkIcon, Download } from 'lucide-react';
+
+const MATERIALS = {
+  documents: [
+    {
+      title: 'Prompt Engineering Basics',
+      description: 'Leitfaden für effektive KI-Prompts',
+      url: '/materials/pdfs/prompt-engineering.pdf',
+      type: 'pdf',
+    },
+    {
+      title: 'DSGVO und Local AI',
+      description: 'Rechtliche Grundlagen für den Praxiseinsatz',
+      url: '/materials/pdfs/dsgvo-local-ai.pdf',
+      type: 'pdf',
+    },
+  ],
+  audio: [
+    {
+      title: 'Die Fortbildung in 10 Minuten',
+      description: 'KI-generierte Zusammenfassung (NotebookLM)',
+      url: '/materials/audio/summary.mp3',
+      duration: '10:23',
+    },
+  ],
+  videos: [
+    {
+      title: 'Ollama installieren',
+      description: 'Schritt-für-Schritt Tutorial',
+      embedUrl: 'https://www.loom.com/embed/example',
+      duration: '5:30',
+    },
+    {
+      title: 'Cursor.ai Einführung',
+      description: 'KI-gestütztes Coding',
+      embedUrl: 'https://www.loom.com/embed/example2',
+      duration: '8:15',
+    },
+  ],
+  links: [
+    {
+      title: 'Claude.ai',
+      url: 'https://claude.ai',
+      description: 'Anthropic's KI-Assistent',
+    },
+    {
+      title: 'Ollama Dokumentation',
+      url: 'https://ollama.ai/docs',
+      description: 'Offizielle Docs',
+    },
+  ],
+};
+
+export default function MaterialHub() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-4xl font-bold text-white mb-2">📚 Material-Hub</h1>
+        <p className="text-gray-400 mb-8">Alle Ressourcen an einem Ort</p>
+
+        {/* Dokumente */}
+        <Section title="📄 Handouts" icon={<FileText />}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {MATERIALS.documents.map((doc, idx) => (
+              <MaterialCard key={idx} material={doc} />
+            ))}
+          </div>
+        </Section>
+
+        {/* Audio */}
+        <Section title="🎧 Audio-Zusammenfassungen" icon={<Headphones />}>
+          <div className="grid grid-cols-1 gap-4">
+            {MATERIALS.audio.map((audio, idx) => (
+              <AudioCard key={idx} audio={audio} />
+            ))}
+          </div>
+        </Section>
+
+        {/* Videos */}
+        <Section title="🎥 Video-Tutorials" icon={<Video />}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {MATERIALS.videos.map((video, idx) => (
+              <VideoCard key={idx} video={video} />
+            ))}
+          </div>
+        </Section>
+
+        {/* Links */}
+        <Section title="🔗 Externe Ressourcen" icon={<LinkIcon />}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {MATERIALS.links.map((link, idx) => (
+              <LinkCard key={idx} link={link} />
+            ))}
+          </div>
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, icon, children }) {
+  return (
+    <div className="mb-12">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="text-cyan-400">{icon}</div>
+        <h2 className="text-2xl font-bold text-white">{title}</h2>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function MaterialCard({ material }) {
+  return (
+    <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:border-cyan-400/50 transition-all">
+      <h3 className="text-lg font-semibold text-white mb-2">{material.title}</h3>
+      <p className="text-gray-400 text-sm mb-4">{material.description}</p>
+      <a
+        href={material.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition"
+      >
+        <Download size={16} />
+        Herunterladen
+      </a>
+    </div>
+  );
+}
+
+function AudioCard({ audio }) {
+  return (
+    <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white">{audio.title}</h3>
+          <p className="text-gray-400 text-sm">{audio.description}</p>
+        </div>
+        <span className="text-cyan-400 text-sm font-mono">{audio.duration}</span>
+      </div>
+      <audio controls className="w-full">
+        <source src={audio.url} type="audio/mpeg" />
+        Dein Browser unterstützt kein Audio.
+      </audio>
+    </div>
+  );
+}
+
+function VideoCard({ video }) {
+  return (
+    <div className="bg-white/10 backdrop-blur-xl rounded-xl overflow-hidden border border-white/20 hover:border-cyan-400/50 transition-all">
+      <div className="aspect-video">
+        <iframe
+          src={video.embedUrl}
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          title={video.title}
+        />
+      </div>
+      <div className="p-4">
+        <h3 className="text-lg font-semibold text-white mb-1">{video.title}</h3>
+        <p className="text-gray-400 text-sm">{video.description} • {video.duration}</p>
+      </div>
+    </div>
+  );
+}
+
+function LinkCard({ link }) {
+  return (
+    <a
+      href={link.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:border-cyan-400/50 hover:scale-105 transition-all"
+    >
+      <h3 className="text-lg font-semibold text-white mb-2">{link.title}</h3>
+      <p className="text-gray-400 text-sm mb-3">{link.description}</p>
+      <span className="text-cyan-400 text-sm flex items-center gap-1">
+        Öffnen <LinkIcon size={14} />
+      </span>
+    </a>
+  );
+}
+```
+
+**Geheim-Code System**
+```javascript
+// src/services/secretCodeService.js
+const crypto = require('crypto');
+
+class SecretCodeService {
+  constructor(db) {
+    this.db = db;
+  }
+
+  generateCode(featureId, expiresInMinutes = 30) {
+    const code = crypto.randomBytes(2).toString('hex').toUpperCase(); // 4-stellig
+    const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000).toISOString();
+
+    return this.db.run(
+      `INSERT INTO secret_codes (code, feature_id, expires_at) VALUES (?, ?, ?)`,
+      [code, featureId, expiresAt]
+    ).then(() => ({ code, expiresAt, featureId }));
+  }
+
+  async redeemCode(participantId, code) {
+    // Code validieren
+    const secretCode = await this.db.get(
+      `SELECT * FROM secret_codes WHERE code = ? AND expires_at > datetime('now')`,
+      [code.toUpperCase()]  );
+
+    if (!secretCode) {
+      throw new Error('Code ungültig oder abgelaufen');
+    }
+
+    // Prüfen ob bereits eingelöst
+    const alreadyRedeemed = await this.db.get(
+      `SELECT * FROM code_redemptions WHERE participant_id = ? AND code = ?`,
+      [participantId, code.toUpperCase()]
+    );
+
+    if (alreadyRedeemed) {
+      throw new Error('Code bereits eingelöst');
+    }
+
+    // Einlösen
+    await this.db.run(
+      `INSERT INTO code_redemptions (participant_id, code) VALUES (?, ?)`,
+      [participantId, code.toUpperCase()]
+    );
+
+    return {
+      success: true,
+      feature: secretCode.feature_id,
+      message: 'Feature freigeschaltet! 🎉',
+    };
+  }
+
+  async getParticipantFeatures(participantId) {
+    const redemptions = await this.db.all(
+      `SELECT sc.feature_id 
+       FROM code_redemptions cr
+       JOIN secret_codes sc ON cr.code = sc.code
+       WHERE cr.participant_id = ?`,
+      [participantId]
+    );
+
+    return redemptions.map(r => r.feature_id);
+  }
+
+  async getActiveCodes() {
+    return await this.db.all(
+      `SELECT code, feature_id, expires_at, created_by
+       FROM secret_codes
+       WHERE expires_at > datetime('now')
+       ORDER BY expires_at DESC`
+    );
+  }
+}
+
+module.exports = SecretCodeService;
+```
+
+**Admin: Code-Generator UI**
+```jsx
+// components/admin/CodeGenerator.jsx
+import { useState } from 'react';
+import { Key, Clock, Copy, Check } from 'lucide-react';
+
+const FEATURES = [
+  { id: 'source_code_view', name: 'Quellcode ansehen', icon: '👀' },
+  { id: 'dark_mode_ultra', name: 'Dark Mode Ultra', icon: '🌑' },
+  { id: 'server_logs_view', name: 'Server-Logs (Read-Only)', icon: '📊' },
+  { id: 'secret_module', name: 'Geheim-Modul', icon: '🕵️' },
+];
+
+export default function CodeGenerator({ onCodeGenerated }) {
+  const [selectedFeature, setSelectedFeature] = useState(FEATURES[0].id);
+  const [duration, setDuration] = useState(30);
+  const [generatedCode, setGeneratedCode] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const generateCode = async () => {
+    try {
+      const res = await fetch('/admin/codes/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+        body: JSON.stringify({
+          featureId: selectedFeature,
+          expiresInMinutes: duration,
+        }),
+      });
+
+      const data = await res.json();
+      setGeneratedCode(data);
+      onCodeGenerated?.(data);
+    } catch (error) {
+      console.error('Code generation failed:', error);
+    }
+  };
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(generatedCode.code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const broadcastCode = async () => {
+    // Optional: Code an alle Teilnehmer senden
+    await fetch('/admin/broadcast', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+      },
+      body: JSON.stringify({
+        type: 'secret_code_available',
+        message: `🎁 Geheim-Code verfügbar! Feature: ${FEATURES.find(f => f.id === selectedFeature)?.name}`,
+      }),
+    });
+  };
+
+  return (
+    <div className="bg-slate-800 rounded-2xl p-6 border border-white/10">
+      <div className="flex items-center gap-3 mb-6">
+        <Key className="text-cyan-400" size={24} />
+        <h3 className="text-xl font-bold text-white">Geheim-Code Generator</h3>
+      </div>
+
+      <div className="space-y-4">
+        {/* Feature-Auswahl */}
+        <div>
+          <label className="block text-sm text-gray-400 mb-2">Feature</label>
+          <select
+            value={selectedFeature}
+            onChange={(e) => setSelectedFeature(e.target.value)}
+            className="w-full bg-slate-700 text-white px-4 py-2 rounded-lg border border-white/20 focus:border-cyan-400 outline-none"
+          >
+            {FEATURES.map(feature => (
+              <option key={feature.id} value={feature.id}>
+                {feature.icon} {feature.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Dauer */}
+        <div>
+          <label className="block text-sm text-gray-400 mb-2">
+            Gültigkeit (Minuten)
+          </label>
+          <input
+            type="number"
+            value={duration}
+            onChange={(e) => setDuration(Number(e.target.value))}
+            min={5}
+            max={120}
+            className="w-full bg-slate-700 text-white px-4 py-2 rounded-lg border border-white/20 focus:border-cyan-400 outline-none"
+          />
+        </div>
+
+        {/* Generieren */}
+        <button
+          onClick={generateCode}
+          className="w-full py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+        >
+          <Key size={18} />
+          Code generieren
+        </button>
+
+        {/* Generierter Code */}
+        {generatedCode && (
+          <div className="mt-6 p-4 bg-green-500/20 border-2 border-green-500 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-green-400 font-semibold">Code generiert:</span>
+              <div className="flex items-center gap-1 text-xs text-green-300">
+                <Clock size={14} />
+                Gültig für {duration} Min
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1 bg-black/30 px-4 py-3 rounded-lg">
+                <span className="text-3xl font-mono font-bold text-white tracking-widest">
+                  {generatedCode.code}
+                </span>
+              </div>
+
+              <button
+                onClick={copyCode}
+                className="px-4 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition"
+              >
+                {copied ? (
+                  <Check className="text-green-400" size={20} />
+                ) : (
+                  <Copy className="text-white" size={20} />
+                )}
+              </button>
+            </div>
+
+            <button
+              onClick={broadcastCode}
+              className="w-full mt-3 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-semibold rounded-lg transition"
+            >
+              📢 An alle Teilnehmer senden
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+**Client: Code-Einlöse-Dialog**
+```jsx
+// components/shared/CodeRedemption.jsx
+import { useState } from 'react';
+import { Gift, Loader2 } from 'lucide-react';
+import Modal from './Modal';
+
+export default function CodeRedemption({ isOpen, onClose, onSuccess }) {
+  const [code, setCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const redeemCode = async () => {
+    if (code.length !== 4) {
+      setError('Code muss 4 Zeichen haben');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/codes/redeem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ code: code.toUpperCase() }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
+
+      const data = await res.json();
+      onSuccess?.(data);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+            <Gift className="text-purple-400" size={24} />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white">Geheim-Code einlösen</h3>
+            <p className="text-sm text-gray-400">Schalte versteckte Features frei</p>
+          </div>
+        </div>
+
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="CODE"
+          maxLength={4}
+          className="w-full text-center text-3xl font-mono font-bold tracking-widest bg-slate-700 text-white px-4 py-4 rounded-lg border-2 border-white/20 focus:border-purple-400 outline-none mb-4"
+          disabled={isLoading}
+        />
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-300 text-sm">
+            {error}
+          </div>
+        )}
+
+        <button
+          onClick={redeemCode}
+          disabled={isLoading || code.length !== 4}
+          className="w-full py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="animate-spin" size={18} />
+              Prüfe Code...
+            </>
+          ) : (
+            <>
+              <Gift size={18} />
+              Einlösen
+            </>
+          )}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+```
+
+**Deliverables:**
+- ✅ Material-Hub mit allen Ressourcen
+- ✅ Code-Generator im Admin-Dashboard
+- ✅ Code-Einlöse-System funktioniert
+- ✅ Features werden freigeschaltet
+
+---
+
+**Tag 16-17: PWA & Offline-Funktionalität**
+
+**PWA-Manifest**
+```json
+// public/manifest.json
+{
+  "name": "The Compagnon",
+  "short_name": "Compagnon",
+  "description": "Immersives KI-Schulungssystem",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#00fff2",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Dashboard"
+    }
+  ]
+}
+```
+
+**Service Worker**
+```javascript
+// public/sw.js
+const CACHE_NAME = 'compagnon-v1';
+const RUNTIME_CACHE = 'compagnon-runtime-v1';
+
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/app.js',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+];
+
+// Installation
+self.addEventListener('install', (event) => {
+  console.log('Service Worker: Installing...');
+  
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Service Worker: Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
+      })
+      .then(() => self.skipWaiting())
+  );
+});
+
+// Aktivierung
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker: Activating...');
+  
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames
+          .filter(name => name !== CACHE_NAME && name !== RUNTIME_CACHE)
+          .map(name => caches.delete(name))
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Fetch mit Offline-Fallback
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // API-Requests: Network-First
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          // Cache erfolgreiche Responses
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(RUNTIME_CACHE).then(cache => {
+              cache.put(request, clone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // Fallback auf Cache
+          return caches.match(request).then(cached => {
+            if (cached) {
+              return cached;
+            }
+            // Offline-Fallback-Response
+            return new Response(
+              JSON.stringify({ 
+                error: 'Offline', 
+                message: 'Keine Verbindung zum Server' 
+              }),
+              { 
+                headers: { 'Content-Type': 'application/json' },
+                status: 503
+              }
+            );
+          });
+        })
+    );
+    return;
+  }
+
+  // Statische Assets: Cache-First
+  event.respondWith(
+    caches.match(request).then(cached => {
+      if (cached) {
+        return cached;
+      }
+
+      return fetch(request).then(response => {
+        // Cache neue Responses
+        if (response.ok && request.method === 'GET') {
+          const clone = response.clone();
+          caches.open(RUNTIME_CACHE).then(cache => {
+            cache.put(request, clone);
+          });
+        }
+        return response;
+      });
+    }).catch(() => {
+      // Offline-Fallback-Seite
+      if (request.destination === 'document') {
+        return caches.match('/offline.html');
+      }
+    })
+  );
+});
+
+// Push-Notifications (Optional)
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() ?? {};
+  
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'The Compagnon', {
+      body: data.body || 'Neue Nachricht',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/badge.png',
+      data: data.url,
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  if (event.notification.data) {
+    event.waitUntil(
+      clients.openWindow(event.notification.data)
+    );
+  }
+});
+```
+
+**SW-Registrierung im Client**
+```javascript
+// src/registerSW.js
+export function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then(registration => {
+          console.log('✅ Service Worker registered:', registration.scope);
+
+          // Update-Check
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // Neues Update verfügbar
+                showUpdateNotification();
+              }
+            });
+          });
+        })
+        .catch(error => {
+          console.error('Service Worker registration failed:', error);
+        });
+    });
+  }
+}
+
+function showUpdateNotification() {
+  if (confirm('Neue Version verfügbar! Jetzt aktualisieren?')) {
+    window.location.reload();
+  }
+}
+```
+
+**Offline-Hinweis Component**
+```jsx
+// components/shared/OfflineIndicator.jsx
+import { useEffect, useState } from 'react';
+import { WifiOff, Wifi } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+export default function OfflineIndicator() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  return (
+    <AnimatePresence>
+      {!isOnline && (
+        <motion.div
+          initial={{ y: -100 }}
+          animate={{ y: 0 }}
+          exit={{ y: -100 }}
+          className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-black px-4 py-3 flex items-center justify-center gap-2"
+        >
+          <WifiOff size={20} />
+          <span className="font-semibold">
+            Offline-Modus • Einige Features sind eingeschränkt
+          </span>
+        </motion.div>
+      )}
+      
+      {isOnline && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg"
+        >
+          <Wifi size={16} />
+          <span className="text-sm font-semibold">Wieder online</span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+```
+
+**Deliverables:**
+- ✅ PWA-Manifest erstellt
+- ✅ Service Worker registriert
+- ✅ Offline-Caching funktioniert
+- ✅ Install-Prompt auf Mobile
+- ✅ Offline-Indicator im UI
+
+---
+
+**Tag 18-19: Testing & Bug-Fixes**
+
+**Test-Suite erweitern**
+```bash
+npm run test        # Unit Tests
+npm run test:e2e    # Cypress E2E Tests
+npm run test:load   # k6 Load Tests
+```
+
+**Critical Bugs Checklist:**
+- [ ] Socket-Reconnection nach Netzwerk-Wechsel
+- [ ] Race Conditions bei parallelen Votes
+- [ ] Memory-Leaks bei Long-Running Sessions
+- [ ] XSS-Versuche im Sandbox
+- [ ] Ollama-Timeout-Handling
+- [ ] Mobile-Responsive Issues
+
+**Performance-Optimierungen:**
+```javascript
+// Debounce für Mood-Updates
+const debouncedMoodUpdate = debounce((mood) => {
+  socket.emit('mood:update', { mood, moduleId });
+}, 500);
+
+// Lazy-Loading für Heavy Components
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const Gallery = lazy(() => import('./pages/Gallery'));
+
+// Image Optimization
+<img 
+  src={optimizedImageUrl} 
+  loading="lazy"
+  decoding="async"
+  alt={description}
+/>
+
+// Code-Splitting per Route
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <App />,
+    children: [
+      { path: '/dashboard', element: <Suspense><Dashboard /></Suspense> },
+      { path: '/module/:id', element: <Suspense><ModuleView /></Suspense> },
+      // ...
+    ]
+  }
+]);
+```
+
+**Deliverables:**
+- ✅ Alle Tests grün
+- ✅ Critical Bugs gefixt
+- ✅ Performance-Optimierungen applied
+- ✅ Cross-Browser getestet
+
+---
+
+**Tag 20-21: Deployment & Dokumentation**
+
+**Deployment-Script**
+```bash
+#!/bin/bash
+# deploy.sh
+
+echo "🚀 The Compagnon - Deployment"
+echo "================================"
+
+# 1. Environment Check
+if [ ! -f .env ]; then
+  echo "❌ .env file missing!"
+  exit 1
+fi
+
+# 2. Install Dependencies
+echo "📦 Installing dependencies..."
+npm install
+cd public/client && npm install && cd ../..
+
+# 3. Build Frontend
+echo "🔨 Building frontend..."
+cd public/client
+npm run build
+cd ../..
+
+# 4. Database Setup
+echo "🗄️  Initializing database..."
+node src/scripts/init-db.js
+
+# 5. Start Ollama (if not running)
+if ! pgrep -x "ollama" > /dev/null; then
+  echo "🤖 Starting Ollama..."
+  ollama serve &
+  sleep 3
+fi
+
+# 6. Pull Ollama Model
+echo "⬇️  Pulling Ollama model..."
+ollama pull gemma2:4b
+
+# 7. Start Server
+echo "✅ Starting server..."
+npm start
+```
+
+**README.md**
+```markdown
+# The Compagnon 🤖
+
+Immersives Schulungssystem für KI im Ambulant Betreuten Wohnen
+
+## Quick Start
+
+### Voraussetzungen
+- Node.js 18+
+- Ollama (https://ollama.ai)
+- 8GB RAM (für Ollama gemma2:4b)
+
+### Installation
+
+```bash
+# Repository clonen
+git clone https://github.com/your-org/compagnon.git
+cd compagnon
+
+# Dependencies installieren
+npm install
+
+# Environment Setup
+cp .env.example .env
+# Bearbeite .env mit deinen Einstellungen
+
+# Datenbank initialisieren
+npm run init-db
+
+# Frontend bauen
+cd public/client && npm run build && cd ../..
+
+# Server starten
+npm start
+```
+
+### Mit ngrok (für Device-Zugriff)
+
+```bash
+# Terminal 1: Server
+npm start
+
+# Terminal 2: ngrok
+ngrok http 3000
+```
+
+QR-Code wird automatisch generiert!
+
+## Architektur
+
+```
+┌─────────────────────┐
+│   React PWA (Client) │
+│   + Socket.io Client│
+└──────────┬───────────┘
+           │ WebSocket + HTTP
+┌──────────▼──────────┐
+│   Express Server     │
+│   + Socket.io Server│
+├─────────────────────┤
+│ SQLite │ Ollama API │
+└─────────────────────┘
+```
+
+## Features
+
+- ✅ Dynamische Modul-Freischaltung
+- ✅ Live-Stimmungs-Barometer
+- ✅ Code-Sandbox mit XSS-Schutz
+- ✅ Local AI Chat (Ollama)
+- ✅ App-Galerie mit Voting
+- ✅ Geheim-Code System
+- ✅ PWA mit Offline-Support
+- ✅ Admin-Dashboard
+
+## Scripts
+
+```bash
+npm start            # Production Server
+npm run dev          # Development mit Nodemon
+npm run init-db      # Datenbank initialisieren
+npm test             # Unit Tests
+npm run test:e2e     # Cypress Tests
+npm run tunnel       # ngrok starten
+```
+
+## Admin-Zugang
+
+URL: `http://localhost:3000/admin`  
+Passwort: Siehe `.env` → `ADMIN_PASSWORD`
+
+## Troubleshooting
+
+### Ollama nicht verfügbar
+```bash
+ollama serve
+ollama pull gemma2:4b
+```
+
+### Socket-Verbindung fehlschlägt
+- Prüfe Firewall
+- Bei ngrok: URL in `.env` aktualisieren
+
+### App lädt nicht
+```bash
+# Cache löschen
+rm -rf public/client/dist
+cd public/client && npm run build
+```
+
+## License
+
+MIT © 2026
+```
+
+**User-Dokumentation für Teilnehmer**
+```markdown
+# Teilnehmer-Guide 📚
+
+## Erste Schritte
+
+1. **QR-Code scannen** oder Link öffnen
+2. **Nickname eingeben** (optional)
+3. **"Die Reise beginnen"** klicken
+
+## Features
+
+### 🎭 Stimmungs-Barometer
+Am unteren Rand findest du immer 4 Emoji-Buttons:
+- 😕 Hä? → Ich bin verwirrt
+- 🤔 Hmm → Ich denke nach
+- 💡 Aha! → Verstanden!
+- 🤯 Wow! → Das ist krass!
+
+**Tipp:** Nutze diese oft! Der Trainer sieht in Echtzeit, wie es der Gruppe geht.
+
+### 📖 Module
+Module werden vom Trainer freigeschaltet. Du erhältst eine Animation, wenn ein neues Modul verfügbar ist.
+
+### 🧪 Mein Labor (Modul 3)
+Hier kannst du eigene Mini-Apps erstellen:
+1. Code von ChatGPT/Claude holen
+2. In Editor einfügen
+3. "Preview" klicken zum Testen
+4. "Teilen" um in Galerie zu veröffentlichen
+
+### 🏆 App-Galerie
+Sieh dir Apps deiner Kolleg:innen an und vote mit 👍/👎
+
+### 💬 Local Chat
+Chatte mit dem lokalen KI-Compagnon:
+- Stell Fragen zu deinem ABW-Alltag
+- Lass dir Texte vorschlagen
+- Experimentiere mit Prompts
+
+**Wichtig:** Keine echten Klienten-Daten eingeben!
+
+### 🎁 Geheim-Codes
+Der Trainer kann spontan Codes verkünden. Einlösen im Menü → "Code einlösen"
+
+## Tipps
+
+- **Mobile:** App zum Home-Screen hinzufügen (PWA)
+- **Offline:** Viele Features funktionieren auch ohne Internet
+- **Probleme:** Rote Ampel oben rechts → Trainer informieren
+
+## Datenschutz
+
+- Deine Daten bleiben auf dem Workshop-Server
+- Nickname ist anonym
+- Keine Klienten-Daten in KI-Tools eingeben!
+- Daten werden nach 30 Tagen automatisch gelöscht
+
+Viel Erfolg! 🚀
+```
+
+**Deliverables:**
+- ✅ Deployment-Script funktioniert
+- ✅ Dokumentation vollständig
+- ✅ User-Guide erstellt
+- ✅ ngrok-Setup getestet
+
+---
+
+## Success Metrics
+
+### Technische KPIs
+- [ ] Socket-Latenz < 100ms (LAN)
+- [ ] Ollama-Response < 5s (Median)
+- [ ] Zero Crashes während 2h Workshop
+- [ ] 100% Teilnehmer können sich verbinden
+- [ ] Alle E2E-Tests bestehen
+
+### Didaktische KPIs
+- [ ] 80%+ Teilnehmer schließen alle Module ab
+- [ ] 50%+ erstellen eine Sandbox-App
+- [ ] Durchschnittlich 20+ Mood-Updates pro Person
+- [ ] Mindestens 3 Apps in Galerie
+
+### "Wow"-Faktor KPIs
+- [ ] Spontanes "Whoa!" bei Modul-Unlock
+- [ ] Lachen bei Easter-Egg-Freischaltung
+- [ ] Foto vom Admin-Dashboard wird gemacht
+- [ ] Mindestens 1 Person fragt: "Wie hast du das gebaut?"
+
+---
+
+## Post-Workshop
+
+### Feedback-Collection
+```javascript
+// Nach 7 Tagen: Automatische E-Mail
+{
+  subject: "Wie geht's deinem Compagnon?",
+  questions: [
+    "Hast du KI seitdem im Alltag genutzt?",
+    "Was war das Highlight der Fortbildung?",
+    "Was würdest du verbessern?",
+    "Würdest du Kolleg:innen die Teilnahme empfehlen?"
+  ]
+}
+```
+
+### Iterationen für zukünftige Workshops
+- Neue Module basierend auf Feedback
+- Erweiterte Sandbox-Templates
+- Mehr ABW-spezifische Prompts
+- Multiplayer-Challenges
+
+---
+
+## Fazit: Was macht dieses PRD besonders?
+
+✅ **Vollständig spezifiziert:** Von Architektur bis UI-Details  
+✅ **Security-bewusst:** Trotz "kleinem Kreis" Best Practices  
+✅ **Didaktisch durchdacht:** Heldenreise + Gamification  
+✅ **Praktisch umsetzbar:** Realistische 3-Wochen-Timeline  
+✅ **Technisch anspruchsvoll:** Aber mit pragmatischen Entscheidungen  
+✅ **Dokumentiert:** README, User-Guide, inline Comments  
+
+**Besonderheiten:**
+- Overengineering als Feature (Lerneffekt!)
+- Storytelling-First Ansatz
+- Local-First AI als Demo
+- Real-Time Collaboration
+- Easter Eggs & Gamification
+
+
