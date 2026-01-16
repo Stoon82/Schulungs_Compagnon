@@ -4,6 +4,8 @@ import api from './services/api'
 import JoinScreen from './components/JoinScreen'
 import ModuleList from './components/ModuleList'
 import MoodBarometer from './components/MoodBarometer'
+import AdminLogin from './components/AdminLogin'
+import AdminDashboard from './components/AdminDashboard'
 import './App.css'
 
 function App() {
@@ -12,6 +14,8 @@ function App() {
   const [participant, setParticipant] = useState(null)
   const [modules, setModules] = useState([])
   const [loading, setLoading] = useState(true)
+  const [adminMode, setAdminMode] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const newSocket = io('http://localhost:3000')
@@ -44,6 +48,12 @@ function App() {
 
   const checkExistingSession = async () => {
     const sessionToken = localStorage.getItem('sessionToken')
+    const adminToken = api.getAdminToken()
+    
+    if (adminToken) {
+      setIsAdmin(true)
+      setAdminMode(true)
+    }
     
     if (sessionToken) {
       try {
@@ -94,12 +104,35 @@ function App() {
     }
   }
 
+  const handleAdminLogin = (data) => {
+    setIsAdmin(true)
+    setAdminMode(true)
+  }
+
+  const handleAdminLogout = () => {
+    setIsAdmin(false)
+    setAdminMode(false)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('sessionToken')
+    setParticipant(null)
+    setModules([])
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-white text-xl">Lade...</div>
       </div>
     )
+  }
+
+  if (adminMode) {
+    if (!isAdmin) {
+      return <AdminLogin onLogin={handleAdminLogin} />
+    }
+    return <AdminDashboard onLogout={handleAdminLogout} />
   }
 
   if (!participant) {
@@ -120,11 +153,27 @@ function App() {
               </p>
             </div>
             
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
-              connected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-            }`}>
-              <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-              {connected ? 'Verbunden' : 'Nicht verbunden'}
+            <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
+                connected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+              }`}>
+                <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                {connected ? 'Verbunden' : 'Nicht verbunden'}
+              </div>
+              
+              <button
+                onClick={() => setAdminMode(true)}
+                className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all text-sm font-medium"
+              >
+                Admin
+              </button>
+              
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all text-sm font-medium"
+              >
+                Abmelden
+              </button>
             </div>
           </div>
         </header>
