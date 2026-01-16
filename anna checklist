@@ -1,3 +1,36 @@
-projector mode for admin panel: basicly the client app but with advanced settings and control sidebar (allow access to modules, ..); create and share qr link for tunnel access; live info about participant mood, reactions, progress, 
-module edit mode on admin panel: edit content of modules, add modules, remove modules, change module names, create polls, wordclouds....
-design selection and edit panel
+# Anna's Feature Checklist
+
+## Projector Mode for Admin Panel
+- [x] Create full-screen presentation view
+- [x] Add live participant data display
+- [x] Generate and display QR code for session access
+- [x] Show live info about participant mood, reactions, progress
+- [x] Add admin control sidebar
+- [x] Integrate into admin dashboard
+
+## Module Edit Mode on Admin Panel
+- [ ] Create module editor interface
+- [ ] Add ability to edit module content
+- [ ] Add ability to add new modules
+- [ ] Add ability to remove modules
+- [ ] Add ability to change module names
+- [ ] Create poll creation interface
+- [ ] Create wordcloud creation interface
+- [ ] Implement module content preview
+
+## Design Selection and Edit Panel
+- [ ] Create theme/design selection interface
+- [ ] Add color scheme customization
+- [ ] Add typography customization
+- [ ] Add layout customization options
+- [ ] Implement design preview
+- [ ] Save and load custom designs
+
+## Floating Mood Bar
+- [x] Create floating mood reaction bar/modal
+- [x] Make it always accessible
+- [x] Add "Pause bitte" button
+- [x] Add "I'm overwhelmed" alert button
+- [x] Add confirmation modals for alerts
+- [x] Integrate into participant app
+
