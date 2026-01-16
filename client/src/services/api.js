@@ -78,6 +78,24 @@ class ApiService {
 
     return await response.json();
   }
+
+  async sendMood(mood, moduleId = null) {
+    const response = await fetch(`${API_BASE_URL}/mood/update`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ mood, moduleId })
+    });
+
+    return await response.json();
+  }
+
+  async getMoodHistory(limit = 50) {
+    const response = await fetch(`${API_BASE_URL}/mood/history?limit=${limit}`, {
+      headers: this.getHeaders()
+    });
+
+    return await response.json();
+  }
 }
 
 export default new ApiService();

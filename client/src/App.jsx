@@ -3,6 +3,7 @@ import { io } from 'socket.io-client'
 import api from './services/api'
 import JoinScreen from './components/JoinScreen'
 import ModuleList from './components/ModuleList'
+import MoodBarometer from './components/MoodBarometer'
 import './App.css'
 
 function App() {
@@ -81,6 +82,18 @@ function App() {
     console.log('Module clicked:', module)
   }
 
+  const handleMoodSelect = async (mood, moduleId) => {
+    try {
+      const result = await api.sendMood(mood, moduleId)
+      
+      if (result.success) {
+        console.log('Mood recorded:', mood)
+      }
+    } catch (error) {
+      console.error('Failed to record mood:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
@@ -117,6 +130,10 @@ function App() {
         </header>
 
         <main>
+          <div className="mb-8">
+            <MoodBarometer onMoodSelect={handleMoodSelect} currentModuleId={null} />
+          </div>
+
           <div className="mb-6">
             <h2 className="text-2xl font-semibold mb-2">Deine Reise</h2>
             <p className="text-gray-400">
