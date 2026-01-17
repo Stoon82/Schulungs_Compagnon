@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { QrCode, Settings, X, Copy, Share2, Check } from 'lucide-react';
 import QRCode from 'qrcode';
 
@@ -232,7 +233,8 @@ function QRCodeButton({ isAdmin, sessionCode = null }) {
               Close
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
