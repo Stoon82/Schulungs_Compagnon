@@ -233,19 +233,19 @@
   - [ ] Bar charts (Recharts or D3.js)
   - [ ] Pie charts
   - [ ] Word clouds for text responses
-- [ ] Add timer functionality for timed quizzes
-- [ ] Add "Reveal Answer" admin control
-- [ ] Add explanation display after answer reveal
+- [x] Add timer functionality for timed quizzes
+- [x] Add "Reveal Answer" admin control
+- [x] Add explanation display after answer reveal
 - [ ] Store quiz responses in database
 - [ ] Calculate and display score
 
 ### Poll System
-- [ ] Create poll creation UI
-- [ ] Add anonymous vs. tracked voting option
-- [ ] Implement real-time vote aggregation
-- [ ] Add results display modes (hidden, live, final)
-- [ ] Create visualization components (bar, pie, emoji)
-- [ ] Add "Close Poll" admin control
+- [x] Create poll creation UI
+- [x] Add anonymous vs. tracked voting option
+- [x] Implement real-time vote aggregation
+- [x] Add results display modes (hidden, live, final)
+- [x] Create visualization components (bar, pie, emoji)
+- [x] Add "Close Poll" admin control
 - [ ] Store poll results in database
 
 ### Word Cloud System

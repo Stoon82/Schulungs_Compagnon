@@ -11,7 +11,9 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
     ratingScale: content?.ratingScale || 5,
     ratingStyle: content?.ratingStyle || 'stars',
     explanation: content?.explanation || '',
-    points: content?.points || 1
+    points: content?.points || 1,
+    timeLimit: content?.timeLimit || 0,
+    showTimer: content?.showTimer || false
   });
 
   useEffect(() => {
@@ -25,7 +27,9 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
         ratingScale: content?.ratingScale || 5,
         ratingStyle: content?.ratingStyle || 'stars',
         explanation: content?.explanation || '',
-        points: content?.points || 1
+        points: content?.points || 1,
+        timeLimit: content?.timeLimit || 0,
+        showTimer: content?.showTimer || false
       });
     }
   }, [content, isEditing]);
@@ -245,10 +249,38 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [shortAnswer, setShortAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(formData.timeLimit);
+  const [timerExpired, setTimerExpired] = useState(false);
+  const [adminRevealAnswer, setAdminRevealAnswer] = useState(false);
+
+  // Timer countdown
+  useEffect(() => {
+    if (!isEditing && formData.timeLimit > 0 && !submitted && !timerExpired) {
+      setTimeRemaining(formData.timeLimit);
+      const timer = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setTimerExpired(true);
+            setSubmitted(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [isEditing, formData.timeLimit, submitted, timerExpired]);
 
   const handleSubmit = () => {
     setSubmitted(true);
     // TODO: Send answer to backend via socket/API
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const renderRatingScale = () => {
@@ -293,11 +325,35 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
         <h3 className="text-2xl font-bold text-white">
           {formData.question || 'Frage'}
         </h3>
-        <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-400 rounded">
-          {formData.questionType === 'multiple-choice' && 'Multiple Choice'}
-          {formData.questionType === 'short-answer' && 'Kurzantwort'}
-          {formData.questionType === 'rating-scale' && 'Bewertung'}
-        </span>
+        <div className="flex items-center gap-3">
+          {/* Timer Display */}
+          {formData.timeLimit > 0 && formData.showTimer && !submitted && (
+            <div className={`flex items-center gap-2 px-3 py-1 rounded ${
+              timeRemaining <= 10 ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+            }`}>
+              <Clock size={16} />
+              <span className="font-mono font-bold">{formatTime(timeRemaining)}</span>
+            </div>
+          )}
+          
+          {/* Admin Reveal Answer Button (only show in preview/admin mode) */}
+          {!isEditing && formData.questionType === 'multiple-choice' && (
+            <button
+              onClick={() => setAdminRevealAnswer(!adminRevealAnswer)}
+              className="px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded flex items-center gap-2 text-sm"
+              title="Antwort aufdecken (Admin)"
+            >
+              {adminRevealAnswer ? <EyeOff size={16} /> : <Eye size={16} />}
+              {adminRevealAnswer ? 'Verbergen' : 'Aufdecken'}
+            </button>
+          )}
+          
+          <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-400 rounded">
+            {formData.questionType === 'multiple-choice' && 'Multiple Choice'}
+            {formData.questionType === 'short-answer' && 'Kurzantwort'}
+            {formData.questionType === 'rating-scale' && 'Bewertung'}
+          </span>
+        </div>
       </div>
 
       {/* Multiple Choice - Interactive */}
@@ -309,7 +365,7 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
               onClick={() => setSelectedAnswer(index)}
               disabled={submitted}
               className={`w-full px-4 py-3 rounded-lg border transition-all text-left ${
-                submitted && index === formData.correctAnswer
+                (submitted || adminRevealAnswer) && index === formData.correctAnswer
                   ? 'bg-green-500/20 border-green-500 text-green-400'
                   : submitted && selectedAnswer === index && index !== formData.correctAnswer
                   ? 'bg-red-500/20 border-red-500 text-red-400'
@@ -320,8 +376,11 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
             >
               <div className="flex items-center justify-between">
                 <span>{option || `Option ${index + 1}`}</span>
-                {submitted && index === formData.correctAnswer && <span className="text-green-400">✓</span>}
+                {(submitted || adminRevealAnswer) && index === formData.correctAnswer && <span className="text-green-400">✓</span>}
                 {submitted && selectedAnswer === index && index !== formData.correctAnswer && <span className="text-red-400">✗</span>}
+                {adminRevealAnswer && !submitted && index === formData.correctAnswer && (
+                  <span className="text-xs text-yellow-400">(Richtig)</span>
+                )}
               </div>
             </button>
           ))}
@@ -391,12 +450,22 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
             {formData.questionType === 'multiple-choice' && selectedAnswer === formData.correctAnswer && '✓ Richtig!'}
             {formData.questionType === 'multiple-choice' && selectedAnswer !== formData.correctAnswer && '✗ Leider falsch'}
             {formData.questionType !== 'multiple-choice' && '✓ Antwort eingereicht'}
+            {timerExpired && ' (Zeit abgelaufen)'}
           </p>
           {formData.explanation && (
             <p className="text-sm text-gray-300 mt-2">
               <strong>Erklärung:</strong> {formData.explanation}
             </p>
           )}
+        </div>
+      )}
+
+      {/* Admin Reveal Explanation */}
+      {adminRevealAnswer && !submitted && formData.explanation && (
+        <div className="mt-6 p-4 rounded-lg border bg-yellow-500/10 border-yellow-500/30">
+          <p className="text-sm text-gray-300">
+            <strong className="text-yellow-400">Erklärung (Admin-Vorschau):</strong> {formData.explanation}
+          </p>
         </div>
       )}
 
