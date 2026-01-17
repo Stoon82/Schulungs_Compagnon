@@ -871,18 +871,18 @@
 - [ ] Release new features
 
 ### Future Enhancements
-- [ ] PowerPoint import
-- [ ] PDF import
+- [x] PowerPoint import
+- [x] PDF import
 - [ ] Google Slides sync
 - [ ] Markdown import
-- [ ] Branching scenarios
-- [ ] Code playgrounds
-- [ ] 3D model viewer
-- [ ] Virtual whiteboard
+- [x] Branching scenarios
+- [x] Code playgrounds
+- [x] 3D model viewer
+- [x] Virtual whiteboard
 - [ ] Screen sharing
 - [ ] Breakout rooms
 - [ ] Co-presenting mode
-- [ ] Learning paths
+- [x] Learning paths
 - [ ] Adaptive difficulty
 - [ ] Study reminders
 - [ ] Discussion forums
