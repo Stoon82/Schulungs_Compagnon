@@ -175,18 +175,21 @@ function MainApp() {
   // Join Session Screen
   if (view === 'join') {
     const pendingCode = sessionStorage.getItem('pendingSessionCode');
-    if (pendingCode) {
-      sessionStorage.removeItem('pendingSessionCode');
-    }
     
     return (
       <div>
         <SessionJoinScreen 
-          onJoinSuccess={handleClientJoin}
+          onJoinSuccess={(session, participant) => {
+            // Clear pending code after successful join
+            sessionStorage.removeItem('pendingSessionCode');
+            handleClientJoin(session, participant);
+          }}
           initialSessionCode={pendingCode || ''}
         />
         <button
           onClick={() => {
+            // Clear pending code when going back
+            sessionStorage.removeItem('pendingSessionCode');
             setView('landing');
             // Clear URL parameter
             window.history.replaceState({}, '', window.location.pathname);
