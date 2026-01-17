@@ -304,7 +304,13 @@ router.post('/sessions/start', async (req, res) => {
       VALUES (?, ?, ?, ?, ?)
     `, [id, classId, sessionCode, startedBy, presentationMode || 'manual']);
 
-    const session = await db.get('SELECT * FROM live_sessions WHERE id = ?', [id]);
+    const session = await db.get(`
+      SELECT s.*, c.module_id, c.name as class_name, m.title as module_title
+      FROM live_sessions s
+      JOIN classes c ON s.class_id = c.id
+      LEFT JOIN modules m ON c.module_id = m.id
+      WHERE s.id = ?
+    `, [id]);
 
     res.status(201).json({
       success: true,
@@ -357,8 +363,8 @@ router.get('/sessions/code/:code', async (req, res) => {
     const { code } = req.params;
 
     const session = await db.get(`
-      SELECT s.*, c.name as class_name, c.description as class_description,
-        m.id as module_id, m.title as module_title
+      SELECT s.*, c.module_id, c.name as class_name, c.description as class_description,
+        m.title as module_title
       FROM live_sessions s
       JOIN classes c ON s.class_id = c.id
       LEFT JOIN modules m ON c.module_id = m.id
