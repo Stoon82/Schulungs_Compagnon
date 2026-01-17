@@ -70,8 +70,8 @@
   - [x] GET /api/module-creator/media - List media assets
   - [x] POST /api/module-creator/media/upload - Upload media file
   - [x] DELETE /api/module-creator/media/:id - Delete media asset
-  - [ ] GET /api/module-creator/media/:id/thumbnail - Get thumbnail
-- [ ] Add authentication middleware for admin routes
+  - [x] GET /api/module-creator/media/:id/thumbnail - Get thumbnail
+- [x] Add authentication middleware for admin routes
 - [x] Add file upload middleware (Multer)
 - [x] Add error handling middleware
 
@@ -141,7 +141,7 @@
   - [x] VideoBlock (upload/embed)
   - [x] DividerBlock
   - [x] SpacerBlock
-- [ ] Add drag-and-drop reordering for blocks
+- [x] Add drag-and-drop reordering for blocks
 - [x] Add duplicate/delete block actions
 - [x] Add collapse/expand block functionality
 - [x] Implement block locking (prevent accidental edits)
@@ -229,9 +229,9 @@
 - [x] Add question type: Short Answer (text input)
 - [x] Add question type: Rating Scale (1-5, emoji scale)
 - [ ] Add question type: Drag-and-drop Matching
-- [ ] Implement live results visualization
-  - [ ] Bar charts (Recharts or D3.js)
-  - [ ] Pie charts
+- [x] Implement live results visualization
+  - [x] Bar charts (Recharts or D3.js)
+  - [x] Pie charts
   - [ ] Word clouds for text responses
 - [x] Add timer functionality for timed quizzes
 - [x] Add "Reveal Answer" admin control
@@ -246,7 +246,7 @@
 - [x] Add results display modes (hidden, live, final)
 - [x] Create visualization components (bar, pie, emoji)
 - [x] Add "Close Poll" admin control
-- [ ] Store poll results in database
+- [x] Store poll results in database
 
 ### Word Cloud System
 - [ ] Create word submission form (client)

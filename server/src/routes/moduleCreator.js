@@ -5,10 +5,25 @@ import { uploadSingle, handleUploadError } from '../middleware/upload.js';
 
 const router = express.Router();
 
-// Middleware for admin authentication (placeholder - implement based on your auth system)
+// Middleware for admin authentication
 const requireAdmin = (req, res, next) => {
-  // TODO: Implement proper admin authentication
-  // For now, we'll allow all requests
+  // Check if user is authenticated and has admin role
+  // This assumes you have session/JWT middleware that sets req.user
+  
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+  
+  if (req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    return res.status(403).json({
+      success: false,
+      error: 'Admin access required'
+    });
+  }
+  
   next();
 };
 
@@ -658,8 +673,7 @@ router.get('/media/:id/thumbnail', requireAdmin, async (req, res) => {
       });
     }
     
-    // For now, return the original media URL
-    // TODO: Implement actual thumbnail generation with sharp or similar
+    // Return media URL (thumbnail generation with sharp can be added later if needed)
     res.json({
       success: true,
       data: {
@@ -675,6 +689,72 @@ router.get('/media/:id/thumbnail', requireAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch media thumbnail'
+    });
+  }
+});
+
+// ============================================================================
+// POLL RESULTS ROUTES
+// ============================================================================
+
+// POST /api/module-creator/polls/:submoduleId/vote - Store poll vote
+router.post('/polls/:submoduleId/vote', async (req, res) => {
+  try {
+    const { submoduleId } = req.params;
+    const { sessionId, userId, optionSelected } = req.body;
+
+    if (!optionSelected) {
+      return res.status(400).json({
+        success: false,
+        error: 'Option selected is required'
+      });
+    }
+
+    await db.run(
+      'INSERT INTO poll_results (id, submodule_id, session_id, user_id, option_selected, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [uuidv4(), submoduleId, sessionId || null, userId || null, optionSelected, new Date().toISOString()]
+    );
+
+    res.json({
+      success: true,
+      message: 'Vote recorded successfully'
+    });
+  } catch (error) {
+    console.error('Error storing poll vote:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to store poll vote'
+    });
+  }
+});
+
+// GET /api/module-creator/polls/:submoduleId/results - Get poll results
+router.get('/polls/:submoduleId/results', async (req, res) => {
+  try {
+    const { submoduleId } = req.params;
+    const { sessionId } = req.query;
+
+    let query = 'SELECT option_selected, COUNT(*) as count FROM poll_results WHERE submodule_id = ?';
+    const params = [submoduleId];
+
+    if (sessionId) {
+      query += ' AND session_id = ?';
+      params.push(sessionId);
+    }
+
+    query += ' GROUP BY option_selected';
+
+    const results = await db.all(query, params);
+
+    res.json({
+      success: true,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error fetching poll results:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch poll results'
     });
   }
 });

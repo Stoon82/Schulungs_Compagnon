@@ -1,6 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useDrag, useDrop } from 'react-dnd';
 import { GripVertical, Trash2, Copy, Lock, Unlock, ChevronDown, ChevronUp, Type, Image as ImageIcon, Video, Minus, Space } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
+
+const ItemTypes = {
+  BLOCK: 'block'
+};
 
 /**
  * ContentBlock - Base component for modular content blocks
@@ -18,6 +23,50 @@ function ContentBlock({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLocked, setIsLocked] = useState(block.locked || false);
+  const ref = useRef(null);
+
+  // Drag functionality
+  const [{ isDragging }, drag] = useDrag({
+    type: ItemTypes.BLOCK,
+    item: { index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging()
+    })
+  });
+
+  // Drop functionality
+  const [, drop] = useDrop({
+    accept: ItemTypes.BLOCK,
+    hover: (item, monitor) => {
+      if (!ref.current) {
+        return;
+      }
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+
+      const hoverBoundingRect = ref.current?.getBoundingClientRect();
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return;
+      }
+
+      onMove(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    }
+  });
+
+  drag(drop(ref));
 
   const handleUpdate = (updates) => {
     onUpdate(index, { ...block, ...updates });
@@ -197,16 +246,20 @@ function ContentBlock({
   };
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
+    <div 
+      ref={ref}
+      className="bg-white/5 border border-white/10 rounded-lg overflow-hidden"
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+    >
       {/* Block Header */}
       <div className="bg-white/5 border-b border-white/10 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
+          <div
             className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-300"
             title="Ziehen zum Verschieben"
           >
             <GripVertical size={20} />
-          </button>
+          </div>
           
           <div className="flex items-center gap-2">
             {getBlockIcon()}
