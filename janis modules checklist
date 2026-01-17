@@ -76,16 +76,16 @@
 - [ ] Add error handling middleware
 
 ### Module Creator UI (Basic)
-- [ ] Create ModuleCreator component
-  - [ ] Add module metadata form (title, description, category)
-  - [ ] Add difficulty selector
-  - [ ] Add estimated duration input
-  - [ ] Add learning objectives list editor
+- [x] Create ModuleCreator component
+  - [x] Add module metadata form (title, description, category)
+  - [x] Add difficulty selector
+  - [x] Add estimated duration input
+  - [x] Add learning objectives list editor
   - [ ] Add prerequisites selector (link to other modules)
   - [ ] Add tags/categories input
-- [ ] Create SubmoduleList component
+- [x] Create SubmoduleList component
   - [ ] Display list of submodules with drag-to-reorder
-  - [ ] Add "Add Submodule" button
+  - [x] Add "Add Submodule" button
   - [ ] Add delete/duplicate submodule actions
   - [ ] Show submodule preview thumbnails
 - [ ] Create SubmoduleEditor component
@@ -94,38 +94,38 @@
   - [ ] Add duration estimate input
   - [ ] Add admin notes textarea
 - [ ] Implement drag-and-drop reordering (React DnD)
-- [ ] Add save/publish/draft functionality
+- [x] Add save/publish/draft functionality
 - [ ] Add real-time auto-save (debounced)
 
 ### Template System (5 Basic Templates)
-- [ ] Create template registry/factory
-- [ ] Implement **Title Slide** template
-  - [ ] Large centered title input
-  - [ ] Subtitle input
+- [x] Create template registry/factory
+- [x] Implement **Title Slide** template
+  - [x] Large centered title input
+  - [x] Subtitle input
   - [ ] Background image uploader
   - [ ] Logo placement options
-- [ ] Implement **Content Slide** template
+- [x] Implement **Content Slide** template
   - [ ] Title bar
-  - [ ] Rich text content area
-  - [ ] Layout selector (1-col, 2-col, grid)
+  - [x] Rich text content area
+  - [x] Layout selector (1-col, 2-col, grid)
   - [ ] Sidebar for media
-- [ ] Implement **Media Showcase** template
-  - [ ] Full-screen image/video display
-  - [ ] Caption overlay input
+- [x] Implement **Media Showcase** template
+  - [x] Full-screen image/video display
+  - [x] Caption overlay input
   - [ ] Gallery mode (carousel)
   - [ ] Zoom/pan controls
-- [ ] Implement **Interactive Quiz** template (basic)
-  - [ ] Question text input
-  - [ ] Question type selector (multiple choice, true/false)
-  - [ ] Options editor
-  - [ ] Correct answer selector
-  - [ ] Points input
-- [ ] Implement **Live Poll** template (basic)
-  - [ ] Question input
-  - [ ] Options editor (2-10 options)
-  - [ ] Results display mode selector
-  - [ ] Visualization type selector
-- [ ] Create template preview components
+- [x] Implement **Interactive Quiz** template (basic)
+  - [x] Question text input
+  - [x] Question type selector (multiple choice, true/false)
+  - [x] Options editor
+  - [x] Correct answer selector
+  - [x] Points input
+- [x] Implement **Live Poll** template (basic)
+  - [x] Question input
+  - [x] Options editor (2-10 options)
+  - [x] Results display mode selector
+  - [x] Visualization type selector
+- [x] Create template preview components
 - [ ] Add template switching functionality
 
 ### Content Block System

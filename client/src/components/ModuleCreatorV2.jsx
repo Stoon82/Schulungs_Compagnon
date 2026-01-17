@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Save, X, Plus, Trash2, Eye, Edit3, GripVertical, BookOpen, FileText, MessageSquare, BarChart3, Image, Video, CheckSquare } from 'lucide-react';
 import api from '../services/api';
+import SubmoduleEditor from './SubmoduleEditor';
 
 function ModuleCreatorV2({ onClose }) {
   const [modules, setModules] = useState([]);
@@ -10,6 +11,8 @@ function ModuleCreatorV2({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('metadata');
+  const [showSubmoduleEditor, setShowSubmoduleEditor] = useState(false);
+  const [editingSubmodule, setEditingSubmodule] = useState(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -203,6 +206,57 @@ function ModuleCreatorV2({ onClose }) {
       alert(newPublishState ? 'Modul veröffentlicht!' : 'Modul als Entwurf gespeichert');
     } catch (error) {
       console.error('Error toggling publish state:', error);
+    }
+  };
+
+  const handleNewSubmodule = () => {
+    if (!selectedModule) {
+      alert('Bitte speichern Sie zuerst das Modul');
+      return;
+    }
+    setEditingSubmodule(null);
+    setShowSubmoduleEditor(true);
+  };
+
+  const handleEditSubmodule = (submodule) => {
+    setEditingSubmodule(submodule);
+    setShowSubmoduleEditor(true);
+  };
+
+  const handleSaveSubmodule = async (submoduleData) => {
+    try {
+      let result;
+      if (editingSubmodule) {
+        result = await api.updateSubmodule(editingSubmodule.id, submoduleData);
+      } else {
+        result = await api.createSubmodule(selectedModule.id, submoduleData);
+      }
+
+      if (result.success) {
+        await loadSubmodules(selectedModule.id);
+        setShowSubmoduleEditor(false);
+        setEditingSubmodule(null);
+      } else {
+        throw new Error(result.error || 'Failed to save submodule');
+      }
+    } catch (error) {
+      console.error('Error saving submodule:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteSubmodule = async (submoduleId) => {
+    if (!confirm('Möchten Sie dieses Submodul wirklich löschen?')) return;
+
+    try {
+      const result = await api.deleteSubmodule(submoduleId);
+      if (result.success) {
+        await loadSubmodules(selectedModule.id);
+        alert('Submodul gelöscht!');
+      }
+    } catch (error) {
+      console.error('Error deleting submodule:', error);
+      alert('Fehler beim Löschen des Submoduls');
     }
   };
 
@@ -502,7 +556,10 @@ function ModuleCreatorV2({ onClose }) {
                   <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-8">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-2xl font-bold text-white">Submodule</h2>
-                      <button className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all flex items-center gap-2">
+                      <button 
+                        onClick={handleNewSubmodule}
+                        className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all flex items-center gap-2"
+                      >
                         <Plus size={18} />
                         <span>Submodul hinzufügen</span>
                       </button>
@@ -511,7 +568,14 @@ function ModuleCreatorV2({ onClose }) {
                     {submodules.length === 0 ? (
                       <div className="text-center py-12">
                         <FileText size={48} className="mx-auto mb-4 text-gray-600" />
-                        <p className="text-gray-400">Noch keine Submodule vorhanden</p>
+                        <p className="text-gray-400 mb-4">Noch keine Submodule vorhanden</p>
+                        <button
+                          onClick={handleNewSubmodule}
+                          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 transition-all inline-flex items-center gap-2"
+                        >
+                          <Plus size={20} />
+                          <span>Erstes Submodul erstellen</span>
+                        </button>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -523,12 +587,27 @@ function ModuleCreatorV2({ onClose }) {
                             <GripVertical size={20} className="text-gray-500 cursor-move" />
                             <div className="flex-1">
                               <h4 className="text-white font-medium">{submodule.title}</h4>
-                              <p className="text-sm text-gray-400">{submodule.template_type}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-400 rounded">
+                                  {submodule.template_type}
+                                </span>
+                                {submodule.duration_estimate && (
+                                  <span className="text-xs text-gray-400">
+                                    ~{submodule.duration_estimate} Min
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <button className="p-2 text-purple-400 hover:text-purple-300 transition-colors">
+                            <button 
+                              onClick={() => handleEditSubmodule(submodule)}
+                              className="p-2 text-purple-400 hover:text-purple-300 transition-colors"
+                            >
                               <Edit3 size={18} />
                             </button>
-                            <button className="p-2 text-red-400 hover:text-red-300 transition-colors">
+                            <button 
+                              onClick={() => handleDeleteSubmodule(submodule.id)}
+                              className="p-2 text-red-400 hover:text-red-300 transition-colors"
+                            >
                               <Trash2 size={18} />
                             </button>
                           </div>
@@ -561,6 +640,19 @@ function ModuleCreatorV2({ onClose }) {
           )}
         </div>
       </div>
+
+      {/* Submodule Editor Modal */}
+      {showSubmoduleEditor && (
+        <SubmoduleEditor
+          submodule={editingSubmodule}
+          moduleId={selectedModule?.id}
+          onSave={handleSaveSubmodule}
+          onClose={() => {
+            setShowSubmoduleEditor(false);
+            setEditingSubmodule(null);
+          }}
+        />
+      )}
     </div>
   );
 }
