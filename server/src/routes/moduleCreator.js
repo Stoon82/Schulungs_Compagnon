@@ -638,4 +638,45 @@ router.delete('/media/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// ============================================================================
+// MEDIA ROUTES
+// ============================================================================
+
+// GET /api/module-creator/media/:id/thumbnail - Get media thumbnail
+router.get('/media/:id/thumbnail', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { width = 200, height = 200 } = req.query;
+    
+    // Get media info from database
+    const media = await db.get('SELECT * FROM media WHERE id = ?', [id]);
+    
+    if (!media) {
+      return res.status(404).json({
+        success: false,
+        error: 'Media not found'
+      });
+    }
+    
+    // For now, return the original media URL
+    // TODO: Implement actual thumbnail generation with sharp or similar
+    res.json({
+      success: true,
+      data: {
+        id: media.id,
+        thumbnailUrl: media.url,
+        width: parseInt(width),
+        height: parseInt(height),
+        type: media.type
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching media thumbnail:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch media thumbnail'
+    });
+  }
+});
+
 export default router;

@@ -7,7 +7,9 @@ function ContentTemplate({ content, onChange, onSave, isEditing }) {
     title: content?.title || '',
     text: content?.text || '',
     layout: content?.layout || 'single',
-    backgroundColor: content?.backgroundColor || 'transparent'
+    backgroundColor: content?.backgroundColor || 'transparent',
+    sidebarMedia: content?.sidebarMedia || '',
+    sidebarPosition: content?.sidebarPosition || 'right'
   });
 
   useEffect(() => {
@@ -16,7 +18,9 @@ function ContentTemplate({ content, onChange, onSave, isEditing }) {
         title: content?.title || '',
         text: content?.text || '',
         layout: content?.layout || 'single',
-        backgroundColor: content?.backgroundColor || 'transparent'
+        backgroundColor: content?.backgroundColor || 'transparent',
+        sidebarMedia: content?.sidebarMedia || '',
+        sidebarPosition: content?.sidebarPosition || 'right'
       });
     }
   }, [content, isEditing]);
@@ -78,6 +82,7 @@ function ContentTemplate({ content, onChange, onSave, isEditing }) {
             >
               <option value="single">Einzelspalte</option>
               <option value="two-column">Zwei Spalten</option>
+              <option value="sidebar">Mit Sidebar</option>
             </select>
           </div>
 
@@ -96,6 +101,52 @@ function ContentTemplate({ content, onChange, onSave, isEditing }) {
             </select>
           </div>
         </div>
+
+        {/* Sidebar Media Options */}
+        {formData.layout === 'sidebar' && (
+          <div className="space-y-4 p-4 bg-white/5 rounded-lg border border-white/10">
+            <h4 className="text-sm font-semibold text-white">Sidebar-Medien</h4>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Medien-URL (Bild oder Video)
+              </label>
+              <input
+                type="text"
+                value={formData.sidebarMedia}
+                onChange={(e) => handleChange({ sidebarMedia: e.target.value })}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Sidebar-Position
+              </label>
+              <select
+                value={formData.sidebarPosition}
+                onChange={(e) => handleChange({ sidebarPosition: e.target.value })}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="left">Links</option>
+                <option value="right">Rechts</option>
+              </select>
+            </div>
+
+            {formData.sidebarMedia && (
+              <div className="mt-3">
+                <p className="text-xs text-gray-400 mb-2">Vorschau:</p>
+                <img 
+                  src={formData.sidebarMedia} 
+                  alt="Sidebar preview" 
+                  className="max-w-full h-auto rounded-lg border border-white/10"
+                  onError={(e) => e.target.style.display = 'none'}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {onSave && (
           <button
@@ -136,11 +187,28 @@ function ContentTemplate({ content, onChange, onSave, isEditing }) {
         </div>
       )}
 
-      {/* Content */}
-      <div 
-        className={`text-white ${formData.layout === 'two-column' ? 'columns-2 gap-6' : ''}`}
-        dangerouslySetInnerHTML={{ __html: `<p class="mb-4">${renderMarkdown(formData.text || 'Kein Inhalt')}</p>` }}
-      />
+      {/* Content with Sidebar Layout */}
+      {formData.layout === 'sidebar' && formData.sidebarMedia ? (
+        <div className={`flex gap-6 ${formData.sidebarPosition === 'left' ? 'flex-row-reverse' : ''}`}>
+          <div 
+            className="flex-1 text-white"
+            dangerouslySetInnerHTML={{ __html: `<p class="mb-4">${renderMarkdown(formData.text || 'Kein Inhalt')}</p>` }}
+          />
+          <div className="w-1/3">
+            <img 
+              src={formData.sidebarMedia} 
+              alt="Sidebar media" 
+              className="w-full h-auto rounded-lg border border-white/10 sticky top-6"
+            />
+          </div>
+        </div>
+      ) : (
+        /* Regular Content */
+        <div 
+          className={`text-white ${formData.layout === 'two-column' ? 'columns-2 gap-6' : ''}`}
+          dangerouslySetInnerHTML={{ __html: `<p class="mb-4">${renderMarkdown(formData.text || 'Kein Inhalt')}</p>` }}
+        />
+      )}
     </div>
   );
 }
