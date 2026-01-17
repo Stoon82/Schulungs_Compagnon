@@ -13,10 +13,9 @@ function QRCodeButton({ isAdmin, sessionCode = null }) {
 
   useEffect(() => {
     // Generate QR code on mount for inline display
+    // Always try to fetch tunnel URL, not just for admin
+    fetchNgrokUrl();
     generateQRCode();
-    if (isAdmin) {
-      fetchNgrokUrl();
-    }
   }, [sessionCode]);
 
   useEffect(() => {

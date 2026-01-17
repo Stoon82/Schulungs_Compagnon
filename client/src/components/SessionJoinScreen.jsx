@@ -12,7 +12,8 @@ function SessionJoinScreen({ onJoinSuccess, initialSessionCode = '' }) {
   // Auto-check code if provided
   useEffect(() => {
     if (initialSessionCode && initialSessionCode.length === 6) {
-      handleCheckCode(new Event('submit'));
+      const fakeEvent = { preventDefault: () => {} };
+      handleCheckCode(fakeEvent);
     }
   }, [initialSessionCode]);
 
