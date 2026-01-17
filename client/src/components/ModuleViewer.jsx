@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Home, BookOpen, Clock, CheckCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TitleTemplate, 
   ContentTemplate, 
@@ -23,6 +24,29 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState({});
+  const [transitionMode, setTransitionMode] = useState('fade'); // 'fade', 'slide', 'zoom'
+
+  // Animation variants
+  const transitions = {
+    fade: {
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      exit: { opacity: 0 },
+      transition: { duration: 0.3 }
+    },
+    slide: {
+      initial: { x: 300, opacity: 0 },
+      animate: { x: 0, opacity: 1 },
+      exit: { x: -300, opacity: 0 },
+      transition: { type: 'spring', stiffness: 300, damping: 30 }
+    },
+    zoom: {
+      initial: { scale: 0.8, opacity: 0 },
+      animate: { scale: 1, opacity: 1 },
+      exit: { scale: 1.2, opacity: 0 },
+      transition: { duration: 0.4 }
+    }
+  };
 
   useEffect(() => {
     loadModule();
@@ -244,14 +268,23 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
           )}
 
           {/* Template Content */}
-          {TemplateComponent && currentSubmodule && (
-            <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-8">
-              <TemplateComponent
-                content={currentSubmodule.content || {}}
-                isEditing={false}
-              />
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {TemplateComponent && currentSubmodule && (
+              <motion.div
+                key={currentSubmodule.id}
+                initial={transitions[transitionMode].initial}
+                animate={transitions[transitionMode].animate}
+                exit={transitions[transitionMode].exit}
+                transition={transitions[transitionMode].transition}
+                className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-8"
+              >
+                <TemplateComponent
+                  content={currentSubmodule.content || {}}
+                  isEditing={false}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

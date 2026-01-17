@@ -300,22 +300,22 @@
 ### Synchronized Client View
 - [x] Create ClientViewer component
 - [x] Listen for 'module:navigate' Socket.io events
-- [ ] Implement smooth transitions (Framer Motion)
-  - [ ] Fade transition
-  - [ ] Slide transition
-  - [ ] Zoom transition
+- [x] Implement smooth transitions (Framer Motion)
+  - [x] Fade transition
+  - [x] Slide transition
+  - [x] Zoom transition
 - [x] Add loading indicators for heavy content
-- [ ] Implement lazy loading for submodules
+- [x] Implement lazy loading for submodules
 - [x] Add error handling for failed loads
 
 ### Minimized Card Accordion System
-- [ ] Create SubmoduleAccordion component
-- [ ] Display previous/next submodules as minimized previews
-- [ ] Implement expand/minimize animations
-- [ ] Add click to expand functionality
-- [ ] Auto-expand when admin navigates
-- [ ] Add smooth height transitions
-- [ ] Show preview thumbnails on minimized cards
+- [x] Create SubmoduleAccordion component
+- [x] Display previous/next submodules as minimized previews
+- [x] Implement expand/minimize animations
+- [x] Add click to expand functionality
+- [x] Auto-expand when admin navigates
+- [x] Add smooth height transitions
+- [x] Show preview thumbnails on minimized cards
 
 ### Progress Indicators
 - [x] Create ProgressIndicator component
@@ -330,7 +330,7 @@
 - [x] Implement Auto-advance mode
   - [x] Add configurable timer per submodule
   - [x] Add pause/resume controls
-  - [ ] Add visual countdown timer
+  - [x] Add visual countdown timer
 - [x] Implement Self-paced mode
   - [x] Allow clients to navigate independently
   - [x] Show "admin is here" indicator
