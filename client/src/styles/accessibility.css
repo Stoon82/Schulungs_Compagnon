@@ -1,0 +1,125 @@
+/* High Contrast Mode Styles */
+body.high-contrast {
+  --bg-primary: #000000;
+  --bg-secondary: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #ffff00;
+  --border-color: #ffffff;
+  --link-color: #00ffff;
+  --button-bg: #ffffff;
+  --button-text: #000000;
+}
+
+body.high-contrast * {
+  border-color: var(--border-color) !important;
+}
+
+body.high-contrast .bg-gradient-to-br,
+body.high-contrast .bg-gradient-to-r,
+body.high-contrast .bg-gradient-to-l {
+  background: var(--bg-secondary) !important;
+}
+
+body.high-contrast button,
+body.high-contrast .button {
+  background-color: var(--button-bg) !important;
+  color: var(--button-text) !important;
+  border: 2px solid var(--border-color) !important;
+}
+
+body.high-contrast a {
+  color: var(--link-color) !important;
+  text-decoration: underline !important;
+}
+
+body.high-contrast .text-gray-400,
+body.high-contrast .text-gray-500,
+body.high-contrast .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+body.high-contrast input,
+body.high-contrast textarea,
+body.high-contrast select {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border: 2px solid var(--border-color) !important;
+}
+
+/* Font Size Scaling */
+:root {
+  --base-font-size: 16px;
+}
+
+body {
+  font-size: var(--base-font-size);
+}
+
+h1 {
+  font-size: calc(var(--base-font-size) * 2);
+}
+
+h2 {
+  font-size: calc(var(--base-font-size) * 1.5);
+}
+
+h3 {
+  font-size: calc(var(--base-font-size) * 1.25);
+}
+
+p, span, div {
+  font-size: var(--base-font-size);
+}
+
+.text-xs {
+  font-size: calc(var(--base-font-size) * 0.75);
+}
+
+.text-sm {
+  font-size: calc(var(--base-font-size) * 0.875);
+}
+
+.text-lg {
+  font-size: calc(var(--base-font-size) * 1.125);
+}
+
+.text-xl {
+  font-size: calc(var(--base-font-size) * 1.25);
+}
+
+.text-2xl {
+  font-size: calc(var(--base-font-size) * 1.5);
+}
+
+.text-3xl {
+  font-size: calc(var(--base-font-size) * 1.875);
+}
+
+/* Focus Indicators for Keyboard Navigation */
+body.high-contrast *:focus {
+  outline: 3px solid #ffff00 !important;
+  outline-offset: 2px !important;
+}
+
+/* Ensure sufficient contrast for all interactive elements */
+body.high-contrast button:hover,
+body.high-contrast a:hover {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+}
+
+/* Skip to content link for screen readers */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: #fff;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}

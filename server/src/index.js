@@ -92,6 +92,7 @@ app.use('/api/themes', require('./routes/themes'));
 app.use('/api/media', require('./routes/media'));
 app.use('/api/version', require('./routes/version'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/gamification', require('./routes/gamification'));
 
 // Ngrok tunnel detection endpoint (bypasses CORS)
 app.get('/api/ngrok/tunnel', async (req, res) => {
