@@ -24,6 +24,11 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
   const isAdmin = !!adminUser;
 
   useEffect(() => {
+    console.log('[ActiveSessionView] Component mounted');
+    console.log('[ActiveSessionView] adminUser:', adminUser);
+    console.log('[ActiveSessionView] isAdmin:', isAdmin);
+    console.log('[ActiveSessionView] session:', session);
+    
     loadSessionData();
     loadParticipants();
 
@@ -57,43 +62,63 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
 
   const loadSessionData = async () => {
     try {
-      console.log('Loading session data, module_id:', session.module_id);
+      console.log('[ActiveSessionView] Loading session data, module_id:', session.module_id);
+      console.log('[ActiveSessionView] isAdmin:', isAdmin);
+      console.log('[ActiveSessionView] session_code:', session.session_code);
       
       if (!session.module_id) {
-        console.error('No module_id in session:', session);
+        console.error('[ActiveSessionView] No module_id in session:', session);
         return;
       }
       
-      // Use public endpoints if not admin (participants don't need authentication)
       let data, subData;
+      let usedPublicEndpoint = false;
       
-      if (isAdmin) {
-        // Admin: use authenticated endpoints
-        data = await api.getCreatorModule(session.module_id);
-        console.log('Module data response (admin):', data);
-        
-        if (data.success) {
-          setModule(data.data);
-          subData = await api.getModuleSubmodules(session.module_id);
-        }
-      } else {
-        // Participant: use public endpoints with session code
+      // Always use public endpoints for non-admin users
+      if (!isAdmin) {
+        console.log('[ActiveSessionView] Using PUBLIC endpoints (not admin)');
         data = await api.getPublicModule(session.module_id, session.session_code);
-        console.log('Module data response (public):', data);
+        console.log('[ActiveSessionView] Module data response (public):', data);
         
         if (data.success) {
           setModule(data.data);
           subData = await api.getPublicSubmodules(session.module_id, session.session_code);
         }
+        usedPublicEndpoint = true;
+      } else {
+        // Admin: try authenticated endpoints, fallback to public if 401
+        console.log('[ActiveSessionView] Using ADMIN endpoints');
+        try {
+          data = await api.getCreatorModule(session.module_id);
+          console.log('[ActiveSessionView] Module data response (admin):', data);
+          
+          if (data.success) {
+            setModule(data.data);
+            subData = await api.getModuleSubmodules(session.module_id);
+          } else if (data.error && data.error.includes('401')) {
+            throw new Error('Authentication failed');
+          }
+        } catch (adminError) {
+          console.warn('[ActiveSessionView] Admin endpoints failed, falling back to public:', adminError);
+          data = await api.getPublicModule(session.module_id, session.session_code);
+          console.log('[ActiveSessionView] Module data response (public fallback):', data);
+          
+          if (data.success) {
+            setModule(data.data);
+            subData = await api.getPublicSubmodules(session.module_id, session.session_code);
+          }
+          usedPublicEndpoint = true;
+        }
       }
       
-      console.log('Submodules response:', subData);
+      console.log('[ActiveSessionView] Submodules response:', subData);
+      console.log('[ActiveSessionView] Used public endpoint:', usedPublicEndpoint);
       
       if (subData && subData.success) {
         setSubmodules(subData.data);
       }
     } catch (error) {
-      console.error('Error loading session data:', error);
+      console.error('[ActiveSessionView] Error loading session data:', error);
     }
   };
 
@@ -328,6 +353,8 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
             socket={socket}
             initialIndex={currentSubmoduleIndex}
             onExit={isAdmin ? handleEndSession : null}
+            sessionCode={session.session_code}
+            isAdmin={isAdmin}
           />
         ) : (
           <div className="flex items-center justify-center h-full relative z-10">

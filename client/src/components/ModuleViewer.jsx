@@ -26,7 +26,7 @@ import api from '../services/api';
 // Lazy load Model3DViewer to avoid React reconciler errors from @react-three/fiber
 const Model3DViewer = lazy(() => import('./Model3DViewer'));
 
-function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
+function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode = null, isAdmin = false }) {
   const [module, setModule] = useState(null);
   const [submodules, setSubmodules] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -90,21 +90,33 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
   const loadModule = async () => {
     setLoading(true);
     try {
-      // Load module data from API using api service (includes auth headers)
-      const data = await api.getCreatorModule(moduleId);
+      let data, subData;
       
-      if (data.success) {
-        setModule(data.data);
+      // Use public endpoints if sessionCode provided and not admin
+      if (sessionCode && !isAdmin) {
+        console.log('[ModuleViewer] Using PUBLIC endpoints');
+        data = await api.getPublicModule(moduleId, sessionCode);
         
-        // Load submodules
-        const subData = await api.getModuleSubmodules(moduleId);
+        if (data.success) {
+          setModule(data.data);
+          subData = await api.getPublicSubmodules(moduleId, sessionCode);
+        }
+      } else {
+        console.log('[ModuleViewer] Using ADMIN endpoints');
+        // Admin or standalone mode: use authenticated endpoints
+        data = await api.getCreatorModule(moduleId);
         
-        if (subData.success) {
-          setSubmodules(subData.data);
+        if (data.success) {
+          setModule(data.data);
+          subData = await api.getModuleSubmodules(moduleId);
         }
       }
+      
+      if (subData && subData.success) {
+        setSubmodules(subData.data);
+      }
     } catch (error) {
-      console.error('Error loading module:', error);
+      console.error('[ModuleViewer] Error loading module:', error);
     } finally {
       setLoading(false);
     }

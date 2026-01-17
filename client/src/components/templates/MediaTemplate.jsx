@@ -21,6 +21,12 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
 
   useEffect(() => {
     if (content && !isEditing) {
+      console.log('[MediaTemplate] 🎬 Content received:', content);
+      console.log('[MediaTemplate] 📁 Gallery mode:', content?.galleryMode);
+      console.log('[MediaTemplate] 🎥 Media URLs array:', content?.mediaUrls);
+      console.log('[MediaTemplate] 📺 Media type:', content?.mediaType);
+      console.log('[MediaTemplate] 🔢 URLs count:', content?.mediaUrls?.length || 0);
+      
       setFormData({
         mediaType: content?.mediaType || 'image',
         mediaUrl: content?.mediaUrl || '',
@@ -48,39 +54,23 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
     }
   };
 
+  // Auto-detect media type from file extension
+  const getMediaType = (url) => {
+    if (!url) return 'image';
+    const ext = url.split('.').pop().toLowerCase().split('?')[0];
+    
+    if (['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'].includes(ext)) {
+      return 'video';
+    } else if (['mp3', 'm4a', 'wav', 'ogg', 'aac', 'flac'].includes(ext)) {
+      return 'audio';
+    } else {
+      return 'image';
+    }
+  };
+
   if (isEditing) {
     return (
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Medientyp
-          </label>
-          <div className="flex gap-3">
-            <button
-              onClick={() => handleChange({ mediaType: 'image' })}
-              className={`flex-1 px-4 py-3 rounded-lg border transition-all flex items-center justify-center gap-2 ${
-                formData.mediaType === 'image'
-                  ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-                  : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-              }`}
-            >
-              <ImageIcon size={20} />
-              <span>Bild</span>
-            </button>
-            <button
-              onClick={() => handleChange({ mediaType: 'video' })}
-              className={`flex-1 px-4 py-3 rounded-lg border transition-all flex items-center justify-center gap-2 ${
-                formData.mediaType === 'video'
-                  ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-                  : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-              }`}
-            >
-              <Video size={20} />
-              <span>Video</span>
-            </button>
-          </div>
-        </div>
-
         {/* Gallery Mode Toggle */}
         <div>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -274,24 +264,54 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
   };
 
   if (formData.galleryMode && formData.mediaUrls.length > 0) {
+    const currentUrl = formData.mediaUrls[currentSlide];
+    const currentMediaType = getMediaType(currentUrl);
+    
+    console.log('[MediaTemplate] ✅ Rendering gallery mode');
+    console.log('[MediaTemplate] 📍 Current slide:', currentSlide);
+    console.log('[MediaTemplate] 🎯 Current URL:', currentUrl);
+    console.log('[MediaTemplate] 📊 Total slides:', formData.mediaUrls.length);
+    console.log('[MediaTemplate] 🎬 Auto-detected type:', currentMediaType);
+    
     return (
       <div className="py-8">
         <div className={`relative ${sizeClasses[formData.size]} ${positionClasses[formData.position]}`}>
-          {/* Gallery Image */}
-          {formData.mediaType === 'image' ? (
-            <img
-              src={formData.mediaUrls[currentSlide]}
-              alt={`${formData.caption || 'Gallery'} - ${currentSlide + 1}`}
-              className="w-full h-auto rounded-lg shadow-2xl"
-            />
-          ) : (
+          {/* Gallery Media - Auto-detect type per item */}
+          {currentMediaType === 'video' ? (
             <video
-              src={formData.mediaUrls[currentSlide]}
+              src={currentUrl}
               controls
               className="w-full h-auto rounded-lg shadow-2xl"
+              onLoadedData={() => console.log('[MediaTemplate] ✅ Video loaded:', currentUrl)}
+              onError={(e) => console.error('[MediaTemplate] ❌ Video failed:', currentUrl, e)}
             >
               Ihr Browser unterstützt das Video-Tag nicht.
             </video>
+          ) : currentMediaType === 'audio' ? (
+            <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-lg p-8 shadow-2xl">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-24 h-24 bg-purple-500/20 rounded-full flex items-center justify-center">
+                  <Video size={48} className="text-purple-400" />
+                </div>
+              </div>
+              <audio
+                src={currentUrl}
+                controls
+                className="w-full"
+                onLoadedData={() => console.log('[MediaTemplate] ✅ Audio loaded:', currentUrl)}
+                onError={(e) => console.error('[MediaTemplate] ❌ Audio failed:', currentUrl, e)}
+              >
+                Ihr Browser unterstützt das Audio-Tag nicht.
+              </audio>
+            </div>
+          ) : (
+            <img
+              src={currentUrl}
+              alt={`${formData.caption || 'Gallery'} - ${currentSlide + 1}`}
+              className="w-full h-auto rounded-lg shadow-2xl"
+              onLoad={() => console.log('[MediaTemplate] ✅ Image loaded:', currentUrl)}
+              onError={(e) => console.error('[MediaTemplate] ❌ Image failed:', currentUrl, e)}
+            />
           )}
 
           {/* Navigation Arrows */}
@@ -340,11 +360,15 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
     );
   }
 
+  // Single media mode
+  const singleMediaType = getMediaType(formData.mediaUrl);
+  console.log('[MediaTemplate] 📺 Single media mode, type:', singleMediaType);
+  
   return (
     <div className="py-8">
       <div className={`relative ${sizeClasses[formData.size]} ${positionClasses[formData.position]}`}>
         {/* Zoom Controls */}
-        {formData.zoomEnabled && formData.mediaType === 'image' && formData.mediaUrl && (
+        {formData.zoomEnabled && singleMediaType === 'image' && formData.mediaUrl && (
           <div className="absolute top-4 right-4 z-10 flex gap-2">
             <button
               onClick={handleZoomOut}
@@ -372,9 +396,32 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
           </div>
         )}
 
-        {/* Media */}
+        {/* Media - Auto-detect type */}
         <div className="overflow-hidden rounded-lg">
-          {formData.mediaType === 'image' ? (
+          {singleMediaType === 'video' ? (
+            <video
+              src={formData.mediaUrl}
+              controls
+              className="w-full h-auto rounded-lg shadow-2xl"
+            >
+              Ihr Browser unterstützt das Video-Tag nicht.
+            </video>
+          ) : singleMediaType === 'audio' ? (
+            <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-lg p-8 shadow-2xl">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-24 h-24 bg-purple-500/20 rounded-full flex items-center justify-center">
+                  <Video size={48} className="text-purple-400" />
+                </div>
+              </div>
+              <audio
+                src={formData.mediaUrl}
+                controls
+                className="w-full"
+              >
+                Ihr Browser unterstützt das Audio-Tag nicht.
+              </audio>
+            </div>
+          ) : (
             <img
               src={formData.mediaUrl}
               alt={formData.caption || 'Media'}
@@ -384,14 +431,6 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
                 cursor: formData.zoomEnabled ? 'zoom-in' : 'default'
               }}
             />
-          ) : (
-            <video
-              src={formData.mediaUrl}
-              controls
-              className="w-full h-auto rounded-lg shadow-2xl"
-            >
-              Ihr Browser unterstützt das Video-Tag nicht.
-            </video>
           )}
         </div>
 
