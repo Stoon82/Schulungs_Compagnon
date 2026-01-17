@@ -160,7 +160,7 @@
   - [x] Links (with URL input)
   - [x] Images (upload or URL)
   - [x] Code blocks
-  - [ ] Horizontal rules
+  - [x] Horizontal rules
 - [x] Add undo/redo functionality
 - [x] Add auto-save with debouncing (inherited from parent)
 - [x] Ensure HTML output is sanitized (TipTap handles this)
@@ -196,17 +196,17 @@
   - [x] Expandable detail cards
   - [x] Progress indicator
   - [x] Animated transitions
-- [ ] Implement **Split Screen** template
-  - [ ] Two-panel layout
-  - [ ] Content editor for each panel
-  - [ ] Draggable divider
-  - [ ] Panel size ratio presets
-- [ ] Implement **Embedded Content** template
-  - [ ] iFrame URL input
-  - [ ] Embed type selector (YouTube, Vimeo, CodePen, etc.)
-  - [ ] Auto-detect and format embed URLs
-  - [ ] Sandbox security options
-  - [ ] Responsive sizing
+- [x] Implement **Split Screen** template
+  - [x] Two-panel layout
+  - [x] Content editor for each panel
+  - [x] Draggable divider (preview hint)
+  - [x] Panel size ratio presets
+- [x] Implement **Embedded Content** template
+  - [x] iFrame URL input
+  - [x] Embed type selector (YouTube, Vimeo, CodePen, etc.)
+  - [x] Auto-detect and format embed URLs
+  - [x] Sandbox security options
+  - [x] Responsive sizing
 - [ ] Implement **Discussion Board** template
   - [ ] Q&A section UI
   - [ ] Threaded comments display

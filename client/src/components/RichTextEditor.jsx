@@ -6,13 +6,14 @@ import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Link } from '@tiptap/extension-link';
 import { Image } from '@tiptap/extension-image';
+import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
 import { useEffect } from 'react';
 import { 
   Bold, Italic, Underline, Strikethrough, Code, 
   List, ListOrdered, Quote, Heading1, Heading2, Heading3,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Link as LinkIcon, Image as ImageIcon, Undo, Redo,
-  Palette, Highlighter
+  Palette, Highlighter, Minus
 } from 'lucide-react';
 
 function RichTextEditor({ content, onChange, placeholder = 'Start typing...' }) {
@@ -36,6 +37,11 @@ function RichTextEditor({ content, onChange, placeholder = 'Start typing...' }) 
       Image.configure({
         HTMLAttributes: {
           class: 'max-w-full h-auto rounded-lg',
+        },
+      }),
+      HorizontalRule.configure({
+        HTMLAttributes: {
+          class: 'my-4 border-white/20',
         },
       }),
     ],
@@ -306,6 +312,13 @@ function RichTextEditor({ content, onChange, placeholder = 'Start typing...' }) 
             title="Insert Image"
           >
             <ImageIcon size={18} />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            className="p-2 rounded text-gray-400 hover:bg-white/10 transition-colors"
+            title="Horizontal Rule"
+          >
+            <Minus size={18} />
           </button>
         </div>
 

@@ -7,3 +7,5 @@ export { default as WordCloudTemplate } from './WordCloudTemplate';
 export { default as AppGalleryTemplate } from './AppGalleryTemplate';
 export { default as TableTemplate } from './TableTemplate';
 export { default as TimelineTemplate } from './TimelineTemplate';
+export { default as SplitScreenTemplate } from './SplitScreenTemplate';
+export { default as EmbedTemplate } from './EmbedTemplate';
