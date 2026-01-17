@@ -331,13 +331,13 @@
   - [x] Add configurable timer per submodule
   - [x] Add pause/resume controls
   - [ ] Add visual countdown timer
-- [ ] Implement Self-paced mode
-  - [ ] Allow clients to navigate independently
-  - [ ] Show "admin is here" indicator
-  - [ ] Add "Return to Live" button
-- [ ] Implement Hybrid mode
-  - [ ] Clients can review previous slides
-  - [ ] Auto-sync to admin on new slide
+- [x] Implement Self-paced mode
+  - [x] Allow clients to navigate independently
+  - [x] Show "admin is here" indicator
+  - [x] Add "Return to Live" button
+- [x] Implement Hybrid mode
+  - [x] Clients can review previous slides
+  - [x] Auto-sync to admin on new slide
 - [x] Add mode selector in admin panel
 
 ---
@@ -345,28 +345,35 @@
 ## 📋 PHASE 4: THEMING & CUSTOMIZATION (Week 6)
 
 ### Global Theme Editor
-- [ ] Create ThemeEditor component
-- [ ] Add color palette editor
-  - [ ] Primary color picker
-  - [ ] Secondary color picker
-  - [ ] Accent color picker
-  - [ ] Background color picker
-  - [ ] Text color picker
-- [ ] Add typography controls
-  - [ ] Font family selector
-  - [ ] Font size controls
-  - [ ] Font weight selector
-- [ ] Add spacing & layout controls
-  - [ ] Margin/padding sliders
-  - [ ] Card size presets
-- [ ] Add animation controls
-  - [ ] Transition speed slider
-  - [ ] Effect type selector
-- [ ] Add dark/light mode toggle
-- [ ] Implement theme preview
+- [x] Create ThemeEditor component
+- [x] Add color palette editor
+  - [x] Primary color picker
+  - [x] Secondary color picker
+  - [x] Accent color picker
+  - [x] Background color picker
+  - [x] Text color picker
+- [x] Add typography controls
+  - [x] Font family selector
+  - [x] Font size controls
+  - [x] Font weight selector
+- [x] Add spacing & layout controls
+  - [x] Margin/padding sliders
+  - [x] Card size presets
+- [x] Add animation controls
+  - [x] Transition speed slider
+  - [x] Effect type selector
+- [x] Add dark/light mode toggle
+- [x] Implement theme preview
 - [ ] Save theme to database
 - [ ] Emit 'theme:update' Socket.io event
-### Cla
+
+### Class-Level Theme Overrides
+- [ ] Add theme override section to class editor
+- [ ] Allow custom color scheme selection
+- [ ] Add background image/video uploader
+- [ ] Add custom CSS injection textarea
+- [ ] Implement theme inheritance (global → class → module → submodule)
+
 ### Module-Level Theme Overrides
 - [ ] Add theme override section to module editor
 - [ ] Allow custom color scheme selection
@@ -385,14 +392,14 @@
 - [ ] Implement style preview
 
 ### Pre-built Theme Library
-- [ ] Create Professional theme
-- [ ] Create Creative theme
-- [ ] Create Minimal theme
-- [ ] Create Dark Mode theme
-- [ ] Create High Contrast theme
-- [ ] Create Retro theme
+- [x] Create Professional theme
+- [x] Create Creative theme
+- [x] Create Minimal theme
+- [x] Create Dark Mode theme
+- [x] Create High Contrast theme
+- [x] Create Retro theme
 - [ ] Add theme selector dropdown
-- [ ] Implement theme import/export (JSON)
+- [x] Implement theme import/export (JSON)
 - [ ] Add "Reset to Default" option
 
 ### Background Media Support
