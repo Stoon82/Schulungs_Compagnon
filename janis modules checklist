@@ -873,20 +873,20 @@
 ### Future Enhancements
 - [x] PowerPoint import
 - [x] PDF import
-- [ ] Google Slides sync
-- [ ] Markdown import
+- [ ] Google Slides sync (requires external API)
+- [x] Markdown import
 - [x] Branching scenarios
 - [x] Code playgrounds
 - [x] 3D model viewer
 - [x] Virtual whiteboard
-- [ ] Screen sharing
-- [ ] Breakout rooms
-- [ ] Co-presenting mode
+- [x] Screen sharing
+- [x] Breakout rooms
+- [x] Co-presenting mode
 - [x] Learning paths
-- [ ] Adaptive difficulty
-- [ ] Study reminders
-- [ ] Discussion forums
-- [ ] Mentor matching
+- [x] Adaptive difficulty
+- [x] Study reminders
+- [x] Discussion forums
+- [x] Mentor matching
 
 ---
 
