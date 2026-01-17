@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Cloud, Plus, Trash2, Eye, Edit3, Download } from 'lucide-react';
 
 function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
@@ -77,6 +77,7 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
   const [userWord, setUserWord] = useState('');
   const [submittedWords, setSubmittedWords] = useState([]);
   const [error, setError] = useState('');
+  const wordCloudRef = useRef(null);
 
   const handleSubmitWord = () => {
     const word = userWord.trim().toLowerCase();
@@ -110,6 +111,46 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
     setUserWord('');
     setError('');
     // TODO: Send word to backend via socket/API
+  };
+
+  const handleExportImage = () => {
+    if (!wordCloudRef.current) return;
+    
+    // Create a canvas from the word cloud element
+    const element = wordCloudRef.current;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    canvas.width = element.offsetWidth;
+    canvas.height = element.offsetHeight;
+    
+    // Fill background
+    ctx.fillStyle = '#1e293b'; // Match bg color
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Get all word elements and draw them
+    const words = element.querySelectorAll('span');
+    words.forEach((wordEl) => {
+      const rect = wordEl.getBoundingClientRect();
+      const parentRect = element.getBoundingClientRect();
+      const x = rect.left - parentRect.left;
+      const y = rect.top - parentRect.top;
+      
+      ctx.font = window.getComputedStyle(wordEl).font;
+      ctx.fillStyle = window.getComputedStyle(wordEl).color;
+      ctx.fillText(wordEl.textContent, x, y + rect.height * 0.75);
+    });
+    
+    // Download image
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `wortwolke-${Date.now()}.png`;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
   };
 
   if (!isEditing) {
@@ -174,9 +215,19 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
         )}
 
         {/* Word Cloud Display */}
-        <div className="bg-white/5 rounded-xl p-8 border border-white/10 min-h-[400px]">
+        <div className="bg-white/5 rounded-xl p-8 border border-white/10 min-h-[400px] relative">
+          {submittedWords.length > 0 && (
+            <button
+              onClick={handleExportImage}
+              className="absolute top-4 right-4 px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all flex items-center gap-2 text-sm"
+              title="Als Bild exportieren"
+            >
+              <Download size={16} />
+              Export
+            </button>
+          )}
           {submittedWords.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div ref={wordCloudRef} className="flex flex-wrap items-center justify-center gap-3">
               {submittedWords.map((word, index) => {
                 // Calculate font size based on frequency (for now, random variation)
                 const fontSize = Math.floor(Math.random() * 32) + 16; // 16-48px

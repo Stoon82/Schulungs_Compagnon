@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Table as TableIcon, Save, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Table as TableIcon, Plus, Trash2, Save, GripVertical, ChevronUp, ChevronDown, Upload, Download } from 'lucide-react';
 
 function TableTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
@@ -99,6 +99,77 @@ function TableTemplate({ content, onChange, onSave, isEditing }) {
     handleChange({ rows: newRows });
   };
 
+  const fileInputRef = useRef(null);
+
+  const handleExportCSV = () => {
+    // Create CSV content
+    const csvRows = [];
+    csvRows.push(formData.headers.join(','));
+    formData.rows.forEach(row => {
+      csvRows.push(row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','));
+    });
+    const csvContent = csvRows.join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${formData.title || 'tabelle'}-${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportCSV = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          alert('CSV muss mindestens eine Kopfzeile und eine Datenzeile enthalten');
+          return;
+        }
+
+        // Parse CSV (simple implementation)
+        const parseCSVLine = (line) => {
+          const result = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result.map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'));
+        };
+
+        const headers = parseCSVLine(lines[0]);
+        const rows = lines.slice(1).map(line => parseCSVLine(line));
+
+        handleChange({ headers, rows });
+        alert('CSV erfolgreich importiert!');
+      } catch (error) {
+        alert('Fehler beim Importieren der CSV-Datei');
+        console.error(error);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = ''; // Reset input
+  };
+
   if (isEditing) {
     return (
       <div className="space-y-4">
@@ -152,6 +223,29 @@ function TableTemplate({ content, onChange, onSave, isEditing }) {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-medium">Tabelle bearbeiten</h3>
             <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleImportCSV}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all text-sm flex items-center gap-1"
+                title="CSV importieren"
+              >
+                <Upload size={16} />
+                CSV Import
+              </button>
+              <button
+                onClick={handleExportCSV}
+                className="px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all text-sm flex items-center gap-1"
+                title="Als CSV exportieren"
+              >
+                <Download size={16} />
+                CSV Export
+              </button>
               <button
                 onClick={addColumn}
                 className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all text-sm flex items-center gap-1"

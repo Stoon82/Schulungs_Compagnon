@@ -179,17 +179,17 @@
   - [x] Drag-to-reorder app items
 - [x] Implement **Word Cloud** template
   - [x] Prompt/question input
-  - [ ] Real-time word cloud visualization (d3-cloud or react-wordcloud)
+  - [x] Real-time word cloud visualization (d3-cloud or react-wordcloud)
   - [x] Profanity filter integration
-  - [ ] Export as image functionality
-  - [ ] Word submission form (client-side)
+  - [x] Export as image functionality
+  - [x] Word submission form (client-side)
 - [x] Implement **Table/Comparison** template
   - [x] Table editor with add/remove rows/columns
   - [x] Cell content editor (text)
   - [x] Sortable columns toggle
   - [x] Highlight rows/columns options
-  - [ ] CSV import functionality
-  - [ ] Export to CSV
+  - [x] CSV import functionality
+  - [x] Export to CSV
 - [x] Implement **Timeline/Process** template
   - [x] Timeline orientation selector (horizontal/vertical)
   - [x] Step editor (title, description, date/time)
