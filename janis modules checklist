@@ -524,35 +524,35 @@
 ## 📋 PHASE 7: ANALYTICS & INSIGHTS (Week 9)
 
 ### Admin Analytics Dashboard
-- [ ] Create AnalyticsDashboard component
-- [ ] Display active participants count (real-time)
-- [ ] Calculate and display average engagement score
-- [ ] Show time spent per submodule (chart)
-- [ ] Identify and highlight drop-off points
-- [ ] Add date range selector for historical data
+- [x] Create AnalyticsDashboard component
+- [x] Display active participants count (real-time)
+- [x] Calculate and display average engagement score
+- [x] Show time spent per submodule (chart)
+- [x] Identify and highlight drop-off points
+- [x] Add date range selector for historical data
 
 ### Session Metrics
-- [ ] Track session start/end times
-- [ ] Count unique participants per session
-- [ ] Calculate session duration
-- [ ] Track submodule view counts
-- [ ] Measure average time per submodule
-- [ ] Store session data in database
+- [x] Track session start/end times
+- [x] Count unique participants per session
+- [x] Calculate session duration
+- [x] Track submodule view counts
+- [x] Measure average time per submodule
+- [x] Store session data in database
 
 ### Quiz Analytics
-- [ ] Calculate success rate per question
-- [ ] Identify most missed questions
-- [ ] Measure time to complete quizzes
-- [ ] Generate score distribution chart
-- [ ] Show individual participant scores
-- [ ] Add quiz performance trends over time
+- [x] Calculate success rate per question
+- [x] Identify most missed questions
+- [x] Measure time to complete quizzes
+- [x] Generate score distribution chart
+- [x] Show individual participant scores
+- [x] Add quiz performance trends over time
 
 ### Interaction Heatmap
-- [ ] Track emoji reactions per submodule
-- [ ] Count poll participation rates
-- [ ] Track word cloud contributions
-- [ ] Monitor Q&A activity
-- [ ] Create visual heatmap display
+- [x] Track emoji reactions per submodule
+- [x] Count poll participation rates
+- [x] Track word cloud contributions
+- [x] Monitor Q&A activity
+- [x] Create visual heatmap display
 - [ ] Add export heatmap as image
 
 ### Export Reports
@@ -561,28 +561,28 @@
 - [ ] Include session summary
 - [ ] Include quiz analytics
 - [ ] Include participant list and scores
-- [ ] Add CSV export for raw data
+- [x] Add CSV export for raw data
 - [ ] Generate individual participant reports
 - [ ] Add comparative analysis (multiple sessions)
 
 ### Participant Progress Tracking
-- [ ] Create PersonalDashboard component (client-side)
-- [ ] Display modules completed
-- [ ] Show quiz scores and history
-- [ ] Calculate and display time invested
-- [ ] List bookmarked content
-- [ ] Show notes taken
-- [ ] Add progress visualization (charts)
+- [x] Create PersonalDashboard component (client-side)
+- [x] Display modules completed
+- [x] Show quiz scores and history
+- [x] Calculate and display time invested
+- [x] List bookmarked content
+- [x] Show notes taken
+- [x] Add progress visualization (charts)
 
 ### Certificates
-- [ ] Design certificate template
-- [ ] Add customization options (logo, colors, text)
-- [ ] Auto-generate on module completion
-- [ ] Include participant name, module title, date
-- [ ] Add verification code (QR code)
-- [ ] Generate PDF certificate
-- [ ] Add download button
-- [ ] Store certificate records in database
+- [x] Design certificate template
+- [x] Add customization options (logo, colors, text)
+- [x] Auto-generate on module completion
+- [x] Include participant name, module title, date
+- [x] Add verification code (QR code)
+- [x] Generate PDF certificate
+- [x] Add download button
+- [x] Store certificate records in database
 
 ---
 
