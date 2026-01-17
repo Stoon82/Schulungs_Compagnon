@@ -173,17 +173,46 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
           </div>
         )}
 
-        {/* Word Cloud Preview */}
-        <div className="bg-white/5 rounded-xl p-8 border border-white/10 min-h-[400px] flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <Cloud size={64} className="mx-auto text-purple-400" />
-            <p className="text-gray-400">
-              Wortwolke wird hier angezeigt
-            </p>
-            <p className="text-sm text-gray-500">
-              {mockWords.length} Wörter eingereicht
-            </p>
-          </div>
+        {/* Word Cloud Display */}
+        <div className="bg-white/5 rounded-xl p-8 border border-white/10 min-h-[400px]">
+          {submittedWords.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {submittedWords.map((word, index) => {
+                // Calculate font size based on frequency (for now, random variation)
+                const fontSize = Math.floor(Math.random() * 32) + 16; // 16-48px
+                const colors = [
+                  'text-purple-400',
+                  'text-pink-400',
+                  'text-blue-400',
+                  'text-green-400',
+                  'text-yellow-400',
+                  'text-red-400',
+                  'text-indigo-400',
+                  'text-cyan-400'
+                ];
+                const color = colors[index % colors.length];
+                
+                return (
+                  <span
+                    key={index}
+                    className={`${color} font-bold transition-all duration-300 hover:scale-110 cursor-default`}
+                    style={{ fontSize: `${fontSize}px` }}
+                  >
+                    {word}
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center space-y-4">
+                <Cloud size={64} className="mx-auto text-purple-400" />
+                <p className="text-gray-400">
+                  Geben Sie Wörter ein, um die Wortwolke zu erstellen
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Word List Preview */}
