@@ -81,8 +81,16 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
 
   const loadParticipants = async () => {
     try {
+      console.log('Loading participants for session:', session.id);
       const response = await fetch(`/api/session-management/sessions/${session.id}/participants`);
+      
+      if (!response.ok) {
+        console.error('Participants fetch failed:', response.status, response.statusText);
+        return;
+      }
+      
       const data = await response.json();
+      console.log('Participants data:', data);
       
       if (data.success) {
         setParticipants(data.data.filter(p => p.is_online));

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LogIn, Hash, User } from 'lucide-react';
 
 function SessionJoinScreen({ onJoinSuccess, initialSessionCode = '' }) {
