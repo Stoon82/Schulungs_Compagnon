@@ -3,74 +3,74 @@
 ## 📋 PHASE 1: FOUNDATION (Weeks 1-2)
 
 ### Database Schema Extensions
-- [ ] Create `modules` table with all metadata fields
-  - [ ] Add id, title, description, category, difficulty
-  - [ ] Add estimated_duration, prerequisites (JSON), learning_objectives (JSON)
-  - [ ] Add theme_override (JSON), author, version
-  - [ ] Add timestamps, is_published, order_index
-- [ ] Create `submodules` table
-  - [ ] Add id, module_id, title, template_type
-  - [ ] Add content (JSON), styling (JSON), duration_estimate
-  - [ ] Add notes (admin-only), order_index, timestamps
-  - [ ] Set up foreign key cascade on module deletion
-- [ ] Create `media_assets` table
-  - [ ] Add id, filename, original_name, mime_type, size
-  - [ ] Add storage_type, storage_path, thumbnail_path
-  - [ ] Add tags (JSON), uploaded_by, created_at
-- [ ] Create `quiz_questions` table
-  - [ ] Add id, submodule_id, question_text, question_type
-  - [ ] Add options (JSON), correct_answer (JSON), points
-  - [ ] Add explanation, order_index
-- [ ] Create `quiz_responses` table
-  - [ ] Add id, session_id, user_id, question_id
-  - [ ] Add answer (JSON), is_correct, time_taken, created_at
-- [ ] Create `poll_results` table
-  - [ ] Add id, submodule_id, session_id, user_id
-  - [ ] Add option_selected, created_at
-- [ ] Create `wordcloud_entries` table
-  - [ ] Add id, submodule_id, session_id, user_id
-  - [ ] Add word, created_at
-- [ ] Create `user_progress` table
-  - [ ] Add id, user_id, module_id, submodule_id
-  - [ ] Add status, score, time_spent
-  - [ ] Add last_accessed, completed_at
-- [ ] Create `user_notes` table
-  - [ ] Add id, user_id, submodule_id, note_text
-  - [ ] Add created_at, updated_at
-- [ ] Create `user_bookmarks` table
-  - [ ] Add id, user_id, submodule_id, created_at
-- [ ] Create `sessions` table
-  - [ ] Add id, module_id, current_submodule_id
-  - [ ] Add started_at, ended_at, participants_count
-- [ ] Create `app_gallery_items` table
-  - [ ] Add id, submodule_id, app_name, description
-  - [ ] Add screenshot_url, prompt_used, app_url
-  - [ ] Add order_index, created_at
-- [ ] Create `app_feedback` table
-  - [ ] Add id, app_id, session_id, user_id
-  - [ ] Add feedback_type (up/down/neutral), created_at
-- [ ] Run database migration script
+- [x] Create `modules` table with all metadata fields
+  - [x] Add id, title, description, category, difficulty
+  - [x] Add estimated_duration, prerequisites (JSON), learning_objectives (JSON)
+  - [x] Add theme_override (JSON), author, version
+  - [x] Add timestamps, is_published, order_index
+- [x] Create `submodules` table
+  - [x] Add id, module_id, title, template_type
+  - [x] Add content (JSON), styling (JSON), duration_estimate
+  - [x] Add notes (admin-only), order_index, timestamps
+  - [x] Set up foreign key cascade on module deletion
+- [x] Create `media_assets` table
+  - [x] Add id, filename, original_name, mime_type, size
+  - [x] Add storage_type, storage_path, thumbnail_path
+  - [x] Add tags (JSON), uploaded_by, created_at
+- [x] Create `quiz_questions` table
+  - [x] Add id, submodule_id, question_text, question_type
+  - [x] Add options (JSON), correct_answer (JSON), points
+  - [x] Add explanation, order_index
+- [x] Create `quiz_responses` table
+  - [x] Add id, session_id, user_id, question_id
+  - [x] Add answer (JSON), is_correct, time_taken, created_at
+- [x] Create `poll_results` table
+  - [x] Add id, submodule_id, session_id, user_id
+  - [x] Add option_selected, created_at
+- [x] Create `wordcloud_entries` table
+  - [x] Add id, submodule_id, session_id, user_id
+  - [x] Add word, created_at
+- [x] Create `user_progress` table
+  - [x] Add id, user_id, module_id, submodule_id
+  - [x] Add status, score, time_spent
+  - [x] Add last_accessed, completed_at
+- [x] Create `user_notes` table
+  - [x] Add id, user_id, submodule_id, note_text
+  - [x] Add created_at, updated_at
+- [x] Create `user_bookmarks` table
+  - [x] Add id, user_id, submodule_id, created_at
+- [x] Create `sessions` table
+  - [x] Add id, module_id, current_submodule_id
+  - [x] Add started_at, ended_at, participants_count
+- [x] Create `app_gallery_items` table
+  - [x] Add id, submodule_id, app_name, description
+  - [x] Add screenshot_url, prompt_used, app_url
+  - [x] Add order_index, created_at
+- [x] Create `app_feedback` table
+  - [x] Add id, app_id, session_id, user_id
+  - [x] Add feedback_type (up/down/neutral), created_at
+- [x] Run database migration script
 - [ ] Test all table relationships and constraints
 
 ### Backend API Routes
-- [ ] Create `/api/modules` endpoints
-  - [ ] GET /api/modules - List all modules
-  - [ ] GET /api/modules/:id - Get single module
-  - [ ] POST /api/modules - Create new module
-  - [ ] PUT /api/modules/:id - Update module
-  - [ ] DELETE /api/modules/:id - Delete module
-- [ ] Create `/api/submodules` endpoints
-  - [ ] GET /api/modules/:moduleId/submodules - List submodules
-  - [ ] GET /api/submodules/:id - Get single submodule
-  - [ ] POST /api/modules/:moduleId/submodules - Create submodule
-  - [ ] PUT /api/submodules/:id - Update submodule
-  - [ ] DELETE /api/submodules/:id - Delete submodule
-  - [ ] PUT /api/submodules/:id/reorder - Reorder submodules
-- [ ] Create `/api/media` endpoints
-  - [ ] GET /api/media - List media assets
-  - [ ] POST /api/media/upload - Upload media file
-  - [ ] DELETE /api/media/:id - Delete media asset
-  - [ ] GET /api/media/:id/thumbnail - Get thumbnail
+- [x] Create `/api/module-creator/modules` endpoints
+  - [x] GET /api/module-creator/modules - List all modules
+  - [x] GET /api/module-creator/modules/:id - Get single module
+  - [x] POST /api/module-creator/modules - Create new module
+  - [x] PUT /api/module-creator/modules/:id - Update module
+  - [x] DELETE /api/module-creator/modules/:id - Delete module
+- [x] Create `/api/module-creator/submodules` endpoints
+  - [x] GET /api/module-creator/modules/:moduleId/submodules - List submodules
+  - [x] GET /api/module-creator/submodules/:id - Get single submodule
+  - [x] POST /api/module-creator/modules/:moduleId/submodules - Create submodule
+  - [x] PUT /api/module-creator/submodules/:id - Update submodule
+  - [x] DELETE /api/module-creator/submodules/:id - Delete submodule
+  - [x] PUT /api/module-creator/submodules/reorder - Reorder submodules
+- [x] Create `/api/module-creator/media` endpoints
+  - [x] GET /api/module-creator/media - List media assets
+  - [ ] POST /api/module-creator/media/upload - Upload media file
+  - [x] DELETE /api/module-creator/media/:id - Delete media asset
+  - [ ] GET /api/module-creator/media/:id/thumbnail - Get thumbnail
 - [ ] Add authentication middleware for admin routes
 - [ ] Add file upload middleware (Multer)
 - [ ] Add error handling middleware

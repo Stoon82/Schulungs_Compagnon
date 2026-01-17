@@ -11,6 +11,7 @@ import AdminAnalytics from './AdminAnalytics';
 import AdminControls from './AdminControls';
 import ProjectorMode from './ProjectorMode';
 import ModuleEditor from './ModuleEditor';
+import ModuleCreatorV2 from './ModuleCreatorV2';
 import DesignEditor from './DesignEditor';
 
 function AdminDashboard({ onLogout, onBackToProjector }) {
@@ -19,6 +20,7 @@ function AdminDashboard({ onLogout, onBackToProjector }) {
   const [loading, setLoading] = useState(true);
   const [showProjector, setShowProjector] = useState(false);
   const [showModuleEditor, setShowModuleEditor] = useState(false);
+  const [showModuleCreator, setShowModuleCreator] = useState(false);
   const [showDesignEditor, setShowDesignEditor] = useState(false);
 
   useEffect(() => {
@@ -95,12 +97,12 @@ function AdminDashboard({ onLogout, onBackToProjector }) {
               </button>
               
               <button
-                onClick={() => setShowModuleEditor(true)}
+                onClick={() => setShowModuleCreator(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all"
-                title="Edit Module Content"
+                title="Module Creator"
               >
                 <Edit size={18} />
-                <span>Modules</span>
+                <span>Module Creator</span>
               </button>
               
               <button
@@ -216,6 +218,11 @@ function AdminDashboard({ onLogout, onBackToProjector }) {
       {/* Module Editor Modal */}
       {showModuleEditor && (
         <ModuleEditor onClose={() => setShowModuleEditor(false)} />
+      )}
+
+      {/* Module Creator V2 Modal */}
+      {showModuleCreator && (
+        <ModuleCreatorV2 onClose={() => setShowModuleCreator(false)} />
       )}
 
       {/* Design Editor Modal */}

@@ -337,6 +337,126 @@ class ApiService {
 
     return await response.json();
   }
+
+  // Module Creator API methods
+  async getCreatorModules(filters = {}) {
+    const params = new URLSearchParams(filters);
+    const response = await fetch(`${API_BASE_URL}/module-creator/modules?${params}`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async getCreatorModule(moduleId) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/modules/${moduleId}`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async createCreatorModule(moduleData) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/modules`, {
+      method: 'POST',
+      headers: this.getAdminHeaders(),
+      body: JSON.stringify(moduleData)
+    });
+
+    return await response.json();
+  }
+
+  async updateCreatorModule(moduleId, moduleData) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/modules/${moduleId}`, {
+      method: 'PUT',
+      headers: this.getAdminHeaders(),
+      body: JSON.stringify(moduleData)
+    });
+
+    return await response.json();
+  }
+
+  async deleteCreatorModule(moduleId) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/modules/${moduleId}`, {
+      method: 'DELETE',
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async getModuleSubmodules(moduleId) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/modules/${moduleId}/submodules`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async getSubmodule(submoduleId) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/submodules/${submoduleId}`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async createSubmodule(moduleId, submoduleData) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/modules/${moduleId}/submodules`, {
+      method: 'POST',
+      headers: this.getAdminHeaders(),
+      body: JSON.stringify(submoduleData)
+    });
+
+    return await response.json();
+  }
+
+  async updateSubmodule(submoduleId, submoduleData) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/submodules/${submoduleId}`, {
+      method: 'PUT',
+      headers: this.getAdminHeaders(),
+      body: JSON.stringify(submoduleData)
+    });
+
+    return await response.json();
+  }
+
+  async deleteSubmodule(submoduleId) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/submodules/${submoduleId}`, {
+      method: 'DELETE',
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async reorderSubmodules(submodules) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/submodules/reorder`, {
+      method: 'PUT',
+      headers: this.getAdminHeaders(),
+      body: JSON.stringify({ submodules })
+    });
+
+    return await response.json();
+  }
+
+  async getMediaAssets(filters = {}) {
+    const params = new URLSearchParams(filters);
+    const response = await fetch(`${API_BASE_URL}/module-creator/media?${params}`, {
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
+
+  async deleteMediaAsset(mediaId) {
+    const response = await fetch(`${API_BASE_URL}/module-creator/media/${mediaId}`, {
+      method: 'DELETE',
+      headers: this.getAdminHeaders()
+    });
+
+    return await response.json();
+  }
 }
 
 export default new ApiService();
