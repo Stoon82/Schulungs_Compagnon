@@ -694,6 +694,107 @@ router.get('/media/:id/thumbnail', requireAdmin, async (req, res) => {
 });
 
 // ============================================================================
+// QUIZ RESPONSE ROUTES
+// ============================================================================
+
+// POST /api/module-creator/quiz/:submoduleId/submit - Store quiz response
+router.post('/quiz/:submoduleId/submit', async (req, res) => {
+  try {
+    const { submoduleId } = req.params;
+    const { sessionId, userId, questionId, answer, isCorrect, timeTaken } = req.body;
+
+    if (!answer) {
+      return res.status(400).json({
+        success: false,
+        error: 'Answer is required'
+      });
+    }
+
+    await db.run(
+      'INSERT INTO quiz_responses (id, session_id, user_id, question_id, answer, is_correct, time_taken, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        uuidv4(),
+        sessionId || null,
+        userId || null,
+        questionId || submoduleId,
+        JSON.stringify(answer),
+        isCorrect ? 1 : 0,
+        timeTaken || null,
+        new Date().toISOString()
+      ]
+    );
+
+    res.json({
+      success: true,
+      message: 'Quiz response recorded successfully'
+    });
+  } catch (error) {
+    console.error('Error storing quiz response:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to store quiz response'
+    });
+  }
+});
+
+// GET /api/module-creator/quiz/:submoduleId/results - Get quiz results
+router.get('/quiz/:submoduleId/results', async (req, res) => {
+  try {
+    const { submoduleId } = req.params;
+    const { sessionId } = req.query;
+
+    let query = `
+      SELECT 
+        answer,
+        is_correct,
+        COUNT(*) as count,
+        AVG(time_taken) as avg_time
+      FROM quiz_responses 
+      WHERE question_id = ?
+    `;
+    const params = [submoduleId];
+
+    if (sessionId) {
+      query += ' AND session_id = ?';
+      params.push(sessionId);
+    }
+
+    query += ' GROUP BY answer, is_correct';
+
+    const results = await db.all(query, params);
+
+    // Calculate score statistics
+    const totalResponses = results.reduce((sum, r) => sum + r.count, 0);
+    const correctResponses = results
+      .filter(r => r.is_correct === 1)
+      .reduce((sum, r) => sum + r.count, 0);
+    
+    const scorePercentage = totalResponses > 0 
+      ? Math.round((correctResponses / totalResponses) * 100)
+      : 0;
+
+    res.json({
+      success: true,
+      data: {
+        responses: results,
+        statistics: {
+          total: totalResponses,
+          correct: correctResponses,
+          incorrect: totalResponses - correctResponses,
+          scorePercentage
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching quiz results:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch quiz results'
+    });
+  }
+});
+
+// ============================================================================
 // POLL RESULTS ROUTES
 // ============================================================================
 

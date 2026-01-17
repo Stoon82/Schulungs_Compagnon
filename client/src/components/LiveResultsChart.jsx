@@ -1,8 +1,9 @@
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import ReactWordcloud from 'react-wordcloud';
 
 /**
  * LiveResultsChart - Visualization component for quiz and poll results
- * Supports bar charts and pie charts with customizable colors
+ * Supports bar charts, pie charts, and word clouds with customizable colors
  */
 function LiveResultsChart({ data, type = 'bar', title = 'Results' }) {
   const COLORS = ['#a855f7', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
@@ -11,6 +12,39 @@ function LiveResultsChart({ data, type = 'bar', title = 'Results' }) {
     return (
       <div className="bg-white/5 rounded-lg p-6 text-center">
         <p className="text-gray-400">Keine Daten verfügbar</p>
+      </div>
+    );
+  }
+
+  if (type === 'wordcloud') {
+    // Transform data for word cloud (expects array of {text, value})
+    const words = data.map(item => ({
+      text: item.name || item.text,
+      value: item.value || item.count || 1
+    }));
+
+    const options = {
+      colors: COLORS,
+      enableTooltip: true,
+      deterministic: false,
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontSizes: [20, 60],
+      fontStyle: 'normal',
+      fontWeight: 'bold',
+      padding: 2,
+      rotations: 2,
+      rotationAngles: [0, 90],
+      scale: 'sqrt',
+      spiral: 'archimedean',
+      transitionDuration: 1000
+    };
+
+    return (
+      <div className="bg-white/5 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">{title}</h3>
+        <div style={{ height: 300, width: '100%' }}>
+          <ReactWordcloud words={words} options={options} />
+        </div>
       </div>
     );
   }

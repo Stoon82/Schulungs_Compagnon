@@ -13,7 +13,11 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
     explanation: content?.explanation || '',
     points: content?.points || 1,
     timeLimit: content?.timeLimit || 0,
-    showTimer: content?.showTimer || false
+    showTimer: content?.showTimer || false,
+    matchingPairs: content?.matchingPairs || [
+      { id: 1, left: '', right: '' },
+      { id: 2, left: '', right: '' }
+    ]
   });
 
   useEffect(() => {
@@ -29,7 +33,11 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
         explanation: content?.explanation || '',
         points: content?.points || 1,
         timeLimit: content?.timeLimit || 0,
-        showTimer: content?.showTimer || false
+        showTimer: content?.showTimer || false,
+        matchingPairs: content?.matchingPairs || [
+          { id: 1, left: '', right: '' },
+          { id: 2, left: '', right: '' }
+        ]
       });
     }
   }, [content, isEditing]);
@@ -88,6 +96,7 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
             <option value="multiple-choice">Multiple Choice</option>
             <option value="short-answer">Kurzantwort (Text)</option>
             <option value="rating-scale">Bewertungsskala</option>
+            <option value="matching">Zuordnung (Drag & Drop)</option>
           </select>
         </div>
 
@@ -198,12 +207,79 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
                   onChange={(e) => handleChange({ ratingStyle: e.target.value })}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  <option value="stars">Sterne </option>
+                  <option value="stars">Sterne ⭐</option>
                   <option value="numbers">Zahlen (1-{formData.ratingScale})</option>
-                  <option value="emojis">Emojis </option>
+                  <option value="emojis">Emojis 😊</option>
                 </select>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Matching Pairs */}
+        {formData.questionType === 'matching' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-300">
+                Zuordnungspaare
+              </label>
+              <button
+                onClick={() => {
+                  const newPair = { id: Date.now(), left: '', right: '' };
+                  handleChange({ matchingPairs: [...formData.matchingPairs, newPair] });
+                }}
+                className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1"
+              >
+                <Plus size={16} />
+                Paar hinzufügen
+              </button>
+            </div>
+            <div className="space-y-3">
+              {formData.matchingPairs.map((pair, index) => (
+                <div key={pair.id} className="grid grid-cols-2 gap-3">
+                  <div>
+                    <input
+                      type="text"
+                      value={pair.left}
+                      onChange={(e) => {
+                        const newPairs = [...formData.matchingPairs];
+                        newPairs[index].left = e.target.value;
+                        handleChange({ matchingPairs: newPairs });
+                      }}
+                      className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder={`Begriff ${index + 1}`}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={pair.right}
+                      onChange={(e) => {
+                        const newPairs = [...formData.matchingPairs];
+                        newPairs[index].right = e.target.value;
+                        handleChange({ matchingPairs: newPairs });
+                      }}
+                      className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder={`Zuordnung ${index + 1}`}
+                    />
+                    {formData.matchingPairs.length > 2 && (
+                      <button
+                        onClick={() => {
+                          const newPairs = formData.matchingPairs.filter((_, i) => i !== index);
+                          handleChange({ matchingPairs: newPairs });
+                        }}
+                        className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Teilnehmer müssen die rechten Begriffe den linken zuordnen
+            </p>
           </div>
         )}
 
@@ -407,6 +483,92 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
         </div>
       )}
 
+      {/* Matching Pairs - Interactive */}
+      {formData.questionType === 'matching' && (
+        <div className="space-y-4">
+          {/* Left column - Terms */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-300">Begriffe</h4>
+              {formData.matchingPairs.map((pair, index) => (
+                <div
+                  key={`left-${pair.id}`}
+                  className="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white"
+                >
+                  {pair.left}
+                </div>
+              ))}
+            </div>
+
+            {/* Right column - Draggable options */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-300">Zuordnungen (ziehen Sie diese)</h4>
+              {formData.matchingPairs
+                .map(pair => pair.right)
+                .sort(() => Math.random() - 0.5)
+                .map((rightItem, index) => {
+                  const isUsed = Object.values(matchingAnswers).includes(rightItem);
+                  return (
+                    <div
+                      key={`right-${index}`}
+                      draggable={!submitted && !isUsed}
+                      onDragStart={() => !submitted && !isUsed && setDraggedItem(rightItem)}
+                      onDragEnd={() => setDraggedItem(null)}
+                      className={`px-4 py-3 rounded-lg border transition-all ${
+                        isUsed
+                          ? 'bg-gray-500/20 border-gray-500/30 text-gray-500 cursor-not-allowed'
+                          : submitted
+                          ? 'bg-white/5 border-white/10 text-white cursor-not-allowed'
+                          : 'bg-purple-500/20 border-purple-500/50 text-white cursor-grab active:cursor-grabbing hover:bg-purple-500/30'
+                      }`}
+                    >
+                      {rightItem}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+
+          {/* Drop zones */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-gray-300">Ihre Zuordnungen</h4>
+            {formData.matchingPairs.map((pair, index) => (
+              <div
+                key={`drop-${pair.id}`}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (draggedItem && !submitted) {
+                    setMatchingAnswers({ ...matchingAnswers, [pair.left]: draggedItem });
+                    setDraggedItem(null);
+                  }
+                }}
+                className={`px-4 py-3 rounded-lg border-2 border-dashed transition-all ${
+                  submitted && matchingAnswers[pair.left] === pair.right
+                    ? 'bg-green-500/20 border-green-500'
+                    : submitted && matchingAnswers[pair.left] && matchingAnswers[pair.left] !== pair.right
+                    ? 'bg-red-500/20 border-red-500'
+                    : matchingAnswers[pair.left]
+                    ? 'bg-blue-500/20 border-blue-500'
+                    : 'bg-white/5 border-white/20 hover:border-purple-500/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-white">{pair.left} →</span>
+                  <span className={`${matchingAnswers[pair.left] ? 'text-white font-semibold' : 'text-gray-500'}`}>
+                    {matchingAnswers[pair.left] || 'Hier ablegen'}
+                  </span>
+                  {submitted && (
+                    <span>
+                      {matchingAnswers[pair.left] === pair.right ? '✓' : '✗'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Rating Scale - Interactive */}
       {formData.questionType === 'rating-scale' && (
         <div className={`grid gap-3 ${
@@ -423,11 +585,12 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
           disabled={
             (formData.questionType === 'multiple-choice' && selectedAnswer === null) ||
             (formData.questionType === 'short-answer' && !shortAnswer.trim()) ||
-            (formData.questionType === 'rating-scale' && selectedAnswer === null)
+            (formData.questionType === 'rating-scale' && selectedAnswer === null) ||
+            (formData.questionType === 'matching' && Object.keys(matchingAnswers).length < formData.matchingPairs.length)
           }
           className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          Antwort abschicken
+          Antwort abgeben
         </button>
       )}
 
