@@ -81,8 +81,8 @@
   - [x] Add difficulty selector
   - [x] Add estimated duration input
   - [x] Add learning objectives list editor
-  - [ ] Add prerequisites selector (link to other modules)
-  - [ ] Add tags/categories input
+  - [x] Add prerequisites selector (link to other modules)
+  - [x] Add tags/categories input
 - [x] Create SubmoduleList component
   - [ ] Display list of submodules with drag-to-reorder
   - [x] Add "Add Submodule" button
@@ -95,7 +95,7 @@
   - [x] Add admin notes textarea
 - [ ] Implement drag-and-drop reordering (React DnD)
 - [x] Add save/publish/draft functionality
-- [ ] Add real-time auto-save (debounced)
+- [x] Add real-time auto-save (debounced)
 
 ### Template System (5 Basic Templates)
 - [x] Create template registry/factory

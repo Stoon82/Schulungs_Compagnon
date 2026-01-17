@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Save, X, Plus, Trash2, Eye, Edit3, GripVertical, BookOpen, FileText, MessageSquare, BarChart3, Image, Video, CheckSquare } from 'lucide-react';
 import api from '../services/api';
 import SubmoduleEditor from './SubmoduleEditor';
@@ -13,6 +13,8 @@ function ModuleCreatorV2({ onClose }) {
   const [activeTab, setActiveTab] = useState('metadata');
   const [showSubmoduleEditor, setShowSubmoduleEditor] = useState(false);
   const [editingSubmodule, setEditingSubmodule] = useState(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState(''); // '', 'saving', 'saved'
+  const autoSaveTimerRef = useRef(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -22,6 +24,7 @@ function ModuleCreatorV2({ onClose }) {
     estimated_duration: 60,
     prerequisites: [],
     learning_objectives: [],
+    tags: [],
     theme_override: null,
     author: 'admin',
     is_published: false,
@@ -87,6 +90,7 @@ function ModuleCreatorV2({ onClose }) {
       estimated_duration: module.estimated_duration || 60,
       prerequisites: module.prerequisites || [],
       learning_objectives: module.learning_objectives || [],
+      tags: module.tags || [],
       theme_override: module.theme_override,
       author: module.author || 'admin',
       is_published: module.is_published === 1,
@@ -107,6 +111,7 @@ function ModuleCreatorV2({ onClose }) {
       estimated_duration: 60,
       prerequisites: [],
       learning_objectives: [],
+      tags: [],
       theme_override: null,
       author: 'admin',
       is_published: false,
@@ -170,7 +175,54 @@ function ModuleCreatorV2({ onClose }) {
 
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
+    
+    // Trigger auto-save if module is already created
+    if (selectedModule) {
+      triggerAutoSave();
+    }
   };
+
+  const triggerAutoSave = useCallback(() => {
+    // Clear existing timer
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    // Set status to indicate changes pending
+    setAutoSaveStatus('');
+
+    // Set new timer for 2 seconds
+    autoSaveTimerRef.current = setTimeout(() => {
+      performAutoSave();
+    }, 2000);
+  }, []);
+
+  const performAutoSave = async () => {
+    if (!selectedModule || !formData.title) return;
+
+    setAutoSaveStatus('saving');
+    try {
+      await api.updateCreatorModule(selectedModule.id, formData);
+      setAutoSaveStatus('saved');
+      
+      // Clear 'saved' status after 2 seconds
+      setTimeout(() => {
+        setAutoSaveStatus('');
+      }, 2000);
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      setAutoSaveStatus('');
+    }
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
 
   const addLearningObjective = () => {
     setFormData({
@@ -190,6 +242,38 @@ function ModuleCreatorV2({ onClose }) {
       ...formData,
       learning_objectives: formData.learning_objectives.filter((_, i) => i !== index)
     });
+  };
+
+  const addTag = () => {
+    const tag = prompt('Tag eingeben:');
+    if (tag && tag.trim()) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, tag.trim()]
+      });
+    }
+  };
+
+  const removeTag = (index) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter((_, i) => i !== index)
+    });
+  };
+
+  const togglePrerequisite = (moduleId) => {
+    const prerequisites = formData.prerequisites || [];
+    if (prerequisites.includes(moduleId)) {
+      setFormData({
+        ...formData,
+        prerequisites: prerequisites.filter(id => id !== moduleId)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        prerequisites: [...prerequisites, moduleId]
+      });
+    }
   };
 
   const handlePublishToggle = async () => {
@@ -276,6 +360,15 @@ function ModuleCreatorV2({ onClose }) {
           </div>
 
           <div className="flex items-center gap-3">
+            {autoSaveStatus && (
+              <div className={`px-3 py-2 rounded-lg text-sm ${
+                autoSaveStatus === 'saving' 
+                  ? 'bg-blue-500/20 text-blue-400' 
+                  : 'bg-green-500/20 text-green-400'
+              }`}>
+                {autoSaveStatus === 'saving' ? 'Speichert...' : '✓ Gespeichert'}
+              </div>
+            )}
             {selectedModule && (
               <button
                 onClick={handlePublishToggle}
@@ -524,6 +617,67 @@ function ModuleCreatorV2({ onClose }) {
                               </button>
                             </div>
                           ))}
+                        </div>
+                      </div>
+
+                      {/* Prerequisites */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Voraussetzungen (andere Module)
+                        </label>
+                        <div className="bg-white/5 border border-white/10 rounded-lg p-4 max-h-48 overflow-y-auto">
+                          {modules.filter(m => m.id !== selectedModule?.id).length === 0 ? (
+                            <p className="text-sm text-gray-400">Keine anderen Module verfügbar</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {modules.filter(m => m.id !== selectedModule?.id).map(module => (
+                                <label key={module.id} className="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-2 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.prerequisites.includes(module.id)}
+                                    onChange={() => togglePrerequisite(module.id)}
+                                    className="w-4 h-4 text-purple-500 rounded focus:ring-purple-500"
+                                  />
+                                  <span className="text-sm text-white">{module.title}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Tags */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-sm font-medium text-gray-300">
+                            Tags
+                          </label>
+                          <button
+                            onClick={addTag}
+                            className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                          >
+                            <Plus size={16} />
+                            Tag hinzufügen
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {formData.tags.map((tag, index) => (
+                            <div
+                              key={index}
+                              className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm flex items-center gap-2"
+                            >
+                              <span>{tag}</span>
+                              <button
+                                onClick={() => removeTag(index)}
+                                className="hover:text-purple-300 transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ))}
+                          {formData.tags.length === 0 && (
+                            <p className="text-sm text-gray-400">Keine Tags hinzugefügt</p>
+                          )}
                         </div>
                       </div>
 
