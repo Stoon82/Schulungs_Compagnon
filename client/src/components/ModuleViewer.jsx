@@ -13,7 +13,8 @@ import {
   SplitScreenTemplate,
   EmbedTemplate,
   ResourceLibraryTemplate,
-  BlankCanvasTemplate
+  BlankCanvasTemplate,
+  DiscussionBoardTemplate
 } from './templates';
 
 function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
@@ -133,6 +134,8 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
         return ResourceLibraryTemplate;
       case 'canvas':
         return BlankCanvasTemplate;
+      case 'discussion':
+        return DiscussionBoardTemplate;
       default:
         return null;
     }

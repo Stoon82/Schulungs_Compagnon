@@ -134,17 +134,17 @@
 - [x] Implement onChange callbacks for instant preview feedback
 
 ### Content Block System
-- [ ] Create ContentBlock base component
-- [ ] Implement block types:
-  - [ ] TextBlock (rich text)
-  - [ ] ImageBlock (upload/URL)
-  - [ ] VideoBlock (upload/embed)
-  - [ ] DividerBlock
-  - [ ] SpacerBlock
+- [x] Create ContentBlock base component
+- [x] Implement block types:
+  - [x] TextBlock (rich text)
+  - [x] ImageBlock (upload/URL)
+  - [x] VideoBlock (upload/embed)
+  - [x] DividerBlock
+  - [x] SpacerBlock
 - [ ] Add drag-and-drop reordering for blocks
-- [ ] Add duplicate/delete block actions
-- [ ] Add collapse/expand block functionality
-- [ ] Implement block locking (prevent accidental edits)
+- [x] Add duplicate/delete block actions
+- [x] Add collapse/expand block functionality
+- [x] Implement block locking (prevent accidental edits)
 
 ### Rich Text Editor
 - [x] Install TipTap or Slate.js
@@ -207,12 +207,12 @@
   - [x] Auto-detect and format embed URLs
   - [x] Sandbox security options
   - [x] Responsive sizing
-- [ ] Implement **Discussion Board** template
-  - [ ] Q&A section UI
-  - [ ] Threaded comments display
-  - [ ] Upvote functionality
-  - [ ] Pin/highlight controls (admin)
-  - [ ] Moderation controls
+- [x] Implement **Discussion Board** template
+  - [x] Q&A section UI
+  - [x] Threaded comments display
+  - [x] Upvote functionality
+  - [x] Pin/highlight controls (admin)
+  - [x] Moderation controls
 - [x] Implement **Resource Library** template
   - [x] File upload section (URL input)
   - [x] External links editor

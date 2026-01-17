@@ -1,11 +1,26 @@
 import { useState, useEffect } from 'react';
 import { Save, X, Eye, EyeOff, Maximize2, Minimize2 } from 'lucide-react';
-import { TitleTemplate, ContentTemplate, MediaTemplate, QuizTemplate, PollTemplate, WordCloudTemplate, AppGalleryTemplate, TableTemplate, TimelineTemplate, SplitScreenTemplate, EmbedTemplate, ResourceLibraryTemplate, BlankCanvasTemplate } from './templates';
+import {
+  TitleTemplate,
+  ContentTemplate,
+  MediaTemplate,
+  QuizTemplate,
+  PollTemplate,
+  WordCloudTemplate,
+  AppGalleryTemplate,
+  TableTemplate,
+  TimelineTemplate,
+  SplitScreenTemplate,
+  EmbedTemplate,
+  ResourceLibraryTemplate,
+  BlankCanvasTemplate,
+  DiscussionBoardTemplate
+} from './templates';
 
 const TEMPLATE_TYPES = [
-  { value: 'title', label: 'Titel-Folie', icon: '📋', component: TitleTemplate },
+  { value: 'title', label: 'Titel-Folie', icon: '📄', component: TitleTemplate },
   { value: 'content', label: 'Inhalts-Folie', icon: '📝', component: ContentTemplate },
-  { value: 'media', label: 'Medien-Präsentation', icon: '🖼️', component: MediaTemplate },
+  { value: 'media', label: 'Medien-Präsentation', icon: '🎬', component: MediaTemplate },
   { value: 'quiz', label: 'Interaktives Quiz', icon: '❓', component: QuizTemplate },
   { value: 'poll', label: 'Live-Umfrage', icon: '📊', component: PollTemplate },
   { value: 'wordcloud', label: 'Wortwolke', icon: '☁️', component: WordCloudTemplate },
@@ -15,7 +30,8 @@ const TEMPLATE_TYPES = [
   { value: 'splitscreen', label: 'Split Screen', icon: '⬌', component: SplitScreenTemplate },
   { value: 'embed', label: 'Eingebetteter Inhalt', icon: '🔗', component: EmbedTemplate },
   { value: 'resources', label: 'Ressourcen-Bibliothek', icon: '📚', component: ResourceLibraryTemplate },
-  { value: 'canvas', label: 'Blank Canvas', icon: '🎨', component: BlankCanvasTemplate }
+  { value: 'canvas', label: 'Blank Canvas', icon: '🎨', component: BlankCanvasTemplate },
+  { value: 'discussion', label: 'Diskussionsboard', icon: '💬', component: DiscussionBoardTemplate }
 ];
 
 function SubmoduleEditor({ submodule, moduleId, onSave, onClose }) {

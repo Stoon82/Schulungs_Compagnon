@@ -11,3 +11,4 @@ export { default as SplitScreenTemplate } from './SplitScreenTemplate';
 export { default as EmbedTemplate } from './EmbedTemplate';
 export { default as ResourceLibraryTemplate } from './ResourceLibraryTemplate';
 export { default as BlankCanvasTemplate } from './BlankCanvasTemplate';
+export { default as DiscussionBoardTemplate } from './DiscussionBoardTemplate';
