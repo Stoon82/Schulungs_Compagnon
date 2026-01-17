@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Share2, Play, Calendar, Users, BookOpen } from 'lucide-react';
+import api from '../services/api';
 
 function ClassManagement({ adminUser, onStartSession }) {
   const [classes, setClasses] = useState([]);
@@ -29,8 +30,7 @@ function ClassManagement({ adminUser, onStartSession }) {
 
   const loadModules = async () => {
     try {
-      const response = await fetch('/api/module-creator/modules');
-      const data = await response.json();
+      const data = await api.getCreatorModules();
       if (data.success) {
         setModules(data.data);
       }

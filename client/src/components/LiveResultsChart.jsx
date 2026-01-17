@@ -1,5 +1,4 @@
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import ReactWordcloud from 'react-wordcloud';
 
 /**
  * LiveResultsChart - Visualization component for quiz and poll results
@@ -23,27 +22,33 @@ function LiveResultsChart({ data, type = 'bar', title = 'Results' }) {
       value: item.value || item.count || 1
     }));
 
-    const options = {
-      colors: COLORS,
-      enableTooltip: true,
-      deterministic: false,
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      fontSizes: [20, 60],
-      fontStyle: 'normal',
-      fontWeight: 'bold',
-      padding: 2,
-      rotations: 2,
-      rotationAngles: [0, 90],
-      scale: 'sqrt',
-      spiral: 'archimedean',
-      transitionDuration: 1000
-    };
-
+    // Find max value for scaling
+    const maxValue = Math.max(...words.map(w => w.value));
+    
     return (
       <div className="bg-white/5 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-white mb-4">{title}</h3>
-        <div style={{ height: 300, width: '100%' }}>
-          <ReactWordcloud words={words} options={options} />
+        <div className="flex flex-wrap gap-3 justify-center items-center p-6" style={{ minHeight: 300 }}>
+          {words.map((word, index) => {
+            const fontSize = 20 + (word.value / maxValue) * 40;
+            const color = COLORS[index % COLORS.length];
+            return (
+              <span
+                key={index}
+                style={{
+                  fontSize: `${fontSize}px`,
+                  color: color,
+                  fontWeight: 'bold',
+                  opacity: 0.7 + (word.value / maxValue) * 0.3,
+                  transition: 'all 0.3s ease'
+                }}
+                className="hover:opacity-100 cursor-default"
+                title={`${word.text}: ${word.value}`}
+              >
+                {word.text}
+              </span>
+            );
+          })}
         </div>
       </div>
     );

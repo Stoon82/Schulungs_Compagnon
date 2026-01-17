@@ -1,9 +1,8 @@
-const express = require('express');
+import express from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import db from '../services/database.js';
+
 const router = express.Router();
-const { v4: uuidv4 } = require('uuid');
-const db = require('../services/database');
-const jsPDF = require('jspdf');
-require('jspdf-autotable');
 
 /**
  * Analytics API Routes
@@ -635,4 +634,4 @@ router.post('/compare', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

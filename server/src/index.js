@@ -15,6 +15,11 @@ import chatRoutes from './routes/chat.js';
 import materialsRoutes from './routes/materials.js';
 import adminRoutes from './routes/admin.js';
 import gdprRoutes from './routes/gdpr.js';
+import themesRoutes from './routes/themes.js';
+import mediaRoutes from './routes/media.js';
+import versionRoutes from './routes/version.js';
+import analyticsRoutes from './routes/analytics.js';
+import gamificationRoutes from './routes/gamification.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import sessionManager from './services/sessionManager.js';
 import monitoring from './middleware/monitoring.js';
@@ -88,11 +93,11 @@ app.use('/api/sandbox', sandboxRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/materials', materialsRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/themes', require('./routes/themes'));
-app.use('/api/media', require('./routes/media'));
-app.use('/api/version', require('./routes/version'));
-app.use('/api/analytics', require('./routes/analytics'));
-app.use('/api/gamification', require('./routes/gamification'));
+app.use('/api/themes', themesRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/version', versionRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/gamification', gamificationRoutes);
 
 // Ngrok tunnel detection endpoint (bypasses CORS)
 app.get('/api/ngrok/tunnel', async (req, res) => {

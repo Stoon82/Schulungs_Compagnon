@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import db from '../services/database.js';
+
 const router = express.Router();
-const { v4: uuidv4 } = require('uuid');
-const db = require('../services/database');
 
 /**
  * Theme Management Routes
@@ -164,4 +165,4 @@ router.post('/background/upload', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

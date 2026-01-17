@@ -1,0 +1,335 @@
+# INTEGRATION CHECKLIST
+## Missing Features - UI Integration Guide
+
+**Created:** January 17, 2026  
+**Total Features to Integrate:** 32
+
+---
+
+## 🔴 HIGH PRIORITY
+
+### 1. Asset Library (AdminDashboard + ModuleCreator)
+**Component:** `AssetLibrary.jsx`
+- [x] Add to AdminDashboard header
+- [x] Add to ModuleCreator toolbar
+- [x] Import: `import AssetLibrary from './AssetLibrary'`
+- [x] Import icon: `import { FolderOpen } from 'lucide-react'`
+- [x] State: `const [showAssetLibrary, setShowAssetLibrary] = useState(false)`
+- [x] Button + Modal render
+
+### 2. Media Upload Modal (AssetLibrary + ModuleCreator)
+**Component:** `MediaUploadModal.jsx`
+- [x] Integrate into AssetLibrary component
+- [x] Add to ModuleCreator as upload option
+- [x] Import: `import MediaUploadModal from './MediaUploadModal'`
+
+### 3. Module Import/Export (AdminDashboard + ModuleCreator)
+**Component:** `ModuleImportExport.jsx`
+- [x] Add to AdminDashboard header
+- [x] Add to ModuleCreator toolbar
+- [x] Import: `import ModuleImportExport from './ModuleImportExport'`
+- [x] Import icon: `import { Upload } from 'lucide-react'`
+- [x] State: `const [showImportExport, setShowImportExport] = useState(false)`
+- [x] Button + Modal render
+
+### 4. Version Control (ModuleCreator)
+**Component:** `ModuleVersionControl.jsx`
+- [x] Add to ModuleCreator toolbar
+- [x] Import: `import ModuleVersionControl from './ModuleVersionControl'`
+- [x] Import icon: `import { GitBranch } from 'lucide-react'`
+- [x] State: `const [showVersionControl, setShowVersionControl] = useState(false)`
+- [x] Button + Modal render
+
+### 5. Accessibility Controls (App.jsx + MainApp.jsx)
+**Component:** `AccessibilityControls.jsx`
+- [x] Add to App.jsx (old system)
+- [x] Add to MainApp.jsx (new system)
+- [x] Import: `import AccessibilityControls from './components/AccessibilityControls'`
+- [x] Render: `<AccessibilityControls />` before closing div
+
+### 6. Accessibility CSS (App.jsx + MainApp.jsx)
+**File:** `client/src/styles/accessibility.css`
+- [x] Import in App.jsx: `import './styles/accessibility.css'`
+- [x] Import in MainApp.jsx: `import '../styles/accessibility.css'`
+
+### 7. Personal Dashboard (MainApp.jsx - Client View)
+**Component:** `PersonalDashboard.jsx`
+- [x] Add button to client header
+- [x] Import: `import PersonalDashboard from './PersonalDashboard'`
+- [x] Import icon: `import { User } from 'lucide-react'`
+- [x] State: `const [showPersonalDashboard, setShowPersonalDashboard] = useState(false)`
+- [x] Button + Modal render
+
+### 8. Leaderboard (Client Sidebar + PersonalDashboard + AdminAnalytics)
+**Component:** `Leaderboard.jsx`
+- [x] Add to client app sidebar
+- [x] Add modal access from client header
+- [x] Add to AdminAnalytics section
+- [x] Import: `import Leaderboard from './Leaderboard'`
+- [x] Import icon: `import { Trophy } from 'lucide-react'`
+
+### 9. Badge Display (PersonalDashboard + Client Sidebar)
+**Component:** `BadgeDisplay.jsx`
+- [x] Add to PersonalDashboard layout
+- [x] Add to client sidebar
+- [x] Import: `import BadgeDisplay from './BadgeDisplay'`
+
+### 10. Progress Tracker (PersonalDashboard + Client Main View)
+**Component:** `ProgressTracker.jsx`
+- [x] Add to PersonalDashboard layout
+- [x] Add to client main view
+- [x] Import: `import ProgressTracker from './ProgressTracker'`
+
+---
+
+## 🟡 MEDIUM PRIORITY
+
+### 11. Update Notification (App.jsx + MainApp.jsx)
+**Component:** `UpdateNotification.jsx`
+- [x] Add to App.jsx root level (maybe header icon)
+- [x] Add to MainApp.jsx root level
+- [x] Import: `import UpdateNotification from './components/UpdateNotification'`
+- [x] Render: `<UpdateNotification />` before closing div
+
+### 12. Offline Package Export (ModuleCreator + ModuleList + Client Header)
+**Component:** `OfflinePackageExport.jsx`
+- [x] Add to ModuleCreator toolbar
+- [x] Add icon to module cards in ModuleList
+- [x] Add to client header
+- [x] Import: `import OfflinePackageExport from './OfflinePackageExport'`
+- [x] Import icon: `import { Download } from 'lucide-react'`
+
+### 13. Certificate Generator (ModuleList + Auto-trigger)
+**Component:** `CertificateGenerator.jsx`
+- [x] Add icon to completed module cards
+- [x] Auto-trigger on module completion
+- [x] Import: `import CertificateGenerator from './CertificateGenerator'`
+- [x] Import icon: `import { Award } from 'lucide-react'`
+- [x] State: `const [certificateModule, setCertificateModule] = useState(null)`
+
+### 14. Interaction Heatmap (AdminAnalytics)
+**Component:** `InteractionHeatmap.jsx`
+- [x] Add to AnalyticsDashboard as tab/section
+- [x] Import: `import InteractionHeatmap from './InteractionHeatmap'`
+- [x] Add tab: `{ id: 'heatmap', label: 'Interaction Heatmap' }`
+
+### 15. PDF Report Generator (AdminAnalytics)
+**Component:** `PDFReportGenerator.jsx`
+- [x] Add "Generate Report" button to AnalyticsDashboard
+- [x] Import: `import PDFReportGenerator from './PDFReportGenerator'`
+- [x] Add tab: `{ id: 'reports', label: 'Reports' }`
+
+### 16. Merge Analytics Dashboards (AdminAnalytics.jsx)
+**Components:** `AdminAnalytics.jsx` + `AnalyticsDashboard.jsx`
+- [x] Import AnalyticsDashboard components into AdminAnalytics
+- [x] Merge functionality
+- [x] Add tabs for different views
+
+### 17. PowerPoint Importer (ModuleCreator Import Menu)
+**Component:** `PowerPointImporter.jsx`
+- [x] Create import menu dropdown in ModuleCreator
+- [x] Add PowerPoint option
+- [x] Import: `import PowerPointImporter from './PowerPointImporter'`
+- [x] Import icon: `import { FileText } from 'lucide-react'`
+
+### 18. PDF Importer (ModuleCreator Import Menu)
+**Component:** `PDFImporter.jsx`
+- [x] Add to import menu dropdown
+- [x] Import: `import PDFImporter from './PDFImporter'`
+
+### 19. Markdown Importer (ModuleCreator Import Menu)
+**Component:** `MarkdownImporter.jsx`
+- [x] Add to import menu dropdown
+- [x] Import: `import MarkdownImporter from './MarkdownImporter'`
+
+### 20. Screen Share Setup (AdminControls + AdminProjectorView + Admin Header)
+**Component:** `ScreenShareSetup.jsx`
+- [x] Add to AdminControls
+- [x] Add to AdminProjectorView toolbar
+- [x] Add to admin header
+- [x] Import: `import ScreenShareSetup from './ScreenShareSetup'`
+- [x] Import icon: `import { Monitor } from 'lucide-react'`
+
+### 21. Breakout Rooms (AdminControls)
+**Component:** `BreakoutRooms.jsx`
+- [x] Add to AdminControls as section
+- [x] Import: `import BreakoutRooms from './BreakoutRooms'`
+- [x] Import icon: `import { Users } from 'lucide-react'`
+
+### 22. Co-Presenting Mode (AdminControls + Session Settings)
+**Component:** `CoPresentingMode.jsx`
+- [x] Add to AdminControls
+- [ ] Add to session settings
+- [x] Import: `import CoPresentingMode from './CoPresentingMode'`
+- [x] Import icon: `import { UserPlus } from 'lucide-react'`
+
+### 23. Virtual Whiteboard (Template + AdminControls + Admin Header)
+**Component:** `VirtualWhiteboard.jsx`
+- [x] Add as template type "whiteboard"
+- [x] Add quick access in AdminControls
+- [x] Add icon in admin header
+- [x] Import: `import VirtualWhiteboard from './VirtualWhiteboard'`
+- [x] Import icon: `import { PenTool } from 'lucide-react'`
+
+---
+
+## 🟢 LOW PRIORITY
+
+### 24. Learning Paths (Client Menu + AdminDashboard)
+**Component:** `LearningPaths.jsx`
+- [x] Add to client app main menu
+- [x] Add to AdminDashboard header
+- [x] Import: `import LearningPaths from './LearningPaths'`
+- [x] Import icon: `import { Route } from 'lucide-react'`
+
+### 25. Adaptive Difficulty (PersonalDashboard + User Settings)
+**Component:** `AdaptiveDifficulty.jsx`
+- [x] Add to PersonalDashboard
+- [x] Add to user settings
+- [x] Import: `import AdaptiveDifficulty from './AdaptiveDifficulty'`
+
+### 26. Study Reminders (PersonalDashboard + User Settings + Client Header)
+**Component:** `StudyReminders.jsx`
+- [x] Add to PersonalDashboard
+- [x] Add to user settings menu
+- [x] Add icon in client header
+- [x] Import: `import StudyReminders from './StudyReminders'`
+- [x] Import icon: `import { Bell } from 'lucide-react'`
+
+### 27. Discussion Forum (Template + Client App Section)
+**Component:** `DiscussionForum.jsx`
+- [x] Add as template type "forum"
+- [x] Add standalone section in client app
+- [x] Import: `import DiscussionForum from './DiscussionForum'`
+
+### 28. Mentor Matching (Client Menu + Community Section)
+**Component:** `MentorMatching.jsx`
+- [ ] Add to client app main menu
+- [ ] Add to community section
+- [ ] Import: `import MentorMatching from './MentorMatching'`
+- [ ] Import icon: `import { Users } from 'lucide-react'`
+
+### 29. Branching Scenario (Template Registry)
+**Component:** `BranchingScenario.jsx`
+- [x] Add to ModuleViewer template registry
+- [x] Add to SubmoduleEditor template options
+- [x] Import: `import BranchingScenario from './BranchingScenario'`
+- [x] Case: `case 'branching': return BranchingScenario;`
+
+### 30. Code Playground (Template Registry)
+**Component:** `CodePlayground.jsx`
+- [x] Add to ModuleViewer template registry
+- [x] Add to SubmoduleEditor template options
+- [x] Import: `import CodePlayground from './CodePlayground'`
+- [x] Case: `case 'codeplayground': return CodePlayground;`
+
+### 31. 3D Model Viewer (Template Registry)
+**Component:** `Model3DViewer.jsx`
+- [x] Add to ModuleViewer template registry
+- [x] Add to SubmoduleEditor template options
+- [x] Import: `import Model3DViewer from './Model3DViewer'`
+- [x] Case: `case 'model3d': return Model3DViewer;`
+
+### 32. Client Sidebar (NEW COMPONENT)
+**Component:** `ClientSidebar.jsx` (CREATE NEW)
+- [ ] Create new ClientSidebar component
+- [ ] Add Leaderboard access
+- [ ] Add BadgeDisplay access
+- [ ] Add collapsible toggle
+- [ ] Add to MainApp.jsx client view
+
+---
+
+## 📂 FILES TO MODIFY
+
+### AdminDashboard.jsx
+- Asset Library button
+- Import/Export button
+- Learning Paths button
+
+### ModuleCreatorV2.jsx
+- Asset Library button
+- Import/Export button
+- Version Control button
+- Import menu (PPT/PDF/Markdown)
+- Offline Package Export button
+
+### App.jsx
+- Import accessibility.css
+- Add AccessibilityControls
+- Add UpdateNotification
+
+### MainApp.jsx
+- Import accessibility.css
+- Add AccessibilityControls
+- Add UpdateNotification
+- Personal Dashboard button
+- Leaderboard button
+- Study Reminders icon
+- Offline Download button
+- Learning Paths button
+- Mentor Matching button
+
+### PersonalDashboard.jsx
+- Add BadgeDisplay section
+- Add ProgressTracker section
+- Add AdaptiveDifficulty section
+- Add StudyReminders section
+
+### ModuleViewer.jsx
+- Import new template components
+- Add template cases (branching, codeplayground, model3d, whiteboard, forum)
+
+### SubmoduleEditor.jsx
+- Add new template options to dropdown
+
+### AdminControls.jsx
+- Screen Share Setup button
+- Breakout Rooms button
+- Co-Presenting Mode button
+- Virtual Whiteboard button
+
+### AdminProjectorView.jsx
+- Screen Share button in toolbar
+- Whiteboard button in toolbar
+
+### AdminAnalytics.jsx
+- Import InteractionHeatmap
+- Import PDFReportGenerator
+- Add Leaderboard section
+- Add tabs for different views
+
+### ModuleList.jsx
+- Certificate icon for completed modules
+- Offline download icon
+
+### ClientSidebar.jsx (NEW)
+- Create new component file
+
+---
+
+## 🎯 IMPLEMENTATION ORDER
+
+1. **App-wide essentials** (accessibility, updates)
+2. **Admin content management** (asset library, import/export, version control)
+3. **Client engagement** (personal dashboard, gamification)
+4. **Template registry** (new template types)
+5. **Admin collaboration** (screen share, breakout rooms, whiteboard)
+6. **Analytics enhancements** (heatmap, reports, leaderboard)
+7. **Advanced features** (learning paths, adaptive difficulty, mentors)
+
+---
+
+## ✅ COMPLETION CRITERIA
+
+Each feature is complete when:
+- [ ] Import statements added
+- [ ] State variables declared
+- [ ] UI button/element visible
+- [ ] Modal/component renders correctly
+- [ ] No console errors
+- [ ] Feature accessible and functional
+
+---
+
+**Total Tasks:** 32 features across 12 files (+ 1 new file)

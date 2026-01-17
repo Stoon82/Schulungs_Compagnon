@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { ChevronLeft, ChevronRight, Home, BookOpen, Clock, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -17,6 +17,14 @@ import {
   BlankCanvasTemplate,
   DiscussionBoardTemplate
 } from './templates';
+import BranchingScenario from './BranchingScenario';
+import CodePlayground from './CodePlayground';
+import VirtualWhiteboard from './VirtualWhiteboard';
+import DiscussionForum from './DiscussionForum';
+import api from '../services/api';
+
+// Lazy load Model3DViewer to avoid React reconciler errors from @react-three/fiber
+const Model3DViewer = lazy(() => import('./Model3DViewer'));
 
 function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
   const [module, setModule] = useState(null);
@@ -82,16 +90,14 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
   const loadModule = async () => {
     setLoading(true);
     try {
-      // Load module data from API
-      const response = await fetch(`/api/module-creator/modules/${moduleId}`);
-      const data = await response.json();
+      // Load module data from API using api service (includes auth headers)
+      const data = await api.getCreatorModule(moduleId);
       
       if (data.success) {
         setModule(data.data);
         
         // Load submodules
-        const subResponse = await fetch(`/api/module-creator/modules/${moduleId}/submodules`);
-        const subData = await subResponse.json();
+        const subData = await api.getModuleSubmodules(moduleId);
         
         if (subData.success) {
           setSubmodules(subData.data);
@@ -160,6 +166,16 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
         return BlankCanvasTemplate;
       case 'discussion':
         return DiscussionBoardTemplate;
+      case 'branching':
+        return BranchingScenario;
+      case 'codeplayground':
+        return CodePlayground;
+      case 'model3d':
+        return Model3DViewer;
+      case 'whiteboard':
+        return VirtualWhiteboard;
+      case 'forum':
+        return DiscussionForum;
       default:
         return null;
     }
@@ -278,10 +294,16 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
                 transition={transitions[transitionMode].transition}
                 className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-8"
               >
-                <TemplateComponent
-                  content={currentSubmodule.content || {}}
-                  isEditing={false}
-                />
+                <Suspense fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+                  </div>
+                }>
+                  <TemplateComponent
+                    content={currentSubmodule.content || {}}
+                    isEditing={false}
+                  />
+                </Suspense>
               </motion.div>
             )}
           </AnimatePresence>

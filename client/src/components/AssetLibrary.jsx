@@ -542,22 +542,4 @@ function AssetPreviewModal({ asset, onClose, onInsert }) {
   );
 }
 
-// Placeholder for MediaUploadModal (to be implemented)
-function MediaUploadModal({ onClose, onUploadComplete }) {
-  return (
-    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-10">
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-white/10 max-w-2xl w-full p-6">
-        <h3 className="text-xl font-bold text-white mb-4">Media Upload</h3>
-        <p className="text-gray-400 mb-4">Upload functionality will be implemented next...</p>
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all"
-        >
-          Schließen
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default AssetLibrary;

@@ -11,7 +11,10 @@ import AdminProjectorView from './components/AdminProjectorView'
 import QRCodeButton from './components/QRCodeButton'
 import MainApp from './components/MainApp'
 import { useLanguage } from './contexts/LanguageContext'
+import AccessibilityControls from './components/AccessibilityControls'
+import UpdateNotification from './components/UpdateNotification'
 import './App.css'
+import './styles/accessibility.css'
 
 function App() {
   // Check if we should use the new session management system
@@ -336,6 +339,8 @@ function App() {
       </div>
       
       <FloatingMoodBar onMoodSelect={handleMoodSelect} currentModuleId={null} />
+      <AccessibilityControls />
+      <UpdateNotification />
     </div>
   )
 }

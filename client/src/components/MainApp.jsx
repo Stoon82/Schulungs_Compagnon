@@ -5,7 +5,11 @@ import SessionJoinScreen from './SessionJoinScreen';
 import ClassManagement from './ClassManagement';
 import ActiveSessionView from './ActiveSessionView';
 import AdminDashboard from './AdminDashboard';
+import AccessibilityControls from './AccessibilityControls';
+import UpdateNotification from './UpdateNotification';
 import { LogOut, Settings, BookOpen } from 'lucide-react';
+import api from '../services/api';
+import '../styles/accessibility.css';
 
 function MainApp() {
   const [socket, setSocket] = useState(null);
@@ -35,9 +39,13 @@ function MainApp() {
 
     // Check for stored admin user
     const storedAdmin = localStorage.getItem('adminUser');
-    if (storedAdmin) {
+    const storedToken = localStorage.getItem('admin_token');
+    if (storedAdmin && storedToken) {
       try {
-        setAdminUser(JSON.parse(storedAdmin));
+        const adminData = JSON.parse(storedAdmin);
+        setAdminUser(adminData);
+        // Restore admin token to API service for authenticated requests
+        api.setAdminToken(storedToken);
         setView('classes');
       } catch (error) {
         console.error('Error loading admin user:', error);
@@ -131,6 +139,7 @@ function MainApp() {
   const handleLogout = () => {
     localStorage.removeItem('adminUser');
     localStorage.removeItem('sessionParticipant');
+    api.clearAdminToken(); // Clear admin token from API service
     setAdminUser(null);
     setParticipantData(null);
     setActiveSession(null);
@@ -295,6 +304,8 @@ function MainApp() {
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
         <p className="text-white text-lg">Wird geladen...</p>
       </div>
+      <AccessibilityControls />
+      <UpdateNotification />
     </div>
   );
 }

@@ -1,6 +1,10 @@
 import { useState } from 'react';
-import { Unlock, Radio, Pause, Play, Key, Download, AlertTriangle } from 'lucide-react';
+import { Unlock, Radio, Pause, Play, Key, Download, AlertTriangle, Monitor, Users, UserPlus, PenTool } from 'lucide-react';
 import api from '../services/api';
+import ScreenShareSetup from './ScreenShareSetup';
+import BreakoutRooms from './BreakoutRooms';
+import CoPresentingMode from './CoPresentingMode';
+import VirtualWhiteboard from './VirtualWhiteboard';
 
 function AdminControls() {
   const [broadcastMessage, setBroadcastMessage] = useState('');
@@ -8,6 +12,10 @@ function AdminControls() {
   const [codeDescription, setCodeDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [showScreenShare, setShowScreenShare] = useState(false);
+  const [showBreakoutRooms, setShowBreakoutRooms] = useState(false);
+  const [showCoPresenting, setShowCoPresenting] = useState(false);
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
 
   const showFeedback = (message, type = 'success') => {
     setFeedback({ message, type });
@@ -207,6 +215,41 @@ function AdminControls() {
         </div>
       </div>
 
+      {/* Collaboration Features */}
+      <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10">
+        <h3 className="text-lg font-semibold text-white mb-4">Collaboration Tools</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={() => setShowScreenShare(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all"
+          >
+            <Monitor size={18} />
+            Screen Share
+          </button>
+          <button
+            onClick={() => setShowBreakoutRooms(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all"
+          >
+            <Users size={18} />
+            Breakout Rooms
+          </button>
+          <button
+            onClick={() => setShowCoPresenting(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all"
+          >
+            <UserPlus size={18} />
+            Co-Presenting
+          </button>
+          <button
+            onClick={() => setShowWhiteboard(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg transition-all"
+          >
+            <PenTool size={18} />
+            Whiteboard
+          </button>
+        </div>
+      </div>
+
       {/* Emergency Controls */}
       <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -240,6 +283,20 @@ function AdminControls() {
           </button>
         </div>
       </div>
+
+      {/* Modals */}
+      {showScreenShare && (
+        <ScreenShareSetup onClose={() => setShowScreenShare(false)} />
+      )}
+      {showBreakoutRooms && (
+        <BreakoutRooms onClose={() => setShowBreakoutRooms(false)} />
+      )}
+      {showCoPresenting && (
+        <CoPresentingMode onClose={() => setShowCoPresenting(false)} />
+      )}
+      {showWhiteboard && (
+        <VirtualWhiteboard onClose={() => setShowWhiteboard(false)} />
+      )}
     </div>
   );
 }

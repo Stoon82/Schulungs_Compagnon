@@ -1,11 +1,17 @@
-const express = require('express');
+import express from 'express';
+import multer from 'multer';
+import sharp from 'sharp';
+import path from 'path';
+import { promises as fs } from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import db from '../services/database.js';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const router = express.Router();
-const multer = require('multer');
-const sharp = require('sharp');
-const path = require('path');
-const fs = require('fs').promises;
-const { v4: uuidv4 } = require('uuid');
-const db = require('../services/database');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -331,4 +337,4 @@ router.put('/assets/:id', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

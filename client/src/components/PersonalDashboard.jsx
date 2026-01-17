@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Award, BookOpen, Clock, Star, Bookmark, FileText, TrendingUp } from 'lucide-react';
+import BadgeDisplay from './BadgeDisplay';
+import ProgressTracker from './ProgressTracker';
+import AdaptiveDifficulty from './AdaptiveDifficulty';
+import StudyReminders from './StudyReminders';
 
 /**
  * PersonalDashboard - Individual learner progress tracking
@@ -233,6 +237,18 @@ function PersonalDashboard({ userId }) {
           </div>
         </div>
       )}
+
+      {/* Badge Display Section */}
+      <BadgeDisplay userId={userId} />
+
+      {/* Progress Tracker Section */}
+      <ProgressTracker userId={userId} />
+
+      {/* Adaptive Difficulty Section */}
+      <AdaptiveDifficulty userId={userId} />
+
+      {/* Study Reminders Section */}
+      <StudyReminders userId={userId} />
     </div>
   );
 }

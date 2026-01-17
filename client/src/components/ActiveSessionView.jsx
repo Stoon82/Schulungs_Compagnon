@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Users, Crown, Shield, UserCheck, X, Copy, Check, LogOut } from 'lucide-react';
+import { Users, Crown, Shield, UserCheck, X, Copy, Check, LogOut, User, Trophy, Bell, Download } from 'lucide-react';
 import ModuleViewer from './ModuleViewer';
 import AdminNavigationBar from './AdminNavigationBar';
 import QRCodeButton from './QRCodeButton';
+import PersonalDashboard from './PersonalDashboard';
+import Leaderboard from './Leaderboard';
+import StudyReminders from './StudyReminders';
+import OfflinePackageExport from './OfflinePackageExport';
+import api from '../services/api';
 
 function ActiveSessionView({ session, adminUser, participantData, socket, onEndSession }) {
   const [participants, setParticipants] = useState([]);
@@ -11,6 +16,10 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
   const [module, setModule] = useState(null);
   const [showParticipants, setShowParticipants] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [showPersonalDashboard, setShowPersonalDashboard] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showStudyReminders, setShowStudyReminders] = useState(false);
+  const [showOfflineExport, setShowOfflineExport] = useState(false);
 
   const isAdmin = !!adminUser;
 
@@ -55,9 +64,8 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
         return;
       }
       
-      // Load module data
-      const response = await fetch(`/api/module-creator/modules/${session.module_id}`);
-      const data = await response.json();
+      // Load module data using api service (includes auth headers)
+      const data = await api.getCreatorModule(session.module_id);
       
       console.log('Module data response:', data);
       
@@ -65,8 +73,7 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
         setModule(data.data);
         
         // Load submodules
-        const subResponse = await fetch(`/api/module-creator/modules/${session.module_id}/submodules`);
-        const subData = await subResponse.json();
+        const subData = await api.getModuleSubmodules(session.module_id);
         
         console.log('Submodules response:', subData);
         
@@ -219,6 +226,43 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
               )}
             </button>
 
+            {/* Client-only buttons */}
+            {!isAdmin && (
+              <>
+                <button
+                  onClick={() => setShowPersonalDashboard(true)}
+                  className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all flex items-center gap-2"
+                  title="Personal Dashboard"
+                >
+                  <User size={18} />
+                </button>
+                
+                <button
+                  onClick={() => setShowLeaderboard(true)}
+                  className="px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded-lg transition-all flex items-center gap-2"
+                  title="Leaderboard"
+                >
+                  <Trophy size={18} />
+                </button>
+                
+                <button
+                  onClick={() => setShowStudyReminders(true)}
+                  className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all flex items-center gap-2"
+                  title="Study Reminders"
+                >
+                  <Bell size={18} />
+                </button>
+                
+                <button
+                  onClick={() => setShowOfflineExport(true)}
+                  className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all flex items-center gap-2"
+                  title="Offline Download"
+                >
+                  <Download size={18} />
+                </button>
+              </>
+            )}
+
             {/* Participants Button */}
             <button
               onClick={() => setShowParticipants(!showParticipants)}
@@ -280,6 +324,43 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
               <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
               <p className="text-white text-lg">Modul wird geladen...</p>
             </div>
+          </div>
+        )}
+
+        {/* Personal Dashboard Modal */}
+        {showPersonalDashboard && (
+          <div className="absolute inset-0 z-50">
+            <PersonalDashboard 
+              participantId={participantData?.id}
+              onClose={() => setShowPersonalDashboard(false)} 
+            />
+          </div>
+        )}
+
+        {/* Leaderboard Modal */}
+        {showLeaderboard && (
+          <div className="absolute inset-0 z-50">
+            <Leaderboard onClose={() => setShowLeaderboard(false)} />
+          </div>
+        )}
+
+        {/* Study Reminders Modal */}
+        {showStudyReminders && (
+          <div className="absolute inset-0 z-50">
+            <StudyReminders 
+              participantId={participantData?.id}
+              onClose={() => setShowStudyReminders(false)} 
+            />
+          </div>
+        )}
+
+        {/* Offline Package Export Modal */}
+        {showOfflineExport && module && (
+          <div className="absolute inset-0 z-50">
+            <OfflinePackageExport 
+              moduleId={module.id}
+              onClose={() => setShowOfflineExport(false)} 
+            />
           </div>
         )}
 

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { 
   Users, Activity, MessageSquare, Code, TrendingUp, 
   Settings, LogOut, Unlock, Radio, Pause, Play,
-  Key, Download, AlertCircle, Presentation, Edit, Palette
+  Key, Download, AlertCircle, Presentation, Edit, Palette,
+  FolderOpen, Upload, Route
 } from 'lucide-react';
 import api from '../services/api';
 import AdminStats from './AdminStats';
@@ -13,6 +14,9 @@ import ProjectorMode from './ProjectorMode';
 import ModuleEditor from './ModuleEditor';
 import ModuleCreatorV2 from './ModuleCreatorV2';
 import DesignEditor from './DesignEditor';
+import AssetLibrary from './AssetLibrary';
+import ModuleImportExport from './ModuleImportExport';
+import LearningPaths from './LearningPaths';
 
 function AdminDashboard({ onLogout, onBackToProjector }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -22,6 +26,9 @@ function AdminDashboard({ onLogout, onBackToProjector }) {
   const [showModuleEditor, setShowModuleEditor] = useState(false);
   const [showModuleCreator, setShowModuleCreator] = useState(false);
   const [showDesignEditor, setShowDesignEditor] = useState(false);
+  const [showAssetLibrary, setShowAssetLibrary] = useState(false);
+  const [showImportExport, setShowImportExport] = useState(false);
+  const [showLearningPaths, setShowLearningPaths] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -112,6 +119,33 @@ function AdminDashboard({ onLogout, onBackToProjector }) {
               >
                 <Palette size={18} />
                 <span>Design</span>
+              </button>
+              
+              <button
+                onClick={() => setShowAssetLibrary(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all"
+                title="Asset Library"
+              >
+                <FolderOpen size={18} />
+                <span>Assets</span>
+              </button>
+              
+              <button
+                onClick={() => setShowImportExport(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all"
+                title="Import/Export Modules"
+              >
+                <Upload size={18} />
+                <span>Import/Export</span>
+              </button>
+              
+              <button
+                onClick={() => setShowLearningPaths(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg transition-all"
+                title="Learning Paths"
+              >
+                <Route size={18} />
+                <span>Paths</span>
               </button>
               
               <button
@@ -228,6 +262,21 @@ function AdminDashboard({ onLogout, onBackToProjector }) {
       {/* Design Editor Modal */}
       {showDesignEditor && (
         <DesignEditor onClose={() => setShowDesignEditor(false)} />
+      )}
+
+      {/* Asset Library Modal */}
+      {showAssetLibrary && (
+        <AssetLibrary onClose={() => setShowAssetLibrary(false)} />
+      )}
+
+      {/* Import/Export Modal */}
+      {showImportExport && (
+        <ModuleImportExport onClose={() => setShowImportExport(false)} />
+      )}
+
+      {/* Learning Paths Modal */}
+      {showLearningPaths && (
+        <LearningPaths onClose={() => setShowLearningPaths(false)} />
       )}
     </div>
   );

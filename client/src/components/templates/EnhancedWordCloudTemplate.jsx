@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { Cloud, Download, Plus } from 'lucide-react';
-import ReactWordcloud from 'react-wordcloud';
 
 /**
  * EnhancedWordCloudTemplate - Complete word cloud with real-time aggregation and export
@@ -207,8 +206,29 @@ function EnhancedWordCloudTemplate({ content = {}, onSave, isEditing = true }) {
               Als Bild exportieren
             </button>
           </div>
-          <div ref={wordCloudRef} className="bg-slate-800 rounded-lg p-8" style={{ height: 400 }}>
-            <ReactWordcloud words={cloudWords} options={wordCloudOptions} />
+          <div ref={wordCloudRef} className="bg-slate-800 rounded-lg p-8 flex flex-wrap gap-3 justify-center items-center" style={{ minHeight: 400 }}>
+            {cloudWords.map((word, index) => {
+              const maxValue = Math.max(...cloudWords.map(w => w.value));
+              const fontSize = 20 + (word.value / maxValue) * 40;
+              const colors = wordCloudOptions.colors;
+              const color = colors[index % colors.length];
+              return (
+                <span
+                  key={index}
+                  style={{
+                    fontSize: `${fontSize}px`,
+                    color: color,
+                    fontWeight: wordCloudOptions.fontWeight,
+                    opacity: 0.7 + (word.value / maxValue) * 0.3,
+                    transition: 'all 0.3s ease'
+                  }}
+                  className="hover:opacity-100 cursor-default"
+                  title={`${word.text}: ${word.value}`}
+                >
+                  {word.text}
+                </span>
+              );
+            })}
           </div>
         </div>
       )}

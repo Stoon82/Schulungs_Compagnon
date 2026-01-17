@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, BarChart3 } from 'lucide-react';
+import { TrendingUp, BarChart3, Map, FileText, Trophy } from 'lucide-react';
 import api from '../services/api';
+import InteractionHeatmap from './InteractionHeatmap';
+import PDFReportGenerator from './PDFReportGenerator';
+import Leaderboard from './Leaderboard';
 
 function AdminAnalytics() {
   const [timeRange, setTimeRange] = useState('1 hour');
   const [moodData, setMoodData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     loadAnalytics();
@@ -45,8 +49,38 @@ function AdminAnalytics() {
     wow: 'Wow! 🤩'
   };
 
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'heatmap', label: 'Interaction Heatmap', icon: Map },
+    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
+    { id: 'reports', label: 'Reports', icon: FileText }
+  ];
+
   return (
     <div className="space-y-6">
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-white/10">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-all ${
+                activeTab === tab.id
+                  ? 'border-purple-500 text-white'
+                  : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              <Icon size={18} />
+              <span className="font-medium">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white mb-2">Analytics</h2>
@@ -132,6 +166,20 @@ function AdminAnalytics() {
             </div>
           </div>
         </>
+      )}
+        </div>
+      )}
+
+      {activeTab === 'heatmap' && (
+        <InteractionHeatmap />
+      )}
+
+      {activeTab === 'leaderboard' && (
+        <Leaderboard />
+      )}
+
+      {activeTab === 'reports' && (
+        <PDFReportGenerator />
       )}
     </div>
   );

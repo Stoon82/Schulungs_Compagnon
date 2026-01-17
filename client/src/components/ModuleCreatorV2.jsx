@@ -1,8 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Save, X, Plus, Trash2, Eye, Edit3, GripVertical, BookOpen, FileText, MessageSquare, BarChart3, Image, Video, CheckSquare } from 'lucide-react';
+import { Save, X, Plus, Trash2, Eye, Edit3, GripVertical, BookOpen, FileText, MessageSquare, BarChart3, Image, Video, CheckSquare, FolderOpen, Upload, GitBranch, Download } from 'lucide-react';
 import api from '../services/api';
 import SubmoduleEditor from './SubmoduleEditor';
+import AssetLibrary from './AssetLibrary';
+import MediaUploadModal from './MediaUploadModal';
+import ModuleImportExport from './ModuleImportExport';
+import ModuleVersionControl from './ModuleVersionControl';
+import PowerPointImporter from './PowerPointImporter';
+import PDFImporter from './PDFImporter';
+import MarkdownImporter from './MarkdownImporter';
+import OfflinePackageExport from './OfflinePackageExport';
 
 function ModuleCreatorV2({ onClose }) {
   const [modules, setModules] = useState([]);
@@ -16,6 +24,15 @@ function ModuleCreatorV2({ onClose }) {
   const [editingSubmodule, setEditingSubmodule] = useState(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState(''); // '', 'saving', 'saved'
   const autoSaveTimerRef = useRef(null);
+  const [showAssetLibrary, setShowAssetLibrary] = useState(false);
+  const [showMediaUpload, setShowMediaUpload] = useState(false);
+  const [showImportExport, setShowImportExport] = useState(false);
+  const [showVersionControl, setShowVersionControl] = useState(false);
+  const [showImportMenu, setShowImportMenu] = useState(false);
+  const [showPowerPointImporter, setShowPowerPointImporter] = useState(false);
+  const [showPDFImporter, setShowPDFImporter] = useState(false);
+  const [showMarkdownImporter, setShowMarkdownImporter] = useState(false);
+  const [showOfflineExport, setShowOfflineExport] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -397,6 +414,42 @@ function ModuleCreatorV2({ onClose }) {
                 {autoSaveStatus === 'saving' ? 'Speichert...' : '✓ Gespeichert'}
               </div>
             )}
+            <button
+              onClick={() => setShowAssetLibrary(true)}
+              className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all flex items-center gap-2"
+              title="Asset Library"
+            >
+              <FolderOpen size={18} />
+            </button>
+            
+            <button
+              onClick={() => setShowImportExport(true)}
+              className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all flex items-center gap-2"
+              title="Import/Export"
+            >
+              <Upload size={18} />
+            </button>
+            
+            {selectedModule && (
+              <button
+                onClick={() => setShowVersionControl(true)}
+                className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all flex items-center gap-2"
+                title="Version Control"
+              >
+                <GitBranch size={18} />
+              </button>
+            )}
+            
+            {selectedModule && (
+              <button
+                onClick={() => setShowOfflineExport(true)}
+                className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg transition-all flex items-center gap-2"
+                title="Offline Package"
+              >
+                <Download size={18} />
+              </button>
+            )}
+            
             {selectedModule && (
               <button
                 onClick={handlePublishToggle}
@@ -865,6 +918,61 @@ function ModuleCreatorV2({ onClose }) {
             setShowSubmoduleEditor(false);
             setEditingSubmodule(null);
           }}
+        />
+      )}
+
+      {/* Asset Library Modal */}
+      {showAssetLibrary && (
+        <AssetLibrary onClose={() => setShowAssetLibrary(false)} />
+      )}
+
+      {/* Media Upload Modal */}
+      {showMediaUpload && (
+        <MediaUploadModal onClose={() => setShowMediaUpload(false)} />
+      )}
+
+      {/* Import/Export Modal */}
+      {showImportExport && (
+        <ModuleImportExport onClose={() => setShowImportExport(false)} />
+      )}
+
+      {/* Version Control Modal */}
+      {showVersionControl && selectedModule && (
+        <ModuleVersionControl 
+          moduleId={selectedModule.id}
+          onClose={() => setShowVersionControl(false)} 
+        />
+      )}
+
+      {/* PowerPoint Importer Modal */}
+      {showPowerPointImporter && (
+        <PowerPointImporter 
+          moduleId={selectedModule?.id}
+          onClose={() => setShowPowerPointImporter(false)} 
+        />
+      )}
+
+      {/* PDF Importer Modal */}
+      {showPDFImporter && (
+        <PDFImporter 
+          moduleId={selectedModule?.id}
+          onClose={() => setShowPDFImporter(false)} 
+        />
+      )}
+
+      {/* Markdown Importer Modal */}
+      {showMarkdownImporter && (
+        <MarkdownImporter 
+          moduleId={selectedModule?.id}
+          onClose={() => setShowMarkdownImporter(false)} 
+        />
+      )}
+
+      {/* Offline Package Export Modal */}
+      {showOfflineExport && selectedModule && (
+        <OfflinePackageExport 
+          moduleId={selectedModule.id}
+          onClose={() => setShowOfflineExport(false)} 
         />
       )}
     </div>

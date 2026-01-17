@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, LogIn, UserPlus, Lock, User, Mail } from 'lucide-react';
+import api from '../services/api';
 
 function AdminAuthModal({ onClose, onAuthSuccess }) {
   const [mode, setMode] = useState('login'); // 'login' or 'register'
@@ -38,6 +39,11 @@ function AdminAuthModal({ onClose, onAuthSuccess }) {
         setError(data.error || 'Authentication failed');
         setLoading(false);
         return;
+      }
+
+      // Store admin token in API service for authenticated requests
+      if (data.data.token) {
+        api.setAdminToken(data.data.token);
       }
 
       // Store admin info in localStorage
