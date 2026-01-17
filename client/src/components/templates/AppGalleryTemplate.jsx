@@ -94,6 +94,20 @@ function AppGalleryTemplate({ content = {}, onSave, isEditing = true }) {
     { value: 'name', label: 'Name' }
   ];
 
+  // Client mode - Feedback state
+  const [feedback, setFeedback] = useState({});
+
+  const handleFeedback = async (appId, type) => {
+    const newFeedback = { ...feedback, [appId]: type };
+    setFeedback(newFeedback);
+    
+    // TODO: Send to backend
+    // await fetch('/api/app-gallery/feedback', {
+    //   method: 'POST',
+    //   body: JSON.stringify({ appId, feedbackType: type })
+    // });
+  };
+
   // Mock feedback data for preview
   const getMockFeedback = (appId) => ({
     up: Math.floor(Math.random() * 20),
@@ -167,17 +181,38 @@ function AppGalleryTemplate({ content = {}, onSave, isEditing = true }) {
                     {/* Feedback Buttons */}
                     {formData.allowFeedback && (
                       <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                        <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all">
+                        <button 
+                          onClick={() => handleFeedback(app.id, 'up')}
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                            feedback[app.id] === 'up'
+                              ? 'bg-green-500/40 text-green-300 ring-2 ring-green-500'
+                              : 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
+                          }`}
+                        >
                           <ThumbsUp size={16} />
-                          {formData.showVoteCounts && <span className="text-xs">{feedback.up}</span>}
+                          {formData.showVoteCounts && <span className="text-xs">{feedback.up || 0}</span>}
                         </button>
-                        <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 rounded-lg transition-all">
+                        <button 
+                          onClick={() => handleFeedback(app.id, 'neutral')}
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                            feedback[app.id] === 'neutral'
+                              ? 'bg-gray-500/40 text-gray-300 ring-2 ring-gray-500'
+                              : 'bg-gray-500/20 hover:bg-gray-500/30 text-gray-400'
+                          }`}
+                        >
                           <Meh size={16} />
-                          {formData.showVoteCounts && <span className="text-xs">{feedback.neutral}</span>}
+                          {formData.showVoteCounts && <span className="text-xs">{feedback.neutral || 0}</span>}
                         </button>
-                        <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all">
+                        <button 
+                          onClick={() => handleFeedback(app.id, 'down')}
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                            feedback[app.id] === 'down'
+                              ? 'bg-red-500/40 text-red-300 ring-2 ring-red-500'
+                              : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
+                          }`}
+                        >
                           <ThumbsDown size={16} />
-                          {formData.showVoteCounts && <span className="text-xs">{feedback.down}</span>}
+                          {formData.showVoteCounts && <span className="text-xs">{feedback.down || 0}</span>}
                         </button>
                       </div>
                     )}

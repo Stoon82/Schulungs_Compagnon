@@ -249,24 +249,24 @@
 - [x] Store poll results in database
 
 ### Word Cloud System
-- [ ] Create word submission form (client)
-- [ ] Implement real-time word aggregation
-- [ ] Integrate word cloud library (react-wordcloud)
-- [ ] Add profanity filter (bad-words or similar)
-- [ ] Add word frequency calculation
-- [ ] Implement export to image (html2canvas)
-- [ ] Store word cloud entries in database
+- [x] Create word submission form (client)
+- [x] Implement real-time word aggregation
+- [x] Integrate word cloud library (react-wordcloud)
+- [x] Add profanity filter (bad-words or similar)
+- [x] Add word frequency calculation
+- [x] Implement export to image (html2canvas)
+- [x] Store word cloud entries in database
 
 ### App Gallery System
-- [ ] Create app gallery item editor
-- [ ] Add screenshot upload/URL input
-- [ ] Add prompt text editor
-- [ ] Add app URL input
-- [ ] Create feedback button components
-- [ ] Implement real-time feedback aggregation
-- [ ] Add filtering by rating
-- [ ] Store app items and feedback in database
-- [ ] Display vote counts to admin
+- [x] Create app gallery item editor
+- [x] Add screenshot upload/URL input
+- [x] Add prompt text editor
+- [x] Add app URL input
+- [x] Create feedback button components
+- [x] Implement real-time feedback aggregation
+- [x] Add filtering by rating
+- [x] Store app items and feedback in database
+- [x] Display vote counts to admin
 
 ---
 

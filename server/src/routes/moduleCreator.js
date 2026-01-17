@@ -908,6 +908,140 @@ router.get('/polls/:submoduleId/results', async (req, res) => {
 });
 
 // ============================================================================
+// WORD CLOUD ROUTES
+// ============================================================================
+
+// POST /api/module-creator/wordcloud/:submoduleId/submit - Submit word
+router.post('/wordcloud/:submoduleId/submit', async (req, res) => {
+  try {
+    const { submoduleId } = req.params;
+    const { sessionId, userId, word } = req.body;
+
+    if (!word || !word.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Word is required'
+      });
+    }
+
+    await db.run(
+      'INSERT INTO wordcloud_entries (id, submodule_id, session_id, user_id, word, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [uuidv4(), submoduleId, sessionId || null, userId || null, word.trim().toLowerCase(), new Date().toISOString()]
+    );
+
+    res.json({
+      success: true,
+      message: 'Word submitted successfully'
+    });
+  } catch (error) {
+    console.error('Error submitting word:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit word'
+    });
+  }
+});
+
+// GET /api/module-creator/wordcloud/:submoduleId/words - Get all words
+router.get('/wordcloud/:submoduleId/words', async (req, res) => {
+  try {
+    const { submoduleId } = req.params;
+    const { sessionId } = req.query;
+
+    let query = 'SELECT word, COUNT(*) as count FROM wordcloud_entries WHERE submodule_id = ?';
+    const params = [submoduleId];
+
+    if (sessionId) {
+      query += ' AND session_id = ?';
+      params.push(sessionId);
+    }
+
+    query += ' GROUP BY word ORDER BY count DESC';
+
+    const words = await db.all(query, params);
+
+    res.json({
+      success: true,
+      data: words
+    });
+  } catch (error) {
+    console.error('Error fetching words:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch words'
+    });
+  }
+});
+
+// ============================================================================
+// APP GALLERY ROUTES
+// ============================================================================
+
+// POST /api/module-creator/app-gallery/:appId/feedback - Submit app feedback
+router.post('/app-gallery/:appId/feedback', async (req, res) => {
+  try {
+    const { appId } = req.params;
+    const { sessionId, userId, feedbackType } = req.body;
+
+    if (!feedbackType || !['up', 'down', 'neutral'].includes(feedbackType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid feedback type is required (up, down, neutral)'
+      });
+    }
+
+    await db.run(
+      'INSERT INTO app_feedback (id, app_id, session_id, user_id, feedback_type, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [uuidv4(), appId, sessionId || null, userId || null, feedbackType, new Date().toISOString()]
+    );
+
+    res.json({
+      success: true,
+      message: 'Feedback submitted successfully'
+    });
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit feedback'
+    });
+  }
+});
+
+// GET /api/module-creator/app-gallery/:appId/feedback - Get app feedback stats
+router.get('/app-gallery/:appId/feedback', async (req, res) => {
+  try {
+    const { appId } = req.params;
+
+    const results = await db.all(
+      'SELECT feedback_type, COUNT(*) as count FROM app_feedback WHERE app_id = ? GROUP BY feedback_type',
+      [appId]
+    );
+
+    const stats = {
+      up: 0,
+      down: 0,
+      neutral: 0
+    };
+
+    results.forEach(r => {
+      stats[r.feedback_type] = r.count;
+    });
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error fetching feedback:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch feedback'
+    });
+  }
+});
+
+// ============================================================================
 // CLASS-MODULE MANAGEMENT ROUTES
 // ============================================================================
 
