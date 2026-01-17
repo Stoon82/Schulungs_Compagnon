@@ -553,17 +553,17 @@
 - [x] Track word cloud contributions
 - [x] Monitor Q&A activity
 - [x] Create visual heatmap display
-- [ ] Add export heatmap as image
+- [x] Add export heatmap as image
 
 ### Export Reports
-- [ ] Create PDF report generator
-- [ ] Design report template (header, charts, tables)
-- [ ] Include session summary
-- [ ] Include quiz analytics
-- [ ] Include participant list and scores
+- [x] Create PDF report generator
+- [x] Design report template (header, charts, tables)
+- [x] Include session summary
+- [x] Include quiz analytics
+- [x] Include participant list and scores
 - [x] Add CSV export for raw data
-- [ ] Generate individual participant reports
-- [ ] Add comparative analysis (multiple sessions)
+- [x] Generate individual participant reports
+- [x] Add comparative analysis (multiple sessions)
 
 ### Participant Progress Tracking
 - [x] Create PersonalDashboard component (client-side)
