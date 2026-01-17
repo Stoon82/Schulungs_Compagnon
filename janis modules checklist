@@ -366,14 +366,14 @@
 - [ ] Implement theme preview
 - [ ] Save theme to database
 - [ ] Emit 'theme:update' Socket.io event
-
+### Cla
 ### Module-Level Theme Overrides
 - [ ] Add theme override section to module editor
 - [ ] Allow custom color scheme selection
 - [ ] Add background image/video uploader
 - [ ] Add custom CSS injection textarea
 - [ ] Add font override selector
-- [ ] Implement theme inheritance (global → module → submodule)
+- [ ] Implement theme inheritance (global → class → module → submodule)
 
 ### Submodule-Level Styling
 - [ ] Add styling panel to submodule editor
