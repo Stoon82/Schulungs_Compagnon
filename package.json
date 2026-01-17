@@ -14,6 +14,7 @@
     "full-demo": "concurrently \"npm run dev\" \"npm run tunnel\"",
     "setup": "npm install && cd client && npm install",
     "db:init": "node database/init.js",
+    "db:migrate": "node database/migrate.js",
     "db:seed": "node database/seed.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",

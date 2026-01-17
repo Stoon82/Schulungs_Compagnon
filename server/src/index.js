@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import eventBus from './eventBus.js';
 import authRoutes from './routes/auth.js';
 import moduleRoutes from './routes/modules.js';
+import moduleCreatorRoutes from './routes/moduleCreator.js';
 import moodRoutes from './routes/mood.js';
 import sandboxRoutes from './routes/sandbox.js';
 import chatRoutes from './routes/chat.js';
@@ -79,6 +80,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/modules', moduleRoutes);
+app.use('/api/module-creator', moduleCreatorRoutes);
 app.use('/api/mood', moodRoutes);
 app.use('/api/sandbox', sandboxRoutes);
 app.use('/api/chat', chatRoutes);
