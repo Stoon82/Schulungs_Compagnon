@@ -67,9 +67,30 @@ function ThemeEditor({
     }));
   };
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave(theme);
+  const handleSave = async () => {
+    try {
+      // Save theme to database
+      const response = await fetch('/api/themes/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(theme)
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Emit Socket.io event to update all clients
+        if (window.socket) {
+          window.socket.emit('theme:update', theme);
+        }
+        
+        if (onSave) {
+          onSave(theme);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving theme:', error);
+      alert('Fehler beim Speichern des Themes');
     }
   };
 

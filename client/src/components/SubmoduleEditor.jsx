@@ -216,6 +216,109 @@ function SubmoduleEditor({ submodule, moduleId, onSave, onClose }) {
                 )}
               </div>
 
+              {/* Styling Panel */}
+              <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  Styling (Optional)
+                </h3>
+                
+                <div className="space-y-4">
+                  {/* Background */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                      Hintergrund (Bild/Gradient)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.styling?.background || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        styling: { ...formData.styling, background: e.target.value }
+                      })}
+                      placeholder="url(image.jpg) oder linear-gradient(...)"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* Text Color */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                      Textfarbe
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={formData.styling?.textColor || '#ffffff'}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          styling: { ...formData.styling, textColor: e.target.value }
+                        })}
+                        className="w-12 h-10 rounded border-2 border-white/20 cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={formData.styling?.textColor || '#ffffff'}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          styling: { ...formData.styling, textColor: e.target.value }
+                        })}
+                        className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm font-mono focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Border */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                      Rahmen
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.styling?.border || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        styling: { ...formData.styling, border: e.target.value }
+                      })}
+                      placeholder="2px solid #8b5cf6"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* Shadow */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                      Schatten
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.styling?.boxShadow || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        styling: { ...formData.styling, boxShadow: e.target.value }
+                      })}
+                      placeholder="0 4px 6px rgba(0,0,0,0.1)"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* Custom CSS */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                      Custom CSS (Erweitert)
+                    </label>
+                    <textarea
+                      value={formData.styling?.customCSS || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        styling: { ...formData.styling, customCSS: e.target.value }
+                      })}
+                      placeholder="padding: 20px;&#10;border-radius: 12px;"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 min-h-[80px]"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Save Button */}
               <button
                 onClick={handleSave}

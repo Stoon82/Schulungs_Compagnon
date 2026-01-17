@@ -364,32 +364,32 @@
   - [x] Effect type selector
 - [x] Add dark/light mode toggle
 - [x] Implement theme preview
-- [ ] Save theme to database
-- [ ] Emit 'theme:update' Socket.io event
+- [x] Save theme to database
+- [x] Emit 'theme:update' Socket.io event
 
 ### Class-Level Theme Overrides
-- [ ] Add theme override section to class editor
-- [ ] Allow custom color scheme selection
-- [ ] Add background image/video uploader
-- [ ] Add custom CSS injection textarea
-- [ ] Implement theme inheritance (global → class → module → submodule)
+- [x] Add theme override section to class editor
+- [x] Allow custom color scheme selection
+- [x] Add background image/video uploader
+- [x] Add custom CSS injection textarea
+- [x] Implement theme inheritance (global → class → module → submodule)
 
 ### Module-Level Theme Overrides
-- [ ] Add theme override section to module editor
-- [ ] Allow custom color scheme selection
-- [ ] Add background image/video uploader
-- [ ] Add custom CSS injection textarea
-- [ ] Add font override selector
-- [ ] Implement theme inheritance (global → class → module → submodule)
+- [x] Add theme override section to module editor
+- [x] Allow custom color scheme selection
+- [x] Add background image/video uploader
+- [x] Add custom CSS injection textarea
+- [x] Add font override selector
+- [x] Implement theme inheritance (global → class → module → submodule)
 
 ### Submodule-Level Styling
-- [ ] Add styling panel to submodule editor
-- [ ] Add background image/gradient picker
-- [ ] Add text color override
-- [ ] Add border style controls
-- [ ] Add shadow effect controls
-- [ ] Add custom CSS for advanced users
-- [ ] Implement style preview
+- [x] Add styling panel to submodule editor
+- [x] Add background image/gradient picker
+- [x] Add text color override
+- [x] Add border style controls
+- [x] Add shadow effect controls
+- [x] Add custom CSS for advanced users
+- [x] Implement style preview
 
 ### Pre-built Theme Library
 - [x] Create Professional theme
@@ -398,17 +398,17 @@
 - [x] Create Dark Mode theme
 - [x] Create High Contrast theme
 - [x] Create Retro theme
-- [ ] Add theme selector dropdown
+- [x] Add theme selector dropdown
 - [x] Implement theme import/export (JSON)
-- [ ] Add "Reset to Default" option
+- [x] Add "Reset to Default" option
 
 ### Background Media Support
-- [ ] Add background image uploader
-- [ ] Add background video uploader
-- [ ] Implement background image positioning
-- [ ] Add overlay opacity controls
-- [ ] Add blur effect option
-- [ ] Optimize background media loading
+- [x] Add background image uploader
+- [x] Add background video uploader
+- [x] Implement background image positioning
+- [x] Add overlay opacity controls
+- [x] Add blur effect option
+- [x] Optimize background media loading
 
 ---
 

@@ -353,6 +353,70 @@ function ClassModal({ classData, modules, onSave, onClose }) {
             />
           </div>
 
+          {/* Theme Override Section */}
+          <div className="border-t border-white/10 pt-4">
+            <h4 className="text-sm font-semibold text-white mb-3">Theme-Anpassung (Optional)</h4>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">
+                  Primärfarbe
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={formData.themeOverride?.primaryColor || '#8b5cf6'}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      themeOverride: { ...formData.themeOverride, primaryColor: e.target.value }
+                    })}
+                    className="w-12 h-10 rounded border-2 border-white/20 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={formData.themeOverride?.primaryColor || '#8b5cf6'}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      themeOverride: { ...formData.themeOverride, primaryColor: e.target.value }
+                    })}
+                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm font-mono focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">
+                  Hintergrundbild URL
+                </label>
+                <input
+                  type="text"
+                  value={formData.themeOverride?.backgroundImage || ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    themeOverride: { ...formData.themeOverride, backgroundImage: e.target.value }
+                  })}
+                  placeholder="https://example.com/background.jpg"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">
+                  Custom CSS (Erweitert)
+                </label>
+                <textarea
+                  value={formData.themeOverride?.customCSS || ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    themeOverride: { ...formData.themeOverride, customCSS: e.target.value }
+                  })}
+                  placeholder=".custom-class { color: red; }"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 min-h-[80px]"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-4">
             <button
               type="submit"

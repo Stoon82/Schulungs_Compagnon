@@ -88,6 +88,7 @@ app.use('/api/sandbox', sandboxRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/materials', materialsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/themes', require('./routes/themes'));
 
 // Ngrok tunnel detection endpoint (bypasses CORS)
 app.get('/api/ngrok/tunnel', async (req, res) => {
