@@ -2,16 +2,20 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Home, BookOpen, Clock, CheckCircle } from 'lucide-react';
 import { TitleTemplate, ContentTemplate, MediaTemplate, QuizTemplate, PollTemplate, WordCloudTemplate, AppGalleryTemplate } from './templates';
 
-function ModuleViewer({ moduleId, socket, onExit }) {
+function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
   const [module, setModule] = useState(null);
   const [submodules, setSubmodules] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState({});
 
   useEffect(() => {
     loadModule();
   }, [moduleId]);
+
+  useEffect(() => {
+    setCurrentIndex(initialIndex);
+  }, [initialIndex]);
 
   useEffect(() => {
     if (!socket) return;
@@ -40,12 +44,19 @@ function ModuleViewer({ moduleId, socket, onExit }) {
     setLoading(true);
     try {
       // Load module data from API
-      const response = await fetch(`/api/modules/${moduleId}`);
+      const response = await fetch(`/api/module-creator/modules/${moduleId}`);
       const data = await response.json();
       
       if (data.success) {
         setModule(data.data);
-        setSubmodules(data.data.submodules || []);
+        
+        // Load submodules
+        const subResponse = await fetch(`/api/module-creator/modules/${moduleId}/submodules`);
+        const subData = await subResponse.json();
+        
+        if (subData.success) {
+          setSubmodules(subData.data);
+        }
       }
     } catch (error) {
       console.error('Error loading module:', error);

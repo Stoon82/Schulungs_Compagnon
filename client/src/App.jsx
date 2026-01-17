@@ -9,10 +9,19 @@ import AdminLogin from './components/AdminLogin'
 import AdminDashboard from './components/AdminDashboard'
 import AdminProjectorView from './components/AdminProjectorView'
 import QRCodeButton from './components/QRCodeButton'
+import MainApp from './components/MainApp'
 import { useLanguage } from './contexts/LanguageContext'
 import './App.css'
 
 function App() {
+  // Check if we should use the new session management system
+  const useNewSystem = true; // Set to false to use old system
+  
+  if (useNewSystem) {
+    return <MainApp />;
+  }
+  
+  // Old system below (for backwards compatibility)
   const { t, language, toggleLanguage } = useLanguage()
   const [connected, setConnected] = useState(false)
   const [socket, setSocket] = useState(null)
