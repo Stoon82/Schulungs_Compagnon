@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Save, X, Eye, FileText } from 'lucide-react';
-import { TitleTemplate, ContentTemplate, MediaTemplate, QuizTemplate, PollTemplate } from './templates';
+import { TitleTemplate, ContentTemplate, MediaTemplate, QuizTemplate, PollTemplate, WordCloudTemplate, AppGalleryTemplate } from './templates';
 
 const TEMPLATE_TYPES = [
-  { value: 'title', label: 'Titel-Folie', icon: FileText, component: TitleTemplate },
-  { value: 'content', label: 'Inhalts-Folie', icon: FileText, component: ContentTemplate },
-  { value: 'media', label: 'Medien-Präsentation', icon: FileText, component: MediaTemplate },
-  { value: 'quiz', label: 'Interaktives Quiz', icon: FileText, component: QuizTemplate },
-  { value: 'poll', label: 'Live-Umfrage', icon: FileText, component: PollTemplate }
+  { value: 'title', label: 'Titel-Folie', icon: '📋', component: TitleTemplate },
+  { value: 'content', label: 'Inhalts-Folie', icon: '📝', component: ContentTemplate },
+  { value: 'media', label: 'Medien-Präsentation', icon: '🖼️', component: MediaTemplate },
+  { value: 'quiz', label: 'Interaktives Quiz', icon: '❓', component: QuizTemplate },
+  { value: 'poll', label: 'Live-Umfrage', icon: '📊', component: PollTemplate },
+  { value: 'wordcloud', label: 'Wortwolke', icon: '☁️', component: WordCloudTemplate },
+  { value: 'appgallery', label: 'App-Galerie', icon: '📱', component: AppGalleryTemplate }
 ];
 
 function SubmoduleEditor({ submodule, moduleId, onSave, onClose }) {

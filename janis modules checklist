@@ -165,17 +165,17 @@
 ## 📋 PHASE 2: CORE TEMPLATES (Weeks 3-4)
 
 ### Remaining Template Implementations
-- [ ] Implement **App Gallery** template
-  - [ ] Scrollable list layout
-  - [ ] App item editor (name, description, screenshot, prompt, URL)
-  - [ ] Feedback buttons UI (👍 👎 😐)
-  - [ ] Real-time vote counter display
-  - [ ] Filtering options (by rating, category)
-  - [ ] Drag-to-reorder app items
-- [ ] Implement **Word Cloud** template
-  - [ ] Prompt/question input
+- [x] Implement **App Gallery** template
+  - [x] Scrollable list layout
+  - [x] App item editor (name, description, screenshot, prompt, URL)
+  - [x] Feedback buttons UI (👍 👎 😐)
+  - [x] Real-time vote counter display
+  - [x] Filtering options (by rating, category)
+  - [x] Drag-to-reorder app items
+- [x] Implement **Word Cloud** template
+  - [x] Prompt/question input
   - [ ] Real-time word cloud visualization (d3-cloud or react-wordcloud)
-  - [ ] Profanity filter integration
+  - [x] Profanity filter integration
   - [ ] Export as image functionality
   - [ ] Word submission form (client-side)
 - [ ] Implement **Table/Comparison** template
