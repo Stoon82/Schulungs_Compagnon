@@ -157,6 +157,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     const stats = await fs.stat(optimizedPath);
 
     // Store in database
+    // Determine correct file path based on whether file was optimized
+    const isOptimized = optimizedPath !== file.path;
+    const filePath = isOptimized 
+      ? `/uploads/media/optimized/${path.basename(optimizedPath)}`
+      : `/uploads/media/${path.basename(optimizedPath)}`;
+    
     await db.run(
       `INSERT INTO media_assets (
         id, filename, original_filename, file_path, thumbnail_path,
@@ -167,7 +173,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         assetId,
         path.basename(optimizedPath),
         file.originalname,
-        `/uploads/media/${path.basename(optimizedPath)}`,
+        filePath,
         thumbnailPath ? `/uploads/media/thumbnails/${path.basename(thumbnailPath)}` : null,
         fileType,
         file.mimetype,
@@ -179,7 +185,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         req.user?.id || 'admin',
         new Date().toISOString(),
         new Date().toISOString(),
-        optimizedPath !== file.path ? 1 : 0
+        isOptimized ? 1 : 0
       ]
     );
 
@@ -189,7 +195,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         id: assetId,
         filename: path.basename(optimizedPath),
         original_filename: file.originalname,
-        file_path: `/uploads/media/${path.basename(optimizedPath)}`,
+        file_path: filePath,
         thumbnail_path: thumbnailPath ? `/uploads/media/thumbnails/${path.basename(thumbnailPath)}` : null,
         file_type: fileType,
         file_size: stats.size,

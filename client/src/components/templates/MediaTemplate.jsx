@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Image as ImageIcon, Video, Save, Upload, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Image as ImageIcon, Video, Save, Upload, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, FolderOpen } from 'lucide-react';
+import AssetLibrary from '../AssetLibrary';
 
 function MediaTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
@@ -15,6 +16,8 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [showAssetLibrary, setShowAssetLibrary] = useState(false);
+  const [selectingForGallery, setSelectingForGallery] = useState(false);
 
   useEffect(() => {
     if (content && !isEditing) {
@@ -94,17 +97,28 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
         {formData.galleryMode ? (
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Galerie-URLs (eine pro Zeile)
+              {formData.galleryMode ? 'Medien-URLs (eine pro Zeile)' : 'Medien-URL'}
             </label>
-            <textarea
-              value={formData.mediaUrls.join('\n')}
-              onChange={(e) => handleChange({ mediaUrls: e.target.value.split('\n').filter(url => url.trim()) })}
-              className="w-full h-32 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none font-mono text-sm"
-              placeholder="https://example.com/image1.jpg\nhttps://example.com/image2.jpg\nhttps://example.com/image3.jpg"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              {formData.mediaUrls.length} Medien in der Galerie
-            </p>
+            <div className="space-y-2">
+              <textarea
+                value={formData.mediaUrls.join('\n')}
+                onChange={(e) => handleChange({ mediaUrls: e.target.value.split('\n').filter(url => url.trim()) })}
+                placeholder="https://example.com/image1.jpg\nhttps://example.com/image2.jpg"
+                rows={5}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectingForGallery(true);
+                  setShowAssetLibrary(true);
+                }}
+                className="w-full px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all flex items-center justify-center gap-2"
+              >
+                <FolderOpen size={18} />
+                Aus Asset Library hinzufügen
+              </button>
+            </div>
           </div>
         ) : (
           <div>
@@ -119,9 +133,17 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
                 className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="https://example.com/image.jpg"
               />
-              <button className="px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all flex items-center gap-2">
-                <Upload size={18} />
-                <span>Upload</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectingForGallery(false);
+                  setShowAssetLibrary(true);
+                }}
+                className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all flex items-center gap-2"
+                title="Aus Asset Library wählen"
+              >
+                <FolderOpen size={18} />
+                Assets
               </button>
             </div>
           </div>
@@ -196,6 +218,22 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
             <Save size={20} />
             <span>Speichern</span>
           </button>
+        )}
+
+        {/* Asset Library Modal */}
+        {showAssetLibrary && (
+          <AssetLibrary
+            onSelectAsset={(asset) => {
+              if (selectingForGallery) {
+                handleChange({ mediaUrls: [...formData.mediaUrls, asset.file_path] });
+              } else {
+                handleChange({ mediaUrl: asset.file_path });
+              }
+              setShowAssetLibrary(false);
+            }}
+            onClose={() => setShowAssetLibrary(false)}
+            showInsertButton={true}
+          />
         )}
       </div>
     );

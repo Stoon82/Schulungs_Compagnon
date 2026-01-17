@@ -356,6 +356,27 @@ class ApiService {
     return await response.json();
   }
 
+  // Public session methods (no authentication required, only session code)
+  async getPublicModule(moduleId, sessionCode) {
+    const response = await fetch(`${API_BASE_URL}/public-session/module/${moduleId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-code': sessionCode
+      }
+    });
+    return await response.json();
+  }
+
+  async getPublicSubmodules(moduleId, sessionCode) {
+    const response = await fetch(`${API_BASE_URL}/public-session/module/${moduleId}/submodules`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-code': sessionCode
+      }
+    });
+    return await response.json();
+  }
+
   async createCreatorModule(moduleData) {
     const response = await fetch(`${API_BASE_URL}/module-creator/modules`, {
       method: 'POST',

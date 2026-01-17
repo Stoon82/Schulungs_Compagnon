@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, Save, Plus, Trash2 } from 'lucide-react';
+import { BarChart3, Save, Plus, Trash2, Lock, Unlock, Eye, PieChart } from 'lucide-react';
 
 function PollTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
@@ -11,6 +11,9 @@ function PollTemplate({ content, onChange, onSave, isEditing }) {
     visualizationType: content?.visualizationType || 'bar',
     pollClosed: content?.pollClosed || false
   });
+  
+  const [selectedOptions, setSelectedOptions] = useState([]);
+  const [hasVoted, setHasVoted] = useState(false);
 
   useEffect(() => {
     if (content && !isEditing) {
@@ -35,6 +38,10 @@ function PollTemplate({ content, onChange, onSave, isEditing }) {
     if (onSave) {
       onSave(formData);
     }
+  };
+
+  const handleClosePoll = () => {
+    handleChange({ pollClosed: !formData.pollClosed });
   };
 
   const addOption = () => {
@@ -179,15 +186,85 @@ function PollTemplate({ content, onChange, onSave, isEditing }) {
   }
 
   // Client mode - Interactive voting
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [hasVoted, setHasVoted] = useState(false);
   const mockResults = formData.options.map((_, i) => Math.floor(Math.random() * 50) + 10);
   const total = mockResults.reduce((a, b) => a + b, 0);
 
   const handleVote = () => {
-    if (selectedOption !== null) {
-      setHasVoted(true);
-      // TODO: Send vote to backend via socket/API
+    if (formData.allowMultiple) {
+      if (selectedOptions.length > 0) {
+        setHasVoted(true);
+        // TODO: Send vote to backend via socket/API
+      }
+    } else {
+      if (selectedOptions.length > 0) {
+        setHasVoted(true);
+        // TODO: Send vote to backend via socket/API
+      }
+    }
+  };
+
+  const handleOptionClick = (index) => {
+    if (formData.allowMultiple) {
+      setSelectedOptions(prev => 
+        prev.includes(index) 
+          ? prev.filter(i => i !== index)
+          : [...prev, index]
+      );
+    } else {
+      setSelectedOptions([index]);
+    }
+  };
+
+  const renderVisualization = () => {
+    if (formData.visualizationType === 'bar') {
+      return (
+        <div className="space-y-2">
+          {formData.options.map((option, index) => {
+            const percentage = total > 0 ? (mockResults[index] / total) * 100 : 0;
+            return (
+              <div key={index}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-white">{option || `Option ${index + 1}`}</span>
+                  <span className="text-gray-400">{mockResults[index]} ({percentage.toFixed(1)}%)</span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    
+    if (formData.visualizationType === 'pie') {
+      return (
+        <div className="text-center text-gray-400 py-8">
+          <PieChart size={48} className="mx-auto mb-2" />
+          <p>Kreisdiagramm-Ansicht</p>
+        </div>
+      );
+    }
+    
+    if (formData.visualizationType === 'emoji') {
+      return (
+        <div className="space-y-3">
+          {formData.options.map((option, index) => (
+            <div key={index} className="flex items-center gap-3">
+              <span className="text-white min-w-[120px]">{option || `Option ${index + 1}`}</span>
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(mockResults[index], 20) }).map((_, i) => (
+                  <span key={i}>👤</span>
+                ))}
+                {mockResults[index] > 20 && <span className="text-gray-400 ml-2">+{mockResults[index] - 20}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
     }
   };
 
@@ -203,7 +280,7 @@ function PollTemplate({ content, onChange, onSave, isEditing }) {
         
         <div className="flex items-center gap-2">
           {/* Poll Status Indicator */}
-          {pollClosed && (
+          {formData.pollClosed && (
             <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded text-sm flex items-center gap-1">
               <Lock size={14} />
               Geschlossen
@@ -215,14 +292,14 @@ function PollTemplate({ content, onChange, onSave, isEditing }) {
             <button
               onClick={handleClosePoll}
               className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
-                pollClosed
+                formData.pollClosed
                   ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
                   : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
               }`}
-              title={pollClosed ? 'Umfrage öffnen' : 'Umfrage schließen'}
+              title={formData.pollClosed ? 'Umfrage öffnen' : 'Umfrage schließen'}
             >
-              {pollClosed ? <Unlock size={14} /> : <Lock size={14} />}
-              {pollClosed ? 'Öffnen' : 'Schließen'}
+              {formData.pollClosed ? <Unlock size={14} /> : <Lock size={14} />}
+              {formData.pollClosed ? 'Öffnen' : 'Schließen'}
             </button>
           )}
           
@@ -231,7 +308,7 @@ function PollTemplate({ content, onChange, onSave, isEditing }) {
         </div>
       </div>
       
-      {pollClosed && !hasVoted ? (
+      {formData.pollClosed && !hasVoted ? (
         // Poll Closed Message
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 text-center">
           <Lock size={48} className="mx-auto mb-3 text-red-400" />
@@ -241,33 +318,37 @@ function PollTemplate({ content, onChange, onSave, isEditing }) {
       ) : !hasVoted ? (
         // Voting Interface
         <div className="space-y-3">
-          {formData.options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => setSelectedOption(index)}
-              disabled={pollClosed}
-              className={`w-full px-4 py-3 rounded-lg border transition-all text-left ${
-                selectedOption === index
-                  ? 'bg-purple-500/30 border-purple-500 text-white'
-                  : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-              } ${pollClosed ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  selectedOption === index ? 'border-purple-500' : 'border-white/30'
-                }`}>
-                  {selectedOption === index && (
-                    <div className="w-3 h-3 rounded-full bg-purple-500" />
-                  )}
+          {formData.options.map((option, index) => {
+            const isSelected = selectedOptions.includes(index);
+            
+            return (
+              <button
+                key={index}
+                onClick={() => handleOptionClick(index)}
+                disabled={formData.pollClosed}
+                className={`w-full px-4 py-3 rounded-lg border transition-all text-left ${
+                  isSelected
+                    ? 'bg-purple-500/30 border-purple-500 text-white'
+                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                } ${formData.pollClosed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 ${formData.allowMultiple ? 'rounded' : 'rounded-full'} border-2 flex items-center justify-center ${
+                    isSelected ? 'border-purple-500' : 'border-white/30'
+                  }`}>
+                    {isSelected && (
+                      <div className={`w-3 h-3 ${formData.allowMultiple ? 'rounded' : 'rounded-full'} bg-purple-500`} />
+                    )}
+                  </div>
+                  <span>{option || `Option ${index + 1}`}</span>
                 </div>
-                <span>{option || `Option ${index + 1}`}</span>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
           
           <button
             onClick={handleVote}
-            disabled={selectedOption === null || pollClosed}
+            disabled={(formData.allowMultiple ? selectedOptions.length === 0 : selectedOptions.length !== 1) || formData.pollClosed}
             className="w-full mt-4 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             Abstimmen
@@ -293,7 +374,7 @@ function PollTemplate({ content, onChange, onSave, isEditing }) {
       )}
 
       {/* Live Results (when showResults is 'live' and user hasn't voted) */}
-      {formData.showResults === 'live' && !hasVoted && !pollClosed && (
+      {formData.showResults === 'live' && !hasVoted && !formData.pollClosed && (
         <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
           <div className="flex items-center gap-2 mb-3">
             <Eye size={16} className="text-blue-400" />
@@ -322,3 +403,4 @@ function PollTemplate({ content, onChange, onSave, isEditing }) {
 }
 
 export default PollTemplate;
+ 

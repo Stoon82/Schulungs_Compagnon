@@ -15,6 +15,8 @@ function AdminNavigationBar({
   const [autoPlayInterval, setAutoPlayInterval] = useState(null);
   const [showPresenterNotes, setShowPresenterNotes] = useState(false);
   const [selectedMode, setSelectedMode] = useState(presentationMode);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
 
   useEffect(() => {
     // Cleanup auto-play on unmount
@@ -60,19 +62,43 @@ function AdminNavigationBar({
         setAutoPlayInterval(null);
       }
       setIsAutoPlaying(false);
+      setTimeRemaining(0);
+      setTotalDuration(0);
     } else {
       // Start auto-play
       const currentSubmodule = submodules[currentIndex];
-      const duration = (currentSubmodule?.duration_estimate || 5) * 60 * 1000; // Convert to milliseconds
+      const duration = (currentSubmodule?.duration_estimate || 3) * 60 * 1000; // Convert minutes to ms
+      
+      setTotalDuration(duration);
+      setTimeRemaining(duration);
+      
+      // Update timer every 100ms for smooth animation
+      const timerInterval = setInterval(() => {
+        setTimeRemaining(prev => {
+          const newTime = prev - 100;
+          if (newTime <= 0) {
+            return 0;
+          }
+          return newTime;
+        });
+      }, 100);
       
       const interval = setInterval(() => {
         if (currentIndex < submodules.length - 1) {
           handleNavigate(currentIndex + 1);
+          // Reset timer for next slide
+          const nextSubmodule = submodules[currentIndex + 1];
+          const nextDuration = (nextSubmodule?.duration_estimate || 3) * 60 * 1000;
+          setTotalDuration(nextDuration);
+          setTimeRemaining(nextDuration);
         } else {
           // End of module, stop auto-play
           clearInterval(interval);
+          clearInterval(timerInterval);
           setIsAutoPlaying(false);
           setAutoPlayInterval(null);
+          setTimeRemaining(0);
+          setTotalDuration(0);
         }
       }, duration);
       
@@ -163,13 +189,47 @@ function AdminNavigationBar({
             </button>
 
             {isAutoPlaying && (
-              <button
-                onClick={skipToNext}
-                className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all"
-                title="Zum nächsten überspringen"
-              >
-                <SkipForward size={20} />
-              </button>
+              <>
+                <button
+                  onClick={skipToNext}
+                  className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all"
+                  title="Zum nächsten überspringen"
+                >
+                  <SkipForward size={20} />
+                </button>
+                
+                {/* Circular Timer */}
+                <div className="relative w-10 h-10">
+                  <svg className="w-10 h-10 transform -rotate-90">
+                    <circle
+                      cx="20"
+                      cy="20"
+                      r="16"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      fill="none"
+                      className="text-white/20"
+                    />
+                    <circle
+                      cx="20"
+                      cy="20"
+                      r="16"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      fill="none"
+                      strokeDasharray={`${2 * Math.PI * 16}`}
+                      strokeDashoffset={`${2 * Math.PI * 16 * (1 - timeRemaining / totalDuration)}`}
+                      className="text-green-400 transition-all duration-100"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xs text-white font-bold">
+                      {Math.ceil(timeRemaining / 1000)}
+                    </span>
+                  </div>
+                </div>
+              </>
             )}
           </div>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Save, Code, Youtube, Video, ExternalLink, Globe } from 'lucide-react';
+import { Save, Code, Youtube, Video, ExternalLink, Globe, Upload, Image } from 'lucide-react';
+import AssetLibrary from '../AssetLibrary';
 
 function EmbedTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
@@ -10,6 +11,7 @@ function EmbedTemplate({ content, onChange, onSave, isEditing }) {
     allowFullscreen: content?.allowFullscreen !== false,
     sandbox: content?.sandbox || 'allow-scripts allow-same-origin'
   });
+  const [showAssetLibrary, setShowAssetLibrary] = useState(false);
 
   useEffect(() => {
     if (content && !isEditing) {
@@ -142,13 +144,24 @@ function EmbedTemplate({ content, onChange, onSave, isEditing }) {
           <label className="block text-sm font-medium text-gray-300 mb-2">
             URL
           </label>
-          <input
-            type="text"
-            value={formData.embedUrl}
-            onChange={(e) => handleUrlChange(e.target.value)}
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="https://..."
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={formData.embedUrl}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              placeholder="https://..."
+              className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <button
+              type="button"
+              onClick={() => setShowAssetLibrary(true)}
+              className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all flex items-center gap-2"
+              title="Aus Asset Library wählen"
+            >
+              <Image size={18} />
+              Assets
+            </button>
+          </div>
           <p className="text-xs text-gray-400 mt-1">
             💡 URL wird automatisch für {formData.embedType} formatiert
           </p>
@@ -213,6 +226,18 @@ function EmbedTemplate({ content, onChange, onSave, isEditing }) {
             <Save size={20} />
             <span>Speichern</span>
           </button>
+        )}
+
+        {/* Asset Library Modal */}
+        {showAssetLibrary && (
+          <AssetLibrary
+            onSelectAsset={(asset) => {
+              handleChange({ embedUrl: asset.file_path });
+              setShowAssetLibrary(false);
+            }}
+            onClose={() => setShowAssetLibrary(false)}
+            showInsertButton={true}
+          />
         )}
       </div>
     );

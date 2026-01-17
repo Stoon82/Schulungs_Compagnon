@@ -64,22 +64,33 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
         return;
       }
       
-      // Load module data using api service (includes auth headers)
-      const data = await api.getCreatorModule(session.module_id);
+      // Use public endpoints if not admin (participants don't need authentication)
+      let data, subData;
       
-      console.log('Module data response:', data);
-      
-      if (data.success) {
-        setModule(data.data);
+      if (isAdmin) {
+        // Admin: use authenticated endpoints
+        data = await api.getCreatorModule(session.module_id);
+        console.log('Module data response (admin):', data);
         
-        // Load submodules
-        const subData = await api.getModuleSubmodules(session.module_id);
-        
-        console.log('Submodules response:', subData);
-        
-        if (subData.success) {
-          setSubmodules(subData.data);
+        if (data.success) {
+          setModule(data.data);
+          subData = await api.getModuleSubmodules(session.module_id);
         }
+      } else {
+        // Participant: use public endpoints with session code
+        data = await api.getPublicModule(session.module_id, session.session_code);
+        console.log('Module data response (public):', data);
+        
+        if (data.success) {
+          setModule(data.data);
+          subData = await api.getPublicSubmodules(session.module_id, session.session_code);
+        }
+      }
+      
+      console.log('Submodules response:', subData);
+      
+      if (subData && subData.success) {
+        setSubmodules(subData.data);
       }
     } catch (error) {
       console.error('Error loading session data:', error);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, FileText, Link as LinkIcon, Search, Folder, Download, ExternalLink } from 'lucide-react';
+import { Save, Plus, Trash2, FileText, Link as LinkIcon, Search, Folder, Download, ExternalLink, FolderOpen } from 'lucide-react';
+import AssetLibrary from '../AssetLibrary';
 
 function ResourceLibraryTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
@@ -15,6 +16,9 @@ function ResourceLibraryTemplate({ content, onChange, onSave, isEditing }) {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAssetLibrary, setShowAssetLibrary] = useState(false);
+  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(null);
+  const [selectedResourceIndex, setSelectedResourceIndex] = useState(null);
 
   useEffect(() => {
     if (content && !isEditing) {
@@ -238,15 +242,27 @@ function ResourceLibraryTemplate({ content, onChange, onSave, isEditing }) {
                               )}
                             </div>
 
-                            <input
-                              type="text"
-                              value={resource.url}
-                              onChange={(e) =>
-                                updateResource(catIndex, resIndex, 'url', e.target.value)
-                              }
-                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                              placeholder="URL"
-                            />
+                            <div className="flex gap-2 flex-1">
+                              <input
+                                type="text"
+                                value={resource.url}
+                                onChange={(e) => updateResource(catIndex, resIndex, 'url', e.target.value)}
+                                placeholder="https://..."
+                                className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCategoryIndex(catIndex);
+                                  setSelectedResourceIndex(resIndex);
+                                  setShowAssetLibrary(true);
+                                }}
+                                className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded transition-all"
+                                title="Aus Asset Library wählen"
+                              >
+                                <FolderOpen size={16} />
+                              </button>
+                            </div>
 
                             <input
                               type="text"
@@ -283,6 +299,27 @@ function ResourceLibraryTemplate({ content, onChange, onSave, isEditing }) {
             <Save size={20} />
             <span>Speichern</span>
           </button>
+        )}
+
+        {/* Asset Library Modal */}
+        {showAssetLibrary && (
+          <AssetLibrary
+            onSelectAsset={(asset) => {
+              if (selectedCategoryIndex !== null && selectedResourceIndex !== null) {
+                updateResource(selectedCategoryIndex, selectedResourceIndex, 'url', asset.file_path);
+                updateResource(selectedCategoryIndex, selectedResourceIndex, 'title', asset.original_filename);
+              }
+              setShowAssetLibrary(false);
+              setSelectedCategoryIndex(null);
+              setSelectedResourceIndex(null);
+            }}
+            onClose={() => {
+              setShowAssetLibrary(false);
+              setSelectedCategoryIndex(null);
+              setSelectedResourceIndex(null);
+            }}
+            showInsertButton={true}
+          />
         )}
       </div>
     );
