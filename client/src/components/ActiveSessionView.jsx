@@ -171,7 +171,7 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
       {/* Session Header */}
-      <div className="bg-black/30 backdrop-blur-lg border-b border-white/10 px-6 py-4 relative z-50">
+      <div className="fixed top-0 left-0 right-0 bg-black/30 backdrop-blur-lg border-b border-white/10 px-6 py-4 z-[100]">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div>
@@ -222,6 +222,9 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
           </div>
         </div>
       </div>
+
+      {/* Spacer for fixed header */}
+      <div className="h-[76px]"></div>
 
       {/* Admin Navigation Bar */}
       {isAdmin && module && submodules.length > 0 && (
