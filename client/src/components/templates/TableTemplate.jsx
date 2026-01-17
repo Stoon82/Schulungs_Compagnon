@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Table as TableIcon, Plus, Trash2, Save, GripVertical, ChevronUp, ChevronDown, Upload, Download } from 'lucide-react';
+import { Table as TableIcon, Plus, Trash2, Save, GripVertical, ChevronUp, ChevronDown, Upload, Download, ArrowUp, ArrowDown } from 'lucide-react';
 
 function TableTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({

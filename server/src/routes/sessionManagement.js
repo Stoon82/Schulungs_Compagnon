@@ -1,9 +1,17 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import db from '../services/database.js';
+import { storeAdminSession } from '../middleware/adminAuth.js';
 
 const router = express.Router();
+
+const ADMIN_SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+function generateAdminToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 // Generate a random 6-digit session code
 function generateSessionCode() {
@@ -93,13 +101,27 @@ router.post('/admin/login', async (req, res) => {
     // Update last login
     await db.run('UPDATE admin_users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [admin.id]);
 
+    // Generate authentication token
+    const token = generateAdminToken();
+    const expiresAt = Date.now() + ADMIN_SESSION_DURATION;
+
+    // Store session in shared adminAuth storage
+    storeAdminSession(token, {
+      adminId: admin.id,
+      username: admin.username,
+      createdAt: Date.now(),
+      expiresAt,
+      lastActivity: Date.now()
+    });
+
     res.json({
       success: true,
       data: {
         id: admin.id,
         username: admin.username,
         displayName: admin.display_name,
-        email: admin.email
+        email: admin.email,
+        token: token
       }
     });
   } catch (error) {

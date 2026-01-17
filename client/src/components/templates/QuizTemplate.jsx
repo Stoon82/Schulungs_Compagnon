@@ -24,7 +24,21 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
     currentQuestionIndex: 0
   });
 
-  const currentQuestion = formData.questions[formData.currentQuestionIndex] || formData.questions[0];
+  // Safety check for questions array
+  const questions = formData.questions || [];
+  const currentQuestion = questions[formData.currentQuestionIndex] || questions[0] || {
+    id: 1,
+    questionType: 'multiple-choice',
+    question: '',
+    options: ['', '', '', ''],
+    correctAnswer: [0],
+    correctText: '',
+    ratingScale: 5,
+    ratingStyle: 'stars',
+    explanation: '',
+    points: 1,
+    matchingPairs: [{ id: 1, left: '', right: '' }, { id: 2, left: '', right: '' }]
+  };
 
   useEffect(() => {
     if (content && !isEditing) {

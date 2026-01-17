@@ -9,6 +9,11 @@ function generateAdminToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+// Export function to store sessions (used by sessionManagement.js)
+export function storeAdminSession(token, sessionData) {
+  adminSessions.set(token, sessionData);
+}
+
 export function adminLogin(req, res) {
   const { password } = req.body;
 

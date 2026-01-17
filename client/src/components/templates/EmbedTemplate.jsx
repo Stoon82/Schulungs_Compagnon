@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Code, Youtube, Video, ExternalLink } from 'lucide-react';
+import { Save, Code, Youtube, Video, ExternalLink, Globe } from 'lucide-react';
 
 function EmbedTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({

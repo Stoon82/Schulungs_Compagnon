@@ -36,17 +36,36 @@ const upload = multer({
     fileSize: 100 * 1024 * 1024 // 100MB
   },
   fileFilter: (req, file, cb) => {
+    console.log('Upload attempt - mimetype:', file.mimetype, 'filename:', file.originalname);
+    
     const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-      'video/mp4', 'video/webm', 'video/quicktime',
-      'audio/mpeg', 'audio/wav', 'audio/ogg',
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      'video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v',
+      'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/m4a',
       'application/pdf'
     ];
 
+    // Check by MIME type first
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
+      return;
+    }
+
+    // Fallback: check by file extension
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedExtensions = [
+      '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg',
+      '.mp4', '.webm', '.mov', '.m4v',
+      '.mp3', '.wav', '.ogg', '.m4a',
+      '.pdf'
+    ];
+
+    if (allowedExtensions.includes(ext)) {
+      console.log('Accepted by extension:', ext);
+      cb(null, true);
     } else {
-      cb(new Error('Unsupported file type'));
+      console.log('Rejected - unsupported type');
+      cb(new Error(`Unsupported file type: ${file.mimetype} (${ext})`));
     }
   }
 });

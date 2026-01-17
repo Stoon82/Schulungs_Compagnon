@@ -287,7 +287,7 @@ function AssetLibrary({ onSelectAsset, onClose, showInsertButton = true }) {
                             />
                           ) : (
                             <div className="flex items-center justify-center h-full">
-                              <Video size={48} className="text-gray-600" />
+                              <Video size={48} className="text-gray-500" />
                             </div>
                           )}
                           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -296,6 +296,21 @@ function AssetLibrary({ onSelectAsset, onClose, showInsertButton = true }) {
                             </div>
                           </div>
                         </div>
+                      ) : asset.file_type === 'audio' ? (
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <Music size={48} className="text-gray-500" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                              <div className="w-0 h-0 border-l-8 border-l-white border-y-6 border-y-transparent ml-1"></div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : asset.file_type === 'document' && asset.mime_type === 'application/pdf' ? (
+                        <iframe
+                          src={`${asset.file_path}#toolbar=0&navpanes=0&scrollbar=0`}
+                          className="w-full h-full pointer-events-none"
+                          title={asset.original_filename}
+                        />
                       ) : (
                         <Icon size={48} className="text-gray-600" />
                       )}
@@ -482,6 +497,26 @@ function AssetPreviewModal({ asset, onClose, onInsert }) {
             )}
             {asset.file_type === 'audio' && (
               <audio src={asset.file_path} controls className="w-full" />
+            )}
+            {asset.file_type === 'document' && asset.mime_type === 'application/pdf' && (
+              <iframe
+                src={asset.file_path}
+                className="w-full h-[500px] rounded"
+                title={asset.original_filename}
+              />
+            )}
+            {asset.file_type === 'document' && asset.mime_type !== 'application/pdf' && (
+              <div className="text-center">
+                <FileText size={64} className="text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-400">Vorschau nicht verfügbar</p>
+                <a
+                  href={asset.file_path}
+                  download={asset.original_filename}
+                  className="mt-4 inline-block px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all"
+                >
+                  Datei herunterladen
+                </a>
+              </div>
             )}
           </div>
 

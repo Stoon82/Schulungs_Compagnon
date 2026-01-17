@@ -2,30 +2,9 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../services/database.js';
 import { uploadSingle, handleUploadError } from '../middleware/upload.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 const router = express.Router();
-
-// Middleware for admin authentication
-const requireAdmin = (req, res, next) => {
-  // Check if user is authenticated and has admin role
-  // This assumes you have session/JWT middleware that sets req.user
-  
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      error: 'Authentication required'
-    });
-  }
-  
-  if (req.user.role !== 'admin' && req.user.role !== 'trainer') {
-    return res.status(403).json({
-      success: false,
-      error: 'Admin access required'
-    });
-  }
-  
-  next();
-};
 
 // ============================================================================
 // MODULE ROUTES

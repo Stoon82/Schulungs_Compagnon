@@ -4,6 +4,9 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import eventBus from './eventBus.js';
 import authRoutes from './routes/auth.js';
 import moduleRoutes from './routes/modules.js';
@@ -27,6 +30,9 @@ import backupManager from './utils/backup.js';
 import debugTools from './utils/debugTools.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
@@ -83,6 +89,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded media files
+app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/modules', moduleRoutes);

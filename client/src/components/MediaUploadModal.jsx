@@ -13,9 +13,9 @@ function MediaUploadModal({ onClose, onUploadComplete }) {
 
   const maxFileSize = 100 * 1024 * 1024; // 100MB
   const allowedTypes = {
-    image: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
-    video: ['video/mp4', 'video/webm', 'video/quicktime'],
-    audio: ['audio/mpeg', 'audio/wav', 'audio/ogg'],
+    image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
+    video: ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v'],
+    audio: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/m4a'],
     document: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
   };
 
@@ -85,9 +85,13 @@ function MediaUploadModal({ onClose, onUploadComplete }) {
 
   const uploadFiles = async () => {
     setUploading(true);
+    let uploadResults = [];
 
     for (const fileItem of files) {
-      if (fileItem.status === 'success') continue;
+      if (fileItem.status === 'success') {
+        uploadResults.push(true);
+        continue;
+      }
 
       try {
         // Update status
@@ -136,20 +140,25 @@ function MediaUploadModal({ onClose, onUploadComplete }) {
           xhr.send(formData);
         });
 
+        uploadResults.push(true);
       } catch (error) {
         console.error('Upload error:', error);
         setFiles(prev => prev.map(f => 
           f.id === fileItem.id ? { ...f, status: 'error', error: error.message } : f
         ));
+        uploadResults.push(false);
       }
     }
 
     setUploading(false);
     
     // Check if all uploads succeeded
-    const allSuccess = files.every(f => f.status === 'success');
+    const allSuccess = uploadResults.every(result => result === true);
     if (allSuccess && onUploadComplete) {
-      onUploadComplete();
+      // Small delay to ensure state updates are complete
+      setTimeout(() => {
+        onUploadComplete();
+      }, 100);
     }
   };
 
