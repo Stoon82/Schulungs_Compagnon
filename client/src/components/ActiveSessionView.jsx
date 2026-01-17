@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Users, Crown, Shield, UserCheck, X, Copy, Check, LogOut } from 'lucide-react';
 import ModuleViewer from './ModuleViewer';
 import AdminNavigationBar from './AdminNavigationBar';
+import SessionQRCode from './SessionQRCode';
 
 function ActiveSessionView({ session, adminUser, participantData, socket, onEndSession }) {
   const [participants, setParticipants] = useState([]);

@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { LogIn, Hash, User } from 'lucide-react';
 
-function SessionJoinScreen({ onJoinSuccess }) {
-  const [sessionCode, setSessionCode] = useState('');
+function SessionJoinScreen({ onJoinSuccess, initialSessionCode = '' }) {
+  const [sessionCode, setSessionCode] = useState(initialSessionCode);
   const [participantName, setParticipantName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState(1); // 1: code, 2: name
+  const [step, setStep] = useState(initialSessionCode ? 2 : 1); // Skip to name if code provided
   const [sessionData, setSessionData] = useState(null);
+
+  // Auto-check code if provided
+  useEffect(() => {
+    if (initialSessionCode && initialSessionCode.length === 6) {
+      handleCheckCode(new Event('submit'));
+    }
+  }, [initialSessionCode]);
 
   const handleCheckCode = async (e) => {
     e.preventDefault();

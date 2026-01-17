@@ -21,6 +21,18 @@ function MainApp() {
   const [view, setView] = useState('landing'); // 'landing', 'classes', 'session', 'dashboard'
 
   useEffect(() => {
+    // Check URL for session code parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionCodeFromUrl = urlParams.get('session');
+    
+    if (sessionCodeFromUrl) {
+      // Auto-navigate to join screen with pre-filled code
+      setView('join');
+      // Store the code temporarily
+      sessionStorage.setItem('pendingSessionCode', sessionCodeFromUrl);
+      return;
+    }
+
     // Check for stored admin user
     const storedAdmin = localStorage.getItem('adminUser');
     if (storedAdmin) {
