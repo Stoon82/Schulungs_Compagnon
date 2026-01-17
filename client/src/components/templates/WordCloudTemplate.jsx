@@ -73,6 +73,45 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
     { text: 'Verantwortung', value: 15 }
   ];
 
+  // Client mode - Interactive word submission
+  const [userWord, setUserWord] = useState('');
+  const [submittedWords, setSubmittedWords] = useState([]);
+  const [error, setError] = useState('');
+
+  const handleSubmitWord = () => {
+    const word = userWord.trim().toLowerCase();
+    
+    if (!word) {
+      setError('Bitte geben Sie ein Wort ein');
+      return;
+    }
+    
+    if (word.length < formData.minWordLength) {
+      setError(`Wort muss mindestens ${formData.minWordLength} Zeichen lang sein`);
+      return;
+    }
+    
+    if (word.length > formData.maxWordLength) {
+      setError(`Wort darf maximal ${formData.maxWordLength} Zeichen lang sein`);
+      return;
+    }
+    
+    if (!formData.allowDuplicates && submittedWords.includes(word)) {
+      setError('Sie haben dieses Wort bereits eingereicht');
+      return;
+    }
+    
+    if (formData.bannedWords.includes(word)) {
+      setError('Dieses Wort ist nicht erlaubt');
+      return;
+    }
+    
+    setSubmittedWords([...submittedWords, word]);
+    setUserWord('');
+    setError('');
+    // TODO: Send word to backend via socket/API
+  };
+
   if (!isEditing) {
     return (
       <div className="space-y-6">
@@ -84,6 +123,53 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
               <h3 className="text-xl font-bold text-white">Frage</h3>
             </div>
             <p className="text-lg text-gray-200">{formData.prompt}</p>
+          </div>
+        )}
+
+        {/* Word Submission Form */}
+        <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+          <h4 className="text-lg font-semibold text-white mb-4">Ihr Wort eingeben</h4>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={userWord}
+              onChange={(e) => setUserWord(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSubmitWord()}
+              placeholder="Wort eingeben..."
+              maxLength={formData.maxWordLength}
+              className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <button
+              onClick={handleSubmitWord}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2"
+            >
+              <Plus size={20} />
+              Hinzufügen
+            </button>
+          </div>
+          {error && (
+            <p className="text-red-400 text-sm mt-2">{error}</p>
+          )}
+          <p className="text-xs text-gray-400 mt-2">
+            {formData.minWordLength}-{formData.maxWordLength} Zeichen
+            {!formData.allowDuplicates && ' • Keine Duplikate'}
+          </p>
+        </div>
+
+        {/* Submitted Words */}
+        {submittedWords.length > 0 && (
+          <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+            <h4 className="text-sm font-medium text-gray-400 mb-3">Ihre eingereichten Wörter ({submittedWords.length})</h4>
+            <div className="flex flex-wrap gap-2">
+              {submittedWords.map((word, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm"
+                >
+                  {word}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 

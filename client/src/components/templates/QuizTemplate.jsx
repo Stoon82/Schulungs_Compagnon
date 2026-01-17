@@ -241,7 +241,16 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
     );
   }
 
-  // Preview mode
+  // Client/Preview mode - Interactive quiz
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [shortAnswer, setShortAnswer] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    setSubmitted(true);
+    // TODO: Send answer to backend via socket/API
+  };
+
   const renderRatingScale = () => {
     const items = [];
     const emojis = ['😞', '😕', '😐', '🙂', '😊', '😄', '🤩'];
@@ -260,7 +269,13 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
       items.push(
         <button
           key={i}
-          className="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-purple-500/50 transition-all"
+          onClick={() => setSelectedAnswer(i)}
+          disabled={submitted}
+          className={`flex flex-col items-center justify-center p-4 border rounded-lg transition-all ${
+            selectedAnswer === i
+              ? 'bg-purple-500/30 border-purple-500'
+              : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-purple-500/50'
+          } ${submitted ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {content}
           {formData.ratingStyle === 'numbers' && (
@@ -275,7 +290,7 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
   return (
     <div className="bg-white/5 rounded-lg p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-semibold text-white">
+        <h3 className="text-2xl font-bold text-white">
           {formData.question || 'Frage'}
         </h3>
         <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-400 rounded">
@@ -285,35 +300,47 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
         </span>
       </div>
 
-      {/* Multiple Choice Preview */}
+      {/* Multiple Choice - Interactive */}
       {formData.questionType === 'multiple-choice' && (
         <div className="space-y-3">
           {formData.options.map((option, index) => (
             <button
               key={index}
+              onClick={() => setSelectedAnswer(index)}
+              disabled={submitted}
               className={`w-full px-4 py-3 rounded-lg border transition-all text-left ${
-                index === formData.correctAnswer
+                submitted && index === formData.correctAnswer
                   ? 'bg-green-500/20 border-green-500 text-green-400'
+                  : submitted && selectedAnswer === index && index !== formData.correctAnswer
+                  ? 'bg-red-500/20 border-red-500 text-red-400'
+                  : selectedAnswer === index
+                  ? 'bg-purple-500/30 border-purple-500 text-white'
                   : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-              }`}
+              } ${submitted ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             >
-              {option || `Option ${index + 1}`}
+              <div className="flex items-center justify-between">
+                <span>{option || `Option ${index + 1}`}</span>
+                {submitted && index === formData.correctAnswer && <span className="text-green-400">✓</span>}
+                {submitted && selectedAnswer === index && index !== formData.correctAnswer && <span className="text-red-400">✗</span>}
+              </div>
             </button>
           ))}
         </div>
       )}
 
-      {/* Short Answer Preview */}
+      {/* Short Answer - Interactive */}
       {formData.questionType === 'short-answer' && (
         <div>
           <textarea
-            className="w-full h-32 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 resize-none"
+            value={shortAnswer}
+            onChange={(e) => setShortAnswer(e.target.value)}
+            disabled={submitted}
+            className="w-full h-32 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
             placeholder="Ihre Antwort hier eingeben..."
-            disabled
           />
-          {formData.correctText && (
-            <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <p className="text-sm text-green-300">
+          {submitted && formData.correctText && (
+            <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <p className="text-sm text-blue-300">
                 <strong>Musterantwort:</strong> {formData.correctText}
               </p>
             </div>
@@ -321,7 +348,7 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
         </div>
       )}
 
-      {/* Rating Scale Preview */}
+      {/* Rating Scale - Interactive */}
       {formData.questionType === 'rating-scale' && (
         <div className={`grid gap-3 ${
           formData.ratingScale <= 5 ? 'grid-cols-5' : 'grid-cols-5'
@@ -330,13 +357,49 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
         </div>
       )}
 
-      {formData.explanation && (
-        <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-          <p className="text-sm text-blue-300">
-            <strong>Erklärung:</strong> {formData.explanation}
+      {/* Submit Button */}
+      {!submitted && (
+        <button
+          onClick={handleSubmit}
+          disabled={
+            (formData.questionType === 'multiple-choice' && selectedAnswer === null) ||
+            (formData.questionType === 'short-answer' && !shortAnswer.trim()) ||
+            (formData.questionType === 'rating-scale' && selectedAnswer === null)
+          }
+          className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        >
+          Antwort abschicken
+        </button>
+      )}
+
+      {/* Result Message */}
+      {submitted && (
+        <div className={`mt-6 p-4 rounded-lg border ${
+          formData.questionType === 'multiple-choice' && selectedAnswer === formData.correctAnswer
+            ? 'bg-green-500/10 border-green-500/30'
+            : formData.questionType === 'multiple-choice'
+            ? 'bg-red-500/10 border-red-500/30'
+            : 'bg-blue-500/10 border-blue-500/30'
+        }`}>
+          <p className={`font-semibold ${
+            formData.questionType === 'multiple-choice' && selectedAnswer === formData.correctAnswer
+              ? 'text-green-400'
+              : formData.questionType === 'multiple-choice'
+              ? 'text-red-400'
+              : 'text-blue-400'
+          }`}>
+            {formData.questionType === 'multiple-choice' && selectedAnswer === formData.correctAnswer && '✓ Richtig!'}
+            {formData.questionType === 'multiple-choice' && selectedAnswer !== formData.correctAnswer && '✗ Leider falsch'}
+            {formData.questionType !== 'multiple-choice' && '✓ Antwort eingereicht'}
           </p>
+          {formData.explanation && (
+            <p className="text-sm text-gray-300 mt-2">
+              <strong>Erklärung:</strong> {formData.explanation}
+            </p>
+          )}
         </div>
       )}
+
       <div className="mt-4 text-sm text-gray-400">
         Punkte: {formData.points}
       </div>

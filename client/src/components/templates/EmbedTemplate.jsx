@@ -243,26 +243,17 @@ function EmbedTemplate({ content, onChange, onSave, isEditing }) {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen={formData.allowFullscreen}
               sandbox={formData.sandbox}
-              title={formData.title || 'Embedded Content'}
+              title={formData.title || 'Eingebetteter Inhalt'}
+              loading="lazy"
             />
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-center h-64 bg-white/5 border border-white/10 rounded-lg">
-          <div className="text-center">
-            <ExternalLink size={48} className="mx-auto mb-3 text-gray-600" />
-            <p className="text-gray-400">Keine URL angegeben</p>
-          </div>
+        <div className="bg-white/5 rounded-lg p-12 text-center border border-white/10">
+          <Globe size={48} className="mx-auto mb-4 text-gray-500" />
+          <p className="text-gray-400">Keine URL konfiguriert</p>
         </div>
       )}
-
-      <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
-        <span className="px-2 py-1 bg-white/5 rounded">{formData.embedType}</span>
-        <span className="px-2 py-1 bg-white/5 rounded">{formData.aspectRatio}</span>
-        {formData.allowFullscreen && (
-          <span className="px-2 py-1 bg-white/5 rounded">Vollbild ✓</span>
-        )}
-      </div>
     </div>
   );
 }

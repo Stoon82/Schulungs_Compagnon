@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Home, BookOpen, Clock, CheckCircle } from 'lucide-react';
-import { TitleTemplate, ContentTemplate, MediaTemplate, QuizTemplate, PollTemplate, WordCloudTemplate, AppGalleryTemplate } from './templates';
+import { 
+  TitleTemplate, 
+  ContentTemplate, 
+  MediaTemplate, 
+  QuizTemplate, 
+  PollTemplate, 
+  WordCloudTemplate, 
+  AppGalleryTemplate,
+  TableTemplate,
+  TimelineTemplate,
+  SplitScreenTemplate,
+  EmbedTemplate,
+  ResourceLibraryTemplate,
+  BlankCanvasTemplate
+} from './templates';
 
 function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
   const [module, setModule] = useState(null);
@@ -107,6 +121,18 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0 }) {
         return WordCloudTemplate;
       case 'appgallery':
         return AppGalleryTemplate;
+      case 'table':
+        return TableTemplate;
+      case 'timeline':
+        return TimelineTemplate;
+      case 'splitscreen':
+        return SplitScreenTemplate;
+      case 'embed':
+        return EmbedTemplate;
+      case 'resources':
+        return ResourceLibraryTemplate;
+      case 'canvas':
+        return BlankCanvasTemplate;
       default:
         return null;
     }
