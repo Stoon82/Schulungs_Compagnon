@@ -48,9 +48,18 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
 
   const loadSessionData = async () => {
     try {
+      console.log('Loading session data, module_id:', session.module_id);
+      
+      if (!session.module_id) {
+        console.error('No module_id in session:', session);
+        return;
+      }
+      
       // Load module data
       const response = await fetch(`/api/module-creator/modules/${session.module_id}`);
       const data = await response.json();
+      
+      console.log('Module data response:', data);
       
       if (data.success) {
         setModule(data.data);
@@ -58,6 +67,8 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
         // Load submodules
         const subResponse = await fetch(`/api/module-creator/modules/${session.module_id}/submodules`);
         const subData = await subResponse.json();
+        
+        console.log('Submodules response:', subData);
         
         if (subData.success) {
           setSubmodules(subData.data);
