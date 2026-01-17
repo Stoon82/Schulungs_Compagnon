@@ -226,8 +226,8 @@
   - [x] Responsive preview modes (desktop/tablet/mobile)
 
 ### Quiz System Enhancement
-- [ ] Add question type: Short Answer (text input)
-- [ ] Add question type: Rating Scale (1-5, emoji scale)
+- [x] Add question type: Short Answer (text input)
+- [x] Add question type: Rating Scale (1-5, emoji scale)
 - [ ] Add question type: Drag-and-drop Matching
 - [ ] Implement live results visualization
   - [ ] Bar charts (Recharts or D3.js)
@@ -318,12 +318,12 @@
 - [ ] Show preview thumbnails on minimized cards
 
 ### Progress Indicators
-- [ ] Create ProgressIndicator component
-- [ ] Add dots/bars for submodule position
-- [ ] Calculate and display estimated time remaining
-- [ ] Show completed/current/upcoming states
-- [ ] Add percentage complete display
-- [ ] Make progress indicator clickable (jump to submodule)
+- [x] Create ProgressIndicator component
+- [x] Add dots/bars for submodule position
+- [x] Calculate and display estimated time remaining
+- [x] Show completed/current/upcoming states
+- [x] Add percentage complete display
+- [x] Make progress indicator clickable (jump to submodule)
 
 ### Presentation Modes
 - [x] Implement Manual mode (admin controls all)

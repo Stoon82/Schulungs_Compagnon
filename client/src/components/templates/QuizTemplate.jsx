@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { CheckSquare, Save, Plus, Trash2 } from 'lucide-react';
+import { CheckSquare, Save, Plus, Trash2, Star } from 'lucide-react';
 
 function QuizTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
+    questionType: content?.questionType || 'multiple-choice',
     question: content?.question || '',
     options: content?.options || ['', '', '', ''],
     correctAnswer: content?.correctAnswer || 0,
+    correctText: content?.correctText || '',
+    ratingScale: content?.ratingScale || 5,
+    ratingStyle: content?.ratingStyle || 'stars',
     explanation: content?.explanation || '',
     points: content?.points || 1
   });
@@ -13,9 +17,13 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
   useEffect(() => {
     if (content && !isEditing) {
       setFormData({
+        questionType: content?.questionType || 'multiple-choice',
         question: content?.question || '',
         options: content?.options || ['', '', '', ''],
         correctAnswer: content?.correctAnswer || 0,
+        correctText: content?.correctText || '',
+        ratingScale: content?.ratingScale || 5,
+        ratingStyle: content?.ratingStyle || 'stars',
         explanation: content?.explanation || '',
         points: content?.points || 1
       });
@@ -63,6 +71,22 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
   if (isEditing) {
     return (
       <div className="space-y-4">
+        {/* Question Type Selector */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Fragetyp
+          </label>
+          <select
+            value={formData.questionType}
+            onChange={(e) => handleChange({ questionType: e.target.value })}
+            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="multiple-choice">Multiple Choice</option>
+            <option value="short-answer">Kurzantwort (Text)</option>
+            <option value="rating-scale">Bewertungsskala</option>
+          </select>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Frage
@@ -75,9 +99,11 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
           />
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-300">
+        {/* Multiple Choice Options */}
+        {formData.questionType === 'multiple-choice' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-300">
               Antwortoptionen
             </label>
             <button
@@ -119,7 +145,63 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
           <p className="text-xs text-gray-400 mt-1">
             Wählen Sie die richtige Antwort mit dem Radio-Button aus
           </p>
-        </div>
+          </div>
+        )}
+
+        {/* Short Answer */}
+        {formData.questionType === 'short-answer' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Musterantwort (optional)
+            </label>
+            <textarea
+              value={formData.correctText}
+              onChange={(e) => handleChange({ correctText: e.target.value })}
+              className="w-full h-20 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+              placeholder="Beispiel einer korrekten Antwort (wird nicht zur Bewertung verwendet)"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Kurzantworten müssen manuell bewertet werden
+            </p>
+          </div>
+        )}
+
+        {/* Rating Scale */}
+        {formData.questionType === 'rating-scale' && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Skala
+                </label>
+                <select
+                  value={formData.ratingScale}
+                  onChange={(e) => handleChange({ ratingScale: parseInt(e.target.value) })}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="3">1-3</option>
+                  <option value="5">1-5</option>
+                  <option value="7">1-7</option>
+                  <option value="10">1-10</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Stil
+                </label>
+                <select
+                  value={formData.ratingStyle}
+                  onChange={(e) => handleChange({ ratingStyle: e.target.value })}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="stars">Sterne </option>
+                  <option value="numbers">Zahlen (1-{formData.ratingScale})</option>
+                  <option value="emojis">Emojis </option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -160,25 +242,94 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
   }
 
   // Preview mode
+  const renderRatingScale = () => {
+    const items = [];
+    const emojis = ['😞', '😕', '😐', '🙂', '😊', '😄', '🤩'];
+    
+    for (let i = 1; i <= formData.ratingScale; i++) {
+      let content;
+      if (formData.ratingStyle === 'stars') {
+        content = <Star size={24} className="fill-yellow-400 text-yellow-400" />;
+      } else if (formData.ratingStyle === 'emojis') {
+        const emojiIndex = Math.floor((i - 1) / formData.ratingScale * (emojis.length - 1));
+        content = <span className="text-2xl">{emojis[emojiIndex]}</span>;
+      } else {
+        content = <span className="text-xl font-bold">{i}</span>;
+      }
+
+      items.push(
+        <button
+          key={i}
+          className="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-purple-500/50 transition-all"
+        >
+          {content}
+          {formData.ratingStyle === 'numbers' && (
+            <span className="text-xs text-gray-400 mt-1">{i}</span>
+          )}
+        </button>
+      );
+    }
+    return items;
+  };
+
   return (
     <div className="bg-white/5 rounded-lg p-6">
-      <h3 className="text-xl font-semibold text-white mb-4">
-        {formData.question || 'Frage'}
-      </h3>
-      <div className="space-y-3">
-        {formData.options.map((option, index) => (
-          <button
-            key={index}
-            className={`w-full px-4 py-3 rounded-lg border transition-all text-left ${
-              index === formData.correctAnswer
-                ? 'bg-green-500/20 border-green-500 text-green-400'
-                : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-            }`}
-          >
-            {option || `Option ${index + 1}`}
-          </button>
-        ))}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-semibold text-white">
+          {formData.question || 'Frage'}
+        </h3>
+        <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-400 rounded">
+          {formData.questionType === 'multiple-choice' && 'Multiple Choice'}
+          {formData.questionType === 'short-answer' && 'Kurzantwort'}
+          {formData.questionType === 'rating-scale' && 'Bewertung'}
+        </span>
       </div>
+
+      {/* Multiple Choice Preview */}
+      {formData.questionType === 'multiple-choice' && (
+        <div className="space-y-3">
+          {formData.options.map((option, index) => (
+            <button
+              key={index}
+              className={`w-full px-4 py-3 rounded-lg border transition-all text-left ${
+                index === formData.correctAnswer
+                  ? 'bg-green-500/20 border-green-500 text-green-400'
+                  : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+              }`}
+            >
+              {option || `Option ${index + 1}`}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Short Answer Preview */}
+      {formData.questionType === 'short-answer' && (
+        <div>
+          <textarea
+            className="w-full h-32 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 resize-none"
+            placeholder="Ihre Antwort hier eingeben..."
+            disabled
+          />
+          {formData.correctText && (
+            <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <p className="text-sm text-green-300">
+                <strong>Musterantwort:</strong> {formData.correctText}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Rating Scale Preview */}
+      {formData.questionType === 'rating-scale' && (
+        <div className={`grid gap-3 ${
+          formData.ratingScale <= 5 ? 'grid-cols-5' : 'grid-cols-5'
+        }`}>
+          {renderRatingScale()}
+        </div>
+      )}
+
       {formData.explanation && (
         <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
           <p className="text-sm text-blue-300">
