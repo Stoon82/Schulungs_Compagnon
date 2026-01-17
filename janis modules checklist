@@ -68,12 +68,12 @@
   - [x] PUT /api/module-creator/submodules/reorder - Reorder submodules
 - [x] Create `/api/module-creator/media` endpoints
   - [x] GET /api/module-creator/media - List media assets
-  - [ ] POST /api/module-creator/media/upload - Upload media file
+  - [x] POST /api/module-creator/media/upload - Upload media file
   - [x] DELETE /api/module-creator/media/:id - Delete media asset
   - [ ] GET /api/module-creator/media/:id/thumbnail - Get thumbnail
 - [ ] Add authentication middleware for admin routes
-- [ ] Add file upload middleware (Multer)
-- [ ] Add error handling middleware
+- [x] Add file upload middleware (Multer)
+- [x] Add error handling middleware
 
 ### Module Creator UI (Basic)
 - [x] Create ModuleCreator component
@@ -86,13 +86,13 @@
 - [x] Create SubmoduleList component
   - [ ] Display list of submodules with drag-to-reorder
   - [x] Add "Add Submodule" button
-  - [ ] Add delete/duplicate submodule actions
-  - [ ] Show submodule preview thumbnails
-- [ ] Create SubmoduleEditor component
-  - [ ] Add template type selector
-  - [ ] Add title input
-  - [ ] Add duration estimate input
-  - [ ] Add admin notes textarea
+  - [x] Add delete/duplicate submodule actions
+  - [x] Show submodule preview thumbnails
+- [x] Create SubmoduleEditor component
+  - [x] Add template type selector
+  - [x] Add title input
+  - [x] Add duration estimate input
+  - [x] Add admin notes textarea
 - [ ] Implement drag-and-drop reordering (React DnD)
 - [x] Add save/publish/draft functionality
 - [ ] Add real-time auto-save (debounced)
@@ -126,7 +126,7 @@
   - [x] Results display mode selector
   - [x] Visualization type selector
 - [x] Create template preview components
-- [ ] Add template switching functionality
+- [x] Add template switching functionality
 
 ### Content Block System
 - [ ] Create ContentBlock base component

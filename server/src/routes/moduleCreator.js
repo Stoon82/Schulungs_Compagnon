@@ -1,6 +1,7 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../services/database.js';
+import { uploadSingle, handleUploadError } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -553,6 +554,55 @@ router.get('/media', requireAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch media'
+    });
+  }
+});
+
+// POST /api/module-creator/media/upload - Upload media file
+router.post('/media/upload', requireAdmin, uploadSingle, handleUploadError, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded'
+      });
+    }
+
+    const id = uuidv4();
+    const { originalname, filename, mimetype, size } = req.file;
+    const storagePath = `/uploads/${filename}`;
+
+    await db.run(`
+      INSERT INTO media_assets (
+        id, filename, original_name, mime_type, size,
+        storage_type, storage_path, uploaded_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      id,
+      filename,
+      originalname,
+      mimetype,
+      size,
+      'local',
+      storagePath,
+      'admin' // TODO: Get from auth context
+    ]);
+
+    const media = await db.get('SELECT * FROM media_assets WHERE id = ?', [id]);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...media,
+        url: storagePath,
+        tags: media.tags ? JSON.parse(media.tags) : []
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading media:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to upload media'
     });
   }
 });
