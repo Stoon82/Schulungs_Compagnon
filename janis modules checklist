@@ -111,7 +111,7 @@
   - [x] Title bar
   - [x] Rich text content area (with TipTap editor)
   - [x] Layout selector (1-col, 2-col, grid)
-  - [ ] Sidebar for media
+  - [x] Sidebar for media
 - [x] Implement **Media Showcase** template
   - [x] Full-screen image/video display
   - [x] Caption overlay input

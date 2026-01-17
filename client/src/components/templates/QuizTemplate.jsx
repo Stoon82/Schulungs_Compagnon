@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckSquare, Save, Plus, Trash2, Star } from 'lucide-react';
+import { HelpCircle, Plus, Trash2, Save, Star, Clock, Eye, EyeOff } from 'lucide-react';
 
 function QuizTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
