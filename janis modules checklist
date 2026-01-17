@@ -84,7 +84,7 @@
   - [x] Add prerequisites selector (link to other modules)
   - [x] Add tags/categories input
 - [x] Create SubmoduleList component
-  - [ ] Display list of submodules with drag-to-reorder
+  - [x] Display list of submodules with drag-to-reorder
   - [x] Add "Add Submodule" button
   - [x] Add delete/duplicate submodule actions
   - [x] Show submodule preview thumbnails
@@ -93,7 +93,10 @@
   - [x] Add title input
   - [x] Add duration estimate input
   - [x] Add admin notes textarea
-- [ ] Implement drag-and-drop reordering (React DnD)
+  - [x] Add split-pane live preview with real-time updates
+  - [x] Add toggle preview and fullscreen preview controls
+  - [x] Implement real-time onChange callbacks for all templates
+- [x] Implement drag-and-drop reordering (React DnD)
 - [x] Add save/publish/draft functionality
 - [x] Add real-time auto-save (debounced)
 
@@ -102,11 +105,11 @@
 - [x] Implement **Title Slide** template
   - [x] Large centered title input
   - [x] Subtitle input
-  - [ ] Background image uploader
-  - [ ] Logo placement options
+  - [x] Background image uploader
+  - [x] Logo placement options
 - [x] Implement **Content Slide** template
-  - [ ] Title bar
-  - [x] Rich text content area
+  - [x] Title bar
+  - [x] Rich text content area (with TipTap editor)
   - [x] Layout selector (1-col, 2-col, grid)
   - [ ] Sidebar for media
 - [x] Implement **Media Showcase** template
@@ -127,6 +130,8 @@
   - [x] Visualization type selector
 - [x] Create template preview components
 - [x] Add template switching functionality
+- [x] Add real-time preview updates with useEffect sync
+- [x] Implement onChange callbacks for instant preview feedback
 
 ### Content Block System
 - [ ] Create ContentBlock base component
@@ -142,23 +147,23 @@
 - [ ] Implement block locking (prevent accidental edits)
 
 ### Rich Text Editor
-- [ ] Install TipTap or Slate.js
-- [ ] Create RichTextEditor component
-- [ ] Add formatting toolbar:
-  - [ ] Bold, Italic, Underline, Strikethrough
-  - [ ] Headings (H1-H6)
-  - [ ] Ordered/unordered lists
-  - [ ] Text alignment (left, center, right, justify)
-  - [ ] Text color picker
-  - [ ] Highlight color picker
-- [ ] Add insert options:
-  - [ ] Links (with URL input)
-  - [ ] Images (upload or URL)
-  - [ ] Code blocks
+- [x] Install TipTap or Slate.js
+- [x] Create RichTextEditor component
+- [x] Add formatting toolbar:
+  - [x] Bold, Italic, Underline, Strikethrough
+  - [x] Headings (H1-H6)
+  - [x] Ordered/unordered lists
+  - [x] Text alignment (left, center, right, justify)
+  - [x] Text color picker
+  - [x] Highlight color picker
+- [x] Add insert options:
+  - [x] Links (with URL input)
+  - [x] Images (upload or URL)
+  - [x] Code blocks
   - [ ] Horizontal rules
-- [ ] Add undo/redo functionality
-- [ ] Add auto-save with debouncing
-- [ ] Ensure HTML output is sanitized
+- [x] Add undo/redo functionality
+- [x] Add auto-save with debouncing (inherited from parent)
+- [x] Ensure HTML output is sanitized (TipTap handles this)
 
 ---
 
@@ -178,19 +183,19 @@
   - [x] Profanity filter integration
   - [ ] Export as image functionality
   - [ ] Word submission form (client-side)
-- [ ] Implement **Table/Comparison** template
-  - [ ] Table editor with add/remove rows/columns
-  - [ ] Cell content editor (rich text)
-  - [ ] Sortable columns toggle
-  - [ ] Highlight rows/columns options
+- [x] Implement **Table/Comparison** template
+  - [x] Table editor with add/remove rows/columns
+  - [x] Cell content editor (text)
+  - [x] Sortable columns toggle
+  - [x] Highlight rows/columns options
   - [ ] CSV import functionality
   - [ ] Export to CSV
-- [ ] Implement **Timeline/Process** template
-  - [ ] Timeline orientation selector (horizontal/vertical)
-  - [ ] Step editor (title, description, date/time)
-  - [ ] Expandable detail cards
-  - [ ] Progress indicator
-  - [ ] Animated transitions
+- [x] Implement **Timeline/Process** template
+  - [x] Timeline orientation selector (horizontal/vertical)
+  - [x] Step editor (title, description, date/time)
+  - [x] Expandable detail cards
+  - [x] Progress indicator
+  - [x] Animated transitions
 - [ ] Implement **Split Screen** template
   - [ ] Two-panel layout
   - [ ] Content editor for each panel

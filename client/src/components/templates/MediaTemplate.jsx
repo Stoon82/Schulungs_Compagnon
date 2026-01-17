@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Image as ImageIcon, Video, Save, Upload } from 'lucide-react';
 
-function MediaTemplate({ content, onSave, isEditing }) {
+function MediaTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
     mediaType: content?.mediaType || 'image',
     mediaUrl: content?.mediaUrl || '',
@@ -10,8 +10,30 @@ function MediaTemplate({ content, onSave, isEditing }) {
     position: content?.position || 'center'
   });
 
+  useEffect(() => {
+    if (content && !isEditing) {
+      setFormData({
+        mediaType: content?.mediaType || 'image',
+        mediaUrl: content?.mediaUrl || '',
+        caption: content?.caption || '',
+        size: content?.size || 'medium',
+        position: content?.position || 'center'
+      });
+    }
+  }, [content, isEditing]);
+
+  const handleChange = (updates) => {
+    const newData = { ...formData, ...updates };
+    setFormData(newData);
+    if (onChange) {
+      onChange(newData);
+    }
+  };
+
   const handleSave = () => {
-    onSave(formData);
+    if (onSave) {
+      onSave(formData);
+    }
   };
 
   if (isEditing) {
@@ -23,7 +45,7 @@ function MediaTemplate({ content, onSave, isEditing }) {
           </label>
           <div className="flex gap-3">
             <button
-              onClick={() => setFormData({ ...formData, mediaType: 'image' })}
+              onClick={() => handleChange({ mediaType: 'image' })}
               className={`flex-1 px-4 py-3 rounded-lg border transition-all flex items-center justify-center gap-2 ${
                 formData.mediaType === 'image'
                   ? 'bg-purple-500/20 border-purple-500 text-purple-400'
@@ -34,7 +56,7 @@ function MediaTemplate({ content, onSave, isEditing }) {
               <span>Bild</span>
             </button>
             <button
-              onClick={() => setFormData({ ...formData, mediaType: 'video' })}
+              onClick={() => handleChange({ mediaType: 'video' })}
               className={`flex-1 px-4 py-3 rounded-lg border transition-all flex items-center justify-center gap-2 ${
                 formData.mediaType === 'video'
                   ? 'bg-purple-500/20 border-purple-500 text-purple-400'
@@ -55,7 +77,7 @@ function MediaTemplate({ content, onSave, isEditing }) {
             <input
               type="text"
               value={formData.mediaUrl}
-              onChange={(e) => setFormData({ ...formData, mediaUrl: e.target.value })}
+              onChange={(e) => handleChange({ mediaUrl: e.target.value })}
               className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="https://example.com/image.jpg"
             />
@@ -73,7 +95,7 @@ function MediaTemplate({ content, onSave, isEditing }) {
           <input
             type="text"
             value={formData.caption}
-            onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
+            onChange={(e) => handleChange({ caption: e.target.value })}
             className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
             placeholder="Beschreibung des Mediums"
           />
@@ -86,7 +108,7 @@ function MediaTemplate({ content, onSave, isEditing }) {
             </label>
             <select
               value={formData.size}
-              onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+              onChange={(e) => handleChange({ size: e.target.value })}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="small">Klein</option>
@@ -102,7 +124,7 @@ function MediaTemplate({ content, onSave, isEditing }) {
             </label>
             <select
               value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              onChange={(e) => handleChange({ position: e.target.value })}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="left">Links</option>
@@ -112,13 +134,15 @@ function MediaTemplate({ content, onSave, isEditing }) {
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2"
-        >
-          <Save size={20} />
-          <span>Speichern</span>
-        </button>
+        {onSave && (
+          <button
+            onClick={handleSave}
+            className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2"
+          >
+            <Save size={20} />
+            <span>Speichern</span>
+          </button>
+        )}
       </div>
     );
   }

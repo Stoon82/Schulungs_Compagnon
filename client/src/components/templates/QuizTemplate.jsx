@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckSquare, Save, Plus, Trash2 } from 'lucide-react';
 
-function QuizTemplate({ content, onSave, isEditing }) {
+function QuizTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
     question: content?.question || '',
     options: content?.options || ['', '', '', ''],
@@ -10,13 +10,34 @@ function QuizTemplate({ content, onSave, isEditing }) {
     points: content?.points || 1
   });
 
+  useEffect(() => {
+    if (content && !isEditing) {
+      setFormData({
+        question: content?.question || '',
+        options: content?.options || ['', '', '', ''],
+        correctAnswer: content?.correctAnswer || 0,
+        explanation: content?.explanation || '',
+        points: content?.points || 1
+      });
+    }
+  }, [content, isEditing]);
+
+  const handleChange = (updates) => {
+    const newData = { ...formData, ...updates };
+    setFormData(newData);
+    if (onChange) {
+      onChange(newData);
+    }
+  };
+
   const handleSave = () => {
-    onSave(formData);
+    if (onSave) {
+      onSave(formData);
+    }
   };
 
   const addOption = () => {
-    setFormData({
-      ...formData,
+    handleChange({
       options: [...formData.options, '']
     });
   };
@@ -27,8 +48,7 @@ function QuizTemplate({ content, onSave, isEditing }) {
       return;
     }
     const newOptions = formData.options.filter((_, i) => i !== index);
-    setFormData({
-      ...formData,
+    handleChange({
       options: newOptions,
       correctAnswer: formData.correctAnswer >= newOptions.length ? 0 : formData.correctAnswer
     });
@@ -37,7 +57,7 @@ function QuizTemplate({ content, onSave, isEditing }) {
   const updateOption = (index, value) => {
     const newOptions = [...formData.options];
     newOptions[index] = value;
-    setFormData({ ...formData, options: newOptions });
+    handleChange({ options: newOptions });
   };
 
   if (isEditing) {
@@ -49,7 +69,7 @@ function QuizTemplate({ content, onSave, isEditing }) {
           </label>
           <textarea
             value={formData.question}
-            onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+            onChange={(e) => handleChange({ question: e.target.value })}
             className="w-full h-24 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
             placeholder="Frage eingeben"
           />
@@ -75,7 +95,7 @@ function QuizTemplate({ content, onSave, isEditing }) {
                   type="radio"
                   name="correctAnswer"
                   checked={formData.correctAnswer === index}
-                  onChange={() => setFormData({ ...formData, correctAnswer: index })}
+                  onChange={() => handleChange({ correctAnswer: index })}
                   className="w-5 h-5 text-purple-500 focus:ring-purple-500"
                 />
                 <input
@@ -107,7 +127,7 @@ function QuizTemplate({ content, onSave, isEditing }) {
           </label>
           <textarea
             value={formData.explanation}
-            onChange={(e) => setFormData({ ...formData, explanation: e.target.value })}
+            onChange={(e) => handleChange({ explanation: e.target.value })}
             className="w-full h-20 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
             placeholder="Erklärung zur richtigen Antwort"
           />
@@ -120,19 +140,21 @@ function QuizTemplate({ content, onSave, isEditing }) {
           <input
             type="number"
             value={formData.points}
-            onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) })}
+            onChange={(e) => handleChange({ points: parseInt(e.target.value) })}
             className="w-32 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
             min="1"
           />
         </div>
 
-        <button
-          onClick={handleSave}
-          className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2"
-        >
-          <Save size={20} />
-          <span>Speichern</span>
-        </button>
+        {onSave && (
+          <button
+            onClick={handleSave}
+            className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2"
+          >
+            <Save size={20} />
+            <span>Speichern</span>
+          </button>
+        )}
       </div>
     );
   }

@@ -5,3 +5,5 @@ export { default as QuizTemplate } from './QuizTemplate';
 export { default as PollTemplate } from './PollTemplate';
 export { default as WordCloudTemplate } from './WordCloudTemplate';
 export { default as AppGalleryTemplate } from './AppGalleryTemplate';
+export { default as TableTemplate } from './TableTemplate';
+export { default as TimelineTemplate } from './TimelineTemplate';

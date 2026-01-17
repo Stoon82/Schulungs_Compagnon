@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Save, X, Plus, Trash2, Eye, Edit3, GripVertical, BookOpen, FileText, MessageSquare, BarChart3, Image, Video, CheckSquare } from 'lucide-react';
 import api from '../services/api';
 import SubmoduleEditor from './SubmoduleEditor';
@@ -341,6 +342,33 @@ function ModuleCreatorV2({ onClose }) {
     } catch (error) {
       console.error('Error deleting submodule:', error);
       alert('Fehler beim Löschen des Submoduls');
+    }
+  };
+
+  const handleDragEnd = async (result) => {
+    if (!result.destination) return;
+
+    const items = Array.from(submodules);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update local state immediately for smooth UX
+    setSubmodules(items);
+
+    // Update order_index for all affected submodules
+    const updates = items.map((item, index) => ({
+      id: item.id,
+      order_index: index
+    }));
+
+    try {
+      // Call API to persist the new order
+      await api.reorderSubmodules(selectedModule.id, updates);
+    } catch (error) {
+      console.error('Error reordering submodules:', error);
+      // Reload to restore correct order on error
+      await loadSubmodules(selectedModule.id);
+      alert('Fehler beim Neuordnen der Submodule');
     }
   };
 
@@ -732,41 +760,73 @@ function ModuleCreatorV2({ onClose }) {
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {submodules.map((submodule, index) => (
-                          <div
-                            key={submodule.id}
-                            className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all"
-                          >
-                            <GripVertical size={20} className="text-gray-500 cursor-move" />
-                            <div className="flex-1">
-                              <h4 className="text-white font-medium">{submodule.title}</h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-400 rounded">
-                                  {submodule.template_type}
-                                </span>
-                                {submodule.duration_estimate && (
-                                  <span className="text-xs text-gray-400">
-                                    ~{submodule.duration_estimate} Min
-                                  </span>
-                                )}
-                              </div>
+                      <DragDropContext onDragEnd={handleDragEnd}>
+                        <Droppable droppableId="submodules">
+                          {(provided, snapshot) => (
+                            <div
+                              {...provided.droppableProps}
+                              ref={provided.innerRef}
+                              className="space-y-3"
+                            >
+                              {submodules.map((submodule, index) => (
+                                <Draggable
+                                  key={submodule.id}
+                                  draggableId={String(submodule.id)}
+                                  index={index}
+                                >
+                                  {(provided, snapshot) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      className={`flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-lg transition-all ${
+                                        snapshot.isDragging
+                                          ? 'bg-white/10 shadow-xl scale-105 border-purple-500/50'
+                                          : 'hover:bg-white/10'
+                                      }`}
+                                    >
+                                      <div
+                                        {...provided.dragHandleProps}
+                                        className="cursor-grab active:cursor-grabbing"
+                                      >
+                                        <GripVertical size={20} className="text-gray-500" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs text-gray-500 font-mono">#{index + 1}</span>
+                                          <h4 className="text-white font-medium">{submodule.title}</h4>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-400 rounded">
+                                            {submodule.template_type}
+                                          </span>
+                                          {submodule.duration_estimate && (
+                                            <span className="text-xs text-gray-400">
+                                              ~{submodule.duration_estimate} Min
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <button 
+                                        onClick={() => handleEditSubmodule(submodule)}
+                                        className="p-2 text-purple-400 hover:text-purple-300 transition-colors"
+                                      >
+                                        <Edit3 size={18} />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeleteSubmodule(submodule.id)}
+                                        className="p-2 text-red-400 hover:text-red-300 transition-colors"
+                                      >
+                                        <Trash2 size={18} />
+                                      </button>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))}
+                              {provided.placeholder}
                             </div>
-                            <button 
-                              onClick={() => handleEditSubmodule(submodule)}
-                              className="p-2 text-purple-400 hover:text-purple-300 transition-colors"
-                            >
-                              <Edit3 size={18} />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteSubmodule(submodule.id)}
-                              className="p-2 text-red-400 hover:text-red-300 transition-colors"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                          )}
+                        </Droppable>
+                      </DragDropContext>
                     )}
                   </div>
                 )}

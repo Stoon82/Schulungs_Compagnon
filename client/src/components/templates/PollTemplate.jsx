@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BarChart3, Save, Plus, Trash2 } from 'lucide-react';
 
-function PollTemplate({ content, onSave, isEditing }) {
+function PollTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
     question: content?.question || '',
     options: content?.options || ['', ''],
@@ -9,13 +9,33 @@ function PollTemplate({ content, onSave, isEditing }) {
     showResults: content?.showResults || 'after'
   });
 
+  useEffect(() => {
+    if (content && !isEditing) {
+      setFormData({
+        question: content?.question || '',
+        options: content?.options || ['', ''],
+        allowMultiple: content?.allowMultiple || false,
+        showResults: content?.showResults || 'after'
+      });
+    }
+  }, [content, isEditing]);
+
+  const handleChange = (updates) => {
+    const newData = { ...formData, ...updates };
+    setFormData(newData);
+    if (onChange) {
+      onChange(newData);
+    }
+  };
+
   const handleSave = () => {
-    onSave(formData);
+    if (onSave) {
+      onSave(formData);
+    }
   };
 
   const addOption = () => {
-    setFormData({
-      ...formData,
+    handleChange({
       options: [...formData.options, '']
     });
   };
@@ -26,13 +46,13 @@ function PollTemplate({ content, onSave, isEditing }) {
       return;
     }
     const newOptions = formData.options.filter((_, i) => i !== index);
-    setFormData({ ...formData, options: newOptions });
+    handleChange({ options: newOptions });
   };
 
   const updateOption = (index, value) => {
     const newOptions = [...formData.options];
     newOptions[index] = value;
-    setFormData({ ...formData, options: newOptions });
+    handleChange({ options: newOptions });
   };
 
   if (isEditing) {
@@ -44,7 +64,7 @@ function PollTemplate({ content, onSave, isEditing }) {
           </label>
           <textarea
             value={formData.question}
-            onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+            onChange={(e) => handleChange({ question: e.target.value })}
             className="w-full h-24 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
             placeholder="Frage eingeben"
           />
@@ -92,7 +112,7 @@ function PollTemplate({ content, onSave, isEditing }) {
               <input
                 type="checkbox"
                 checked={formData.allowMultiple}
-                onChange={(e) => setFormData({ ...formData, allowMultiple: e.target.checked })}
+                onChange={(e) => handleChange({ allowMultiple: e.target.checked })}
                 className="w-5 h-5 text-purple-500 rounded focus:ring-purple-500"
               />
               <span>Mehrfachauswahl erlauben</span>
@@ -105,7 +125,7 @@ function PollTemplate({ content, onSave, isEditing }) {
             </label>
             <select
               value={formData.showResults}
-              onChange={(e) => setFormData({ ...formData, showResults: e.target.value })}
+              onChange={(e) => handleChange({ showResults: e.target.value })}
               className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="never">Nie</option>
@@ -115,13 +135,15 @@ function PollTemplate({ content, onSave, isEditing }) {
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2"
-        >
-          <Save size={20} />
-          <span>Speichern</span>
-        </button>
+        {onSave && (
+          <button
+            onClick={handleSave}
+            className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2"
+          >
+            <Save size={20} />
+            <span>Speichern</span>
+          </button>
+        )}
       </div>
     );
   }
