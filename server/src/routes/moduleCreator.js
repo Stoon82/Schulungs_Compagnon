@@ -860,4 +860,153 @@ router.get('/polls/:submoduleId/results', async (req, res) => {
   }
 });
 
+// ============================================================================
+// CLASS-MODULE MANAGEMENT ROUTES
+// ============================================================================
+
+// GET /api/module-creator/classes/:classId/modules - Get modules for a class
+router.get('/classes/:classId/modules', requireAdmin, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    
+    const modules = await db.all(
+      `SELECT 
+        cm.id as class_module_id,
+        cm.order_index,
+        cm.is_locked,
+        cm.unlocked_at,
+        m.*
+      FROM class_modules cm
+      JOIN modules m ON cm.module_id = m.id
+      WHERE cm.class_id = ?
+      ORDER BY cm.order_index ASC`,
+      [classId]
+    );
+
+    res.json({
+      success: true,
+      data: modules
+    });
+  } catch (error) {
+    console.error('Error fetching class modules:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch class modules'
+    });
+  }
+});
+
+// POST /api/module-creator/classes/:classId/modules - Add module to class
+router.post('/classes/:classId/modules', requireAdmin, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { moduleId, orderIndex = 0, isLocked = true } = req.body;
+
+    if (!moduleId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Module ID is required'
+      });
+    }
+
+    const id = uuidv4();
+    await db.run(
+      `INSERT INTO class_modules (id, class_id, module_id, order_index, is_locked, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, classId, moduleId, orderIndex, isLocked ? 1 : 0, new Date().toISOString()]
+    );
+
+    res.json({
+      success: true,
+      data: { id, classId, moduleId, orderIndex, isLocked }
+    });
+  } catch (error) {
+    console.error('Error adding module to class:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add module to class'
+    });
+  }
+});
+
+// DELETE /api/module-creator/classes/:classId/modules/:classModuleId - Remove module from class
+router.delete('/classes/:classId/modules/:classModuleId', requireAdmin, async (req, res) => {
+  try {
+    const { classModuleId } = req.params;
+
+    await db.run('DELETE FROM class_modules WHERE id = ?', [classModuleId]);
+
+    res.json({
+      success: true,
+      message: 'Module removed from class'
+    });
+  } catch (error) {
+    console.error('Error removing module from class:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to remove module from class'
+    });
+  }
+});
+
+// PUT /api/module-creator/classes/:classId/modules/reorder - Reorder modules in class
+router.put('/classes/:classId/modules/reorder', requireAdmin, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { moduleOrder } = req.body; // Array of { id, orderIndex }
+
+    if (!Array.isArray(moduleOrder)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Module order must be an array'
+      });
+    }
+
+    // Update order for each module
+    for (const item of moduleOrder) {
+      await db.run(
+        'UPDATE class_modules SET order_index = ? WHERE id = ? AND class_id = ?',
+        [item.orderIndex, item.id, classId]
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Modules reordered successfully'
+    });
+  } catch (error) {
+    console.error('Error reordering class modules:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reorder modules'
+    });
+  }
+});
+
+// PUT /api/module-creator/classes/:classId/modules/:classModuleId/lock - Lock/unlock module
+router.put('/classes/:classId/modules/:classModuleId/lock', requireAdmin, async (req, res) => {
+  try {
+    const { classModuleId } = req.params;
+    const { isLocked } = req.body;
+
+    const unlockedAt = !isLocked ? new Date().toISOString() : null;
+
+    await db.run(
+      'UPDATE class_modules SET is_locked = ?, unlocked_at = ? WHERE id = ?',
+      [isLocked ? 1 : 0, unlockedAt, classModuleId]
+    );
+
+    res.json({
+      success: true,
+      message: isLocked ? 'Module locked' : 'Module unlocked'
+    });
+  } catch (error) {
+    console.error('Error updating module lock status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update module lock status'
+    });
+  }
+});
+
 export default router;

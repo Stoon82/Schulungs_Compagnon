@@ -3,22 +3,28 @@ import { HelpCircle, Plus, Trash2, Save, Star, Clock, Eye, EyeOff } from 'lucide
 
 function QuizTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
-    questionType: content?.questionType || 'multiple-choice',
-    question: content?.question || '',
-    options: content?.options || ['', '', '', ''],
-    correctAnswer: content?.correctAnswer || 0,
-    correctText: content?.correctText || '',
-    ratingScale: content?.ratingScale || 5,
-    ratingStyle: content?.ratingStyle || 'stars',
-    explanation: content?.explanation || '',
-    points: content?.points || 1,
+    questions: content?.questions || [{
+      id: 1,
+      questionType: 'multiple-choice',
+      question: '',
+      options: ['', '', '', ''],
+      correctAnswer: [0], // Array to support multiple correct answers
+      correctText: '',
+      ratingScale: 5,
+      ratingStyle: 'stars',
+      explanation: '',
+      points: 1,
+      matchingPairs: [
+        { id: 1, left: '', right: '' },
+        { id: 2, left: '', right: '' }
+      ]
+    }],
     timeLimit: content?.timeLimit || 0,
     showTimer: content?.showTimer || false,
-    matchingPairs: content?.matchingPairs || [
-      { id: 1, left: '', right: '' },
-      { id: 2, left: '', right: '' }
-    ]
+    currentQuestionIndex: 0
   });
+
+  const currentQuestion = formData.questions[formData.currentQuestionIndex] || formData.questions[0];
 
   useEffect(() => {
     if (content && !isEditing) {

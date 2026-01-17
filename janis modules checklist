@@ -228,16 +228,16 @@
 ### Quiz System Enhancement
 - [x] Add question type: Short Answer (text input)
 - [x] Add question type: Rating Scale (1-5, emoji scale)
-- [ ] Add question type: Drag-and-drop Matching
+- [x] Add question type: Drag-and-drop Matching
 - [x] Implement live results visualization
   - [x] Bar charts (Recharts or D3.js)
   - [x] Pie charts
-  - [ ] Word clouds for text responses
+  - [x] Word clouds for text responses
 - [x] Add timer functionality for timed quizzes
 - [x] Add "Reveal Answer" admin control
 - [x] Add explanation display after answer reveal
-- [ ] Store quiz responses in database
-- [ ] Calculate and display score
+- [x] Store quiz responses in database
+- [x] Calculate and display score
 
 ### Poll System
 - [x] Create poll creation UI
