@@ -1,23 +1,32 @@
 import { useState, useEffect } from 'react';
-import { Image as ImageIcon, Video, Save, Upload } from 'lucide-react';
+import { Image as ImageIcon, Video, Save, Upload, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 
 function MediaTemplate({ content, onChange, onSave, isEditing }) {
   const [formData, setFormData] = useState({
     mediaType: content?.mediaType || 'image',
     mediaUrl: content?.mediaUrl || '',
+    mediaUrls: content?.mediaUrls || [],
     caption: content?.caption || '',
     size: content?.size || 'medium',
-    position: content?.position || 'center'
+    position: content?.position || 'center',
+    galleryMode: content?.galleryMode || false,
+    zoomEnabled: content?.zoomEnabled || false
   });
+
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   useEffect(() => {
     if (content && !isEditing) {
       setFormData({
         mediaType: content?.mediaType || 'image',
         mediaUrl: content?.mediaUrl || '',
+        mediaUrls: content?.mediaUrls || [],
         caption: content?.caption || '',
         size: content?.size || 'medium',
-        position: content?.position || 'center'
+        position: content?.position || 'center',
+        galleryMode: content?.galleryMode || false,
+        zoomEnabled: content?.zoomEnabled || false
       });
     }
   }, [content, isEditing]);
@@ -69,24 +78,54 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
           </div>
         </div>
 
+        {/* Gallery Mode Toggle */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Medien-URL
-          </label>
-          <div className="flex gap-2">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
-              type="text"
-              value={formData.mediaUrl}
-              onChange={(e) => handleChange({ mediaUrl: e.target.value })}
-              className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="https://example.com/image.jpg"
+              type="checkbox"
+              checked={formData.galleryMode}
+              onChange={(e) => handleChange({ galleryMode: e.target.checked })}
+              className="w-4 h-4 text-purple-500 rounded focus:ring-purple-500"
             />
-            <button className="px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all flex items-center gap-2">
-              <Upload size={18} />
-              <span>Upload</span>
-            </button>
-          </div>
+            <span className="text-sm text-gray-300">Galerie-Modus (Mehrere Medien)</span>
+          </label>
         </div>
+
+        {formData.galleryMode ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Galerie-URLs (eine pro Zeile)
+            </label>
+            <textarea
+              value={formData.mediaUrls.join('\n')}
+              onChange={(e) => handleChange({ mediaUrls: e.target.value.split('\n').filter(url => url.trim()) })}
+              className="w-full h-32 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none font-mono text-sm"
+              placeholder="https://example.com/image1.jpg\nhttps://example.com/image2.jpg\nhttps://example.com/image3.jpg"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              {formData.mediaUrls.length} Medien in der Galerie
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Medien-URL
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.mediaUrl}
+                onChange={(e) => handleChange({ mediaUrl: e.target.value })}
+                className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="https://example.com/image.jpg"
+              />
+              <button className="px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all flex items-center gap-2">
+                <Upload size={18} />
+                <span>Upload</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -134,6 +173,21 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
           </div>
         </div>
 
+        {/* Zoom Controls */}
+        {formData.mediaType === 'image' && (
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.zoomEnabled}
+                onChange={(e) => handleChange({ zoomEnabled: e.target.checked })}
+                className="w-4 h-4 text-purple-500 rounded focus:ring-purple-500"
+              />
+              <span className="text-sm text-gray-300">Zoom/Pan-Steuerung aktivieren</span>
+            </label>
+          </div>
+        )}
+
         {onSave && (
           <button
             onClick={handleSave}
@@ -149,7 +203,7 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
 
   // Preview mode
   const sizeClasses = {
-    small: 'max-w-sm',
+    small: 'max-w-md',
     medium: 'max-w-2xl',
     large: 'max-w-4xl',
     full: 'w-full'
@@ -161,32 +215,154 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
     right: 'ml-auto'
   };
 
+  const handlePrevSlide = () => {
+    setCurrentSlide(prev => (prev === 0 ? formData.mediaUrls.length - 1 : prev - 1));
+  };
+
+  const handleNextSlide = () => {
+    setCurrentSlide(prev => (prev === formData.mediaUrls.length - 1 ? 0 : prev + 1));
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.25, 3));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.25, 1));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+  };
+
+  if (formData.galleryMode && formData.mediaUrls.length > 0) {
+    return (
+      <div className="py-8">
+        <div className={`relative ${sizeClasses[formData.size]} ${positionClasses[formData.position]}`}>
+          {/* Gallery Image */}
+          {formData.mediaType === 'image' ? (
+            <img
+              src={formData.mediaUrls[currentSlide]}
+              alt={`${formData.caption || 'Gallery'} - ${currentSlide + 1}`}
+              className="w-full h-auto rounded-lg shadow-2xl"
+            />
+          ) : (
+            <video
+              src={formData.mediaUrls[currentSlide]}
+              controls
+              className="w-full h-auto rounded-lg shadow-2xl"
+            >
+              Ihr Browser unterstützt das Video-Tag nicht.
+            </video>
+          )}
+
+          {/* Navigation Arrows */}
+          {formData.mediaUrls.length > 1 && (
+            <>
+              <button
+                onClick={handlePrevSlide}
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 text-white rounded-full transition-all"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                onClick={handleNextSlide}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 text-white rounded-full transition-all"
+              >
+                <ChevronRight size={24} />
+              </button>
+
+              {/* Slide Indicators */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                {formData.mediaUrls.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      index === currentSlide
+                        ? 'bg-white w-8'
+                        : 'bg-white/50 hover:bg-white/75'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Caption */}
+          {formData.caption && (
+            <div className="absolute bottom-12 left-0 right-0 text-center">
+              <p className="inline-block bg-black/70 text-white px-4 py-2 rounded-lg">
+                {formData.caption} ({currentSlide + 1}/{formData.mediaUrls.length})
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`${sizeClasses[formData.size]} ${positionClasses[formData.position]}`}>
-      {formData.mediaType === 'image' ? (
-        <div className="bg-white/5 rounded-lg overflow-hidden">
-          {formData.mediaUrl ? (
-            <img src={formData.mediaUrl} alt={formData.caption} className="w-full h-auto" />
+    <div className="py-8">
+      <div className={`relative ${sizeClasses[formData.size]} ${positionClasses[formData.position]}`}>
+        {/* Zoom Controls */}
+        {formData.zoomEnabled && formData.mediaType === 'image' && formData.mediaUrl && (
+          <div className="absolute top-4 right-4 z-10 flex gap-2">
+            <button
+              onClick={handleZoomOut}
+              disabled={zoomLevel <= 1}
+              className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-lg transition-all disabled:opacity-30"
+              title="Zoom Out"
+            >
+              <ZoomOut size={20} />
+            </button>
+            <button
+              onClick={handleResetZoom}
+              className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-lg transition-all"
+              title="Reset Zoom"
+            >
+              <Maximize2 size={20} />
+            </button>
+            <button
+              onClick={handleZoomIn}
+              disabled={zoomLevel >= 3}
+              className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-lg transition-all disabled:opacity-30"
+              title="Zoom In"
+            >
+              <ZoomIn size={20} />
+            </button>
+          </div>
+        )}
+
+        {/* Media */}
+        <div className="overflow-hidden rounded-lg">
+          {formData.mediaType === 'image' ? (
+            <img
+              src={formData.mediaUrl}
+              alt={formData.caption || 'Media'}
+              className="w-full h-auto shadow-2xl transition-transform duration-300"
+              style={{
+                transform: `scale(${zoomLevel})`,
+                cursor: formData.zoomEnabled ? 'zoom-in' : 'default'
+              }}
+            />
           ) : (
-            <div className="aspect-video flex items-center justify-center bg-white/10">
-              <ImageIcon size={48} className="text-gray-600" />
-            </div>
+            <video
+              src={formData.mediaUrl}
+              controls
+              className="w-full h-auto rounded-lg shadow-2xl"
+            >
+              Ihr Browser unterstützt das Video-Tag nicht.
+            </video>
           )}
         </div>
-      ) : (
-        <div className="bg-white/5 rounded-lg overflow-hidden">
-          {formData.mediaUrl ? (
-            <video src={formData.mediaUrl} controls className="w-full h-auto" />
-          ) : (
-            <div className="aspect-video flex items-center justify-center bg-white/10">
-              <Video size={48} className="text-gray-600" />
-            </div>
-          )}
-        </div>
-      )}
-      {formData.caption && (
-        <p className="text-center text-gray-400 text-sm mt-3">{formData.caption}</p>
-      )}
+
+        {formData.caption && (
+          <p className="text-center text-gray-300 mt-4 text-lg">
+            {formData.caption}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

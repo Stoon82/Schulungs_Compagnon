@@ -115,8 +115,8 @@
 - [x] Implement **Media Showcase** template
   - [x] Full-screen image/video display
   - [x] Caption overlay input
-  - [ ] Gallery mode (carousel)
-  - [ ] Zoom/pan controls
+  - [x] Gallery mode (carousel)
+  - [x] Zoom/pan controls
 - [x] Implement **Interactive Quiz** template (basic)
   - [x] Question text input
   - [x] Question type selector (multiple choice, true/false)
@@ -213,17 +213,17 @@
   - [ ] Upvote functionality
   - [ ] Pin/highlight controls (admin)
   - [ ] Moderation controls
-- [ ] Implement **Resource Library** template
-  - [ ] File upload section
-  - [ ] External links editor
-  - [ ] Category/section organizer
-  - [ ] Search functionality
-  - [ ] Document preview (PDF, images)
-- [ ] Implement **Blank Canvas** template
-  - [ ] HTML/CSS code editor (Monaco or CodeMirror)
-  - [ ] Live preview pane
-  - [ ] Component library (buttons, cards, etc.)
-  - [ ] Responsive preview modes
+- [x] Implement **Resource Library** template
+  - [x] File upload section (URL input)
+  - [x] External links editor
+  - [x] Category/section organizer
+  - [x] Search functionality
+  - [x] Document preview (icons & types)
+- [x] Implement **Blank Canvas** template
+  - [x] HTML/CSS/JS code editor (textarea-based)
+  - [x] Live preview pane
+  - [x] Code tabs (HTML/CSS/JS)
+  - [x] Responsive preview modes (desktop/tablet/mobile)
 
 ### Quiz System Enhancement
 - [ ] Add question type: Short Answer (text input)

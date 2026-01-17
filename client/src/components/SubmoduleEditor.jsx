@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Save, X, Eye, EyeOff, Maximize2, Minimize2 } from 'lucide-react';
-import { TitleTemplate, ContentTemplate, MediaTemplate, QuizTemplate, PollTemplate, WordCloudTemplate, AppGalleryTemplate, TableTemplate, TimelineTemplate, SplitScreenTemplate, EmbedTemplate } from './templates';
+import { TitleTemplate, ContentTemplate, MediaTemplate, QuizTemplate, PollTemplate, WordCloudTemplate, AppGalleryTemplate, TableTemplate, TimelineTemplate, SplitScreenTemplate, EmbedTemplate, ResourceLibraryTemplate, BlankCanvasTemplate } from './templates';
 
 const TEMPLATE_TYPES = [
   { value: 'title', label: 'Titel-Folie', icon: '📋', component: TitleTemplate },
@@ -13,7 +13,9 @@ const TEMPLATE_TYPES = [
   { value: 'table', label: 'Tabelle/Vergleich', icon: '📊', component: TableTemplate },
   { value: 'timeline', label: 'Timeline/Prozess', icon: '⏱️', component: TimelineTemplate },
   { value: 'splitscreen', label: 'Split Screen', icon: '⬌', component: SplitScreenTemplate },
-  { value: 'embed', label: 'Eingebetteter Inhalt', icon: '🔗', component: EmbedTemplate }
+  { value: 'embed', label: 'Eingebetteter Inhalt', icon: '🔗', component: EmbedTemplate },
+  { value: 'resources', label: 'Ressourcen-Bibliothek', icon: '📚', component: ResourceLibraryTemplate },
+  { value: 'canvas', label: 'Blank Canvas', icon: '🎨', component: BlankCanvasTemplate }
 ];
 
 function SubmoduleEditor({ submodule, moduleId, onSave, onClose }) {
