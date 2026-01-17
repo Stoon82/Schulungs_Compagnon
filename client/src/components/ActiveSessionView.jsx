@@ -228,14 +228,22 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
               <span className="text-white font-semibold">{participants.length}</span>
             </button>
 
-            {/* End Session (Admin only) */}
-            {isAdmin && (
+            {/* Logout/End Session Button */}
+            {isAdmin ? (
               <button
                 onClick={handleEndSession}
                 className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all flex items-center gap-2"
               >
                 <LogOut size={18} />
                 <span>Beenden</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleEndSession}
+                className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all flex items-center gap-2"
+              >
+                <LogOut size={18} />
+                <span>Verlassen</span>
               </button>
             )}
           </div>

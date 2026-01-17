@@ -174,11 +174,23 @@ function MainApp() {
 
   // Join Session Screen
   if (view === 'join') {
+    const pendingCode = sessionStorage.getItem('pendingSessionCode');
+    if (pendingCode) {
+      sessionStorage.removeItem('pendingSessionCode');
+    }
+    
     return (
       <div>
-        <SessionJoinScreen onJoinSuccess={handleClientJoin} />
+        <SessionJoinScreen 
+          onJoinSuccess={handleClientJoin}
+          initialSessionCode={pendingCode || ''}
+        />
         <button
-          onClick={() => setView('landing')}
+          onClick={() => {
+            setView('landing');
+            // Clear URL parameter
+            window.history.replaceState({}, '', window.location.pathname);
+          }}
           className="absolute top-4 left-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all"
         >
           Zurück
