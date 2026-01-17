@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Schulungs Compagnon</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 60px 40px;
+    }
+
+    .icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 30px;
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+      }
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    p {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 12px 24px;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 50px;
+      color: #fca5a5;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 30px;
+    }
+
+    .status.online {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: rgba(34, 197, 94, 0.3);
+      color: #86efac;
+    }
+
+    button {
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .info {
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 10px 0;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .info-item svg {
+      width: 20px;
+      height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>Keine Internetverbindung</h1>
+    <p>Sie sind derzeit offline. Einige Funktionen sind möglicherweise nicht verfügbar.</p>
+    
+    <div class="status" id="status">
+      🔴 Offline
+    </div>
+
+    <p style="font-size: 16px; margin-top: 20px;">
+      Ihre zwischengespeicherten Inhalte sind weiterhin verfügbar. Die Verbindung wird automatisch wiederhergestellt, sobald Sie wieder online sind.
+    </p>
+
+    <button onclick="location.reload()">
+      Erneut versuchen
+    </button>
+
+    <div class="info">
+      <div class="info-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>Zwischengespeicherte Module verfügbar</span>
+      </div>
+      <div class="info-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span>Automatische Synchronisation bei Wiederverbindung</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Monitor online/offline status
+    function updateStatus() {
+      const statusEl = document.getElementById('status');
+      if (navigator.onLine) {
+        statusEl.textContent = '🟢 Online';
+        statusEl.classList.add('online');
+        // Auto-reload when back online
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        statusEl.textContent = '🔴 Offline';
+        statusEl.classList.remove('online');
+      }
+    }
+
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    updateStatus();
+  </script>
+</body>
+</html>

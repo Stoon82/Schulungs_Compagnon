@@ -90,6 +90,7 @@ app.use('/api/materials', materialsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/themes', require('./routes/themes'));
 app.use('/api/media', require('./routes/media'));
+app.use('/api/version', require('./routes/version'));
 
 // Ngrok tunnel detection endpoint (bypasses CORS)
 app.get('/api/ngrok/tunnel', async (req, res) => {
