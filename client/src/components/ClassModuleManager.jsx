@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { DndProvider } from 'react-dnd';
+import { useState, useEffect, useRef } from 'react';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Plus, Trash2, Lock, Unlock, GripVertical } from 'lucide-react';
 
