@@ -233,9 +233,8 @@ function QRCodeButton({ isAdmin, sessionCode = null }) {
               Close
             </button>
           </div>
-        </div>,
-        document.body
-      )}
+        </div>
+      ), document.body)}
     </>
   );
 }
