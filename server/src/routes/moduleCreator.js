@@ -697,7 +697,7 @@ router.get('/media/:id/thumbnail', requireAdmin, async (req, res) => {
 // QUIZ RESPONSE ROUTES
 // ============================================================================
 
-// POST /api/module-creator/quiz/:submoduleId/submit - Store quiz response
+// POST /api/module-creator/quiz/:submoduleId/submit - Store quiz response (single question)
 router.post('/quiz/:submoduleId/submit', async (req, res) => {
   try {
     const { submoduleId } = req.params;
@@ -733,6 +733,53 @@ router.post('/quiz/:submoduleId/submit', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to store quiz response'
+    });
+  }
+});
+
+// POST /api/module-creator/quiz/:submoduleId/submit-multi - Store multi-question quiz responses
+router.post('/quiz/:submoduleId/submit-multi', async (req, res) => {
+  try {
+    const { submoduleId } = req.params;
+    const { sessionId, userId, answers, timeTaken } = req.body;
+
+    if (!answers || typeof answers !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'Answers object is required'
+      });
+    }
+
+    // Store each answer
+    const responseIds = [];
+    for (const [questionId, answer] of Object.entries(answers)) {
+      const id = uuidv4();
+      await db.run(
+        'INSERT INTO quiz_responses (id, session_id, user_id, question_id, answer, is_correct, time_taken, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          id,
+          sessionId || null,
+          userId || null,
+          questionId,
+          JSON.stringify(answer),
+          0, // Will be calculated on results fetch
+          timeTaken || null,
+          new Date().toISOString()
+        ]
+      );
+      responseIds.push(id);
+    }
+
+    res.json({
+      success: true,
+      message: 'Multi-question quiz responses recorded successfully',
+      data: { responseIds, count: responseIds.length }
+    });
+  } catch (error) {
+    console.error('Error storing multi-question quiz responses:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to store quiz responses'
     });
   }
 });

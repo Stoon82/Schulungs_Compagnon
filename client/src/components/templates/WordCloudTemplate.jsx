@@ -1,5 +1,8 @@
-import { useState, useRef } from 'react';
-import { Cloud, Plus, Trash2, Eye, Edit3, Download } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Cloud, Download, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import ReactWordcloud from 'react-wordcloud';
+import html2canvas from 'html2canvas';
+import Filter from 'bad-words';
 
 function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
   const [formData, setFormData] = useState({

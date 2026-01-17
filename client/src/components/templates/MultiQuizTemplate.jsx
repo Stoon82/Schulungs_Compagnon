@@ -352,18 +352,277 @@ function MultiQuizTemplate({ content, onChange, onSave, isEditing }) {
   }
 
   // Client mode - render quiz
+  const [currentClientQuestion, setCurrentClientQuestion] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(formData.timeLimit);
+  const [timerExpired, setTimerExpired] = useState(false);
+
+  const currentQ = formData.questions[currentClientQuestion];
+  const totalQuestions = formData.questions.length;
+  const answeredCount = Object.keys(answers).length;
+  const progress = (answeredCount / totalQuestions) * 100;
+
+  // Timer countdown
+  useEffect(() => {
+    if (formData.timeLimit > 0 && !submitted && !timerExpired) {
+      setTimeRemaining(formData.timeLimit);
+      const timer = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setTimerExpired(true);
+            handleSubmitAll();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [formData.timeLimit, submitted, timerExpired]);
+
+  const handleAnswer = (questionId, answer) => {
+    setAnswers({ ...answers, [questionId]: answer });
+  };
+
+  const handleNext = () => {
+    if (currentClientQuestion < totalQuestions - 1) {
+      setCurrentClientQuestion(currentClientQuestion + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentClientQuestion > 0) {
+      setCurrentClientQuestion(currentClientQuestion - 1);
+    }
+  };
+
+  const handleSubmitAll = () => {
+    setSubmitted(true);
+    // TODO: Send answers to backend
+    console.log('Quiz submitted:', answers);
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const calculateScore = () => {
+    let correct = 0;
+    formData.questions.forEach((q) => {
+      const userAnswer = answers[q.id];
+      if (q.questionType === 'multiple-choice' && userAnswer !== undefined) {
+        const correctAnswers = q.correctAnswers || [0];
+        if (Array.isArray(userAnswer)) {
+          // Multiple correct answers - check if arrays match
+          if (userAnswer.length === correctAnswers.length &&
+              userAnswer.every(a => correctAnswers.includes(a))) {
+            correct++;
+          }
+        } else {
+          // Single answer
+          if (correctAnswers.includes(userAnswer)) {
+            correct++;
+          }
+        }
+      }
+    });
+    return { correct, total: formData.questions.length };
+  };
+
   return (
     <div className="bg-white/5 rounded-lg p-6">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">Quiz</h2>
-        <p className="text-gray-400">
-          {formData.questions.length} {formData.questions.length === 1 ? 'Frage' : 'Fragen'}
+      {/* Header with Progress */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-white">Quiz</h2>
+            <p className="text-gray-400">
+              Frage {currentClientQuestion + 1} von {totalQuestions}
+            </p>
+          </div>
+          
+          {formData.timeLimit > 0 && formData.showTimer && !submitted && (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              timeRemaining <= 10 ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+            }`}>
+              <Clock size={20} />
+              <span className="font-mono font-bold text-lg">{formatTime(timeRemaining)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Progress Bar */}
+        <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+          <div
+            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="text-sm text-gray-400">
+          {answeredCount} von {totalQuestions} beantwortet
         </p>
       </div>
-      
-      <div className="text-center text-gray-300">
-        Multi-question quiz client view coming soon...
-      </div>
+
+      {!submitted ? (
+        <>
+          {/* Question */}
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold text-white mb-4">{currentQ.question}</h3>
+
+            {/* Multiple Choice */}
+            {currentQ.questionType === 'multiple-choice' && (
+              <div className="space-y-3">
+                {currentQ.options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswer(currentQ.id, index)}
+                    className={`w-full px-4 py-3 rounded-lg border text-left transition-all ${
+                      answers[currentQ.id] === index
+                        ? 'bg-purple-500/30 border-purple-500 text-white'
+                        : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Short Answer */}
+            {currentQ.questionType === 'short-answer' && (
+              <textarea
+                value={answers[currentQ.id] || ''}
+                onChange={(e) => handleAnswer(currentQ.id, e.target.value)}
+                className="w-full h-32 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Ihre Antwort hier eingeben..."
+              />
+            )}
+          </div>
+
+          {/* Navigation */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={handlePrevious}
+              disabled={currentClientQuestion === 0}
+              className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <ChevronLeft size={20} />
+              Zurück
+            </button>
+
+            <div className="flex gap-2">
+              {formData.questions.map((q, index) => (
+                <button
+                  key={q.id}
+                  onClick={() => setCurrentClientQuestion(index)}
+                  className={`w-10 h-10 rounded-lg ${
+                    index === currentClientQuestion
+                      ? 'bg-purple-500 text-white'
+                      : answers[q.id] !== undefined
+                      ? 'bg-green-500/30 text-green-400 border border-green-500'
+                      : 'bg-white/5 text-gray-400 border border-white/10'
+                  }`}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+
+            {currentClientQuestion === totalQuestions - 1 ? (
+              <button
+                onClick={handleSubmitAll}
+                disabled={answeredCount < totalQuestions}
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Quiz abgeben
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg flex items-center gap-2"
+              >
+                Weiter
+                <ChevronRight size={20} />
+              </button>
+            )}
+          </div>
+        </>
+      ) : (
+        /* Results */
+        <div className="text-center">
+          <div className="mb-6">
+            <div className="text-6xl mb-4">
+              {(() => {
+                const { correct, total } = calculateScore();
+                const percentage = (correct / total) * 100;
+                return percentage >= 80 ? '🎉' : percentage >= 60 ? '👍' : '📚';
+              })()}
+            </div>
+            <h3 className="text-3xl font-bold text-white mb-2">Quiz abgeschlossen!</h3>
+            <p className="text-xl text-gray-300">
+              {(() => {
+                const { correct, total } = calculateScore();
+                return `${correct} von ${total} richtig`;
+              })()}
+            </p>
+            <p className="text-lg text-gray-400 mt-2">
+              {(() => {
+                const { correct, total } = calculateScore();
+                const percentage = Math.round((correct / total) * 100);
+                return `${percentage}% korrekt`;
+              })()}
+            </p>
+          </div>
+
+          {timerExpired && (
+            <p className="text-red-400 mb-4">⏱️ Zeit abgelaufen</p>
+          )}
+
+          {/* Question Review */}
+          <div className="mt-8 space-y-4 text-left">
+            <h4 className="text-lg font-semibold text-white mb-4">Überprüfung:</h4>
+            {formData.questions.map((q, index) => {
+              const userAnswer = answers[q.id];
+              const isCorrect = q.questionType === 'multiple-choice' &&
+                (q.correctAnswers || [0]).includes(userAnswer);
+              
+              return (
+                <div
+                  key={q.id}
+                  className={`p-4 rounded-lg border ${
+                    isCorrect
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : 'bg-red-500/10 border-red-500/30'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <p className="font-semibold text-white">
+                      {index + 1}. {q.question}
+                    </p>
+                    <span className={isCorrect ? 'text-green-400' : 'text-red-400'}>
+                      {isCorrect ? '✓' : '✗'}
+                    </span>
+                  </div>
+                  {q.questionType === 'multiple-choice' && (
+                    <p className="text-sm text-gray-300">
+                      Ihre Antwort: {q.options[userAnswer] || 'Keine Antwort'}
+                    </p>
+                  )}
+                  {q.explanation && (
+                    <p className="text-sm text-gray-400 mt-2">
+                      <strong>Erklärung:</strong> {q.explanation}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

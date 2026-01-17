@@ -269,18 +269,179 @@ function MultiPollTemplate({ content, onChange, onSave, isEditing }) {
   }
 
   // Client mode
+  const [currentClientQuestion, setCurrentClientQuestion] = useState(0);
+  const [votes, setVotes] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+
+  const currentQ = formData.questions[currentClientQuestion];
+  const totalQuestions = formData.questions.length;
+  const votedCount = Object.keys(votes).length;
+  const progress = (votedCount / totalQuestions) * 100;
+
+  const handleVote = (questionId, optionIndex) => {
+    if (currentQ.allowMultiple) {
+      const currentVotes = votes[questionId] || [];
+      const newVotes = currentVotes.includes(optionIndex)
+        ? currentVotes.filter(i => i !== optionIndex)
+        : [...currentVotes, optionIndex];
+      setVotes({ ...votes, [questionId]: newVotes });
+    } else {
+      setVotes({ ...votes, [questionId]: optionIndex });
+    }
+  };
+
+  const handleNext = () => {
+    if (currentClientQuestion < totalQuestions - 1) {
+      setCurrentClientQuestion(currentClientQuestion + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentClientQuestion > 0) {
+      setCurrentClientQuestion(currentClientQuestion - 1);
+    }
+  };
+
+  const handleSubmitAll = () => {
+    setSubmitted(true);
+    // TODO: Send votes to backend
+    console.log('Poll submitted:', votes);
+  };
+
   return (
     <div className="bg-white/5 rounded-lg p-6">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">Umfrage</h2>
-        <p className="text-gray-400">
-          {formData.questions.length} {formData.questions.length === 1 ? 'Frage' : 'Fragen'}
+      {/* Header with Progress */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-white">Umfrage</h2>
+            <p className="text-gray-400">
+              Frage {currentClientQuestion + 1} von {totalQuestions}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+          <div
+            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="text-sm text-gray-400">
+          {votedCount} von {totalQuestions} beantwortet
         </p>
       </div>
-      
-      <div className="text-center text-gray-300">
-        Multi-question poll client view coming soon...
-      </div>
+
+      {!submitted ? (
+        <>
+          {/* Question */}
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold text-white mb-4">{currentQ.question}</h3>
+            
+            {currentQ.allowMultiple && (
+              <p className="text-sm text-gray-400 mb-3">Mehrfachauswahl möglich</p>
+            )}
+
+            <div className="space-y-3">
+              {currentQ.options.map((option, index) => {
+                const isSelected = currentQ.allowMultiple
+                  ? (votes[currentQ.id] || []).includes(index)
+                  : votes[currentQ.id] === index;
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleVote(currentQ.id, index)}
+                    className={`w-full px-4 py-3 rounded-lg border text-left transition-all ${
+                      isSelected
+                        ? 'bg-purple-500/30 border-purple-500 text-white'
+                        : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {currentQ.allowMultiple ? (
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                          isSelected ? 'bg-purple-500 border-purple-500' : 'border-white/30'
+                        }`}>
+                          {isSelected && <span className="text-white text-xs">✓</span>}
+                        </div>
+                      ) : (
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          isSelected ? 'border-purple-500' : 'border-white/30'
+                        }`}>
+                          {isSelected && <div className="w-3 h-3 rounded-full bg-purple-500" />}
+                        </div>
+                      )}
+                      <span>{option}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={handlePrevious}
+              disabled={currentClientQuestion === 0}
+              className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <ChevronLeft size={20} />
+              Zurück
+            </button>
+
+            <div className="flex gap-2">
+              {formData.questions.map((q, index) => (
+                <button
+                  key={q.id}
+                  onClick={() => setCurrentClientQuestion(index)}
+                  className={`w-10 h-10 rounded-lg ${
+                    index === currentClientQuestion
+                      ? 'bg-purple-500 text-white'
+                      : votes[q.id] !== undefined
+                      ? 'bg-green-500/30 text-green-400 border border-green-500'
+                      : 'bg-white/5 text-gray-400 border border-white/10'
+                  }`}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+
+            {currentClientQuestion === totalQuestions - 1 ? (
+              <button
+                onClick={handleSubmitAll}
+                disabled={votedCount < totalQuestions}
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Umfrage abgeben
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg flex items-center gap-2"
+              >
+                Weiter
+                <ChevronRight size={20} />
+              </button>
+            )}
+          </div>
+        </>
+      ) : (
+        /* Confirmation */
+        <div className="text-center">
+          <div className="text-6xl mb-4">✓</div>
+          <h3 className="text-3xl font-bold text-white mb-2">Vielen Dank!</h3>
+          <p className="text-xl text-gray-300">
+            Ihre Antworten wurden gespeichert.
+          </p>
+          <p className="text-sm text-gray-400 mt-4">
+            {votedCount} von {totalQuestions} Fragen beantwortet
+          </p>
+        </div>
+      )}
     </div>
   );
 }
