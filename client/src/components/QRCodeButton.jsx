@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { QrCode, Settings, X, Copy, Share2, Check } from 'lucide-react';
 import QRCode from 'qrcode';
 
-function QRCodeButton({ isAdmin }) {
+function QRCodeButton({ isAdmin, sessionCode = null }) {
   const [showModal, setShowModal] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [accessUrl, setAccessUrl] = useState('');
@@ -16,7 +16,7 @@ function QRCodeButton({ isAdmin }) {
     if (isAdmin) {
       fetchNgrokUrl();
     }
-  }, []);
+  }, [sessionCode]);
 
   useEffect(() => {
     if (showModal && isAdmin) {
@@ -54,7 +54,11 @@ function QRCodeButton({ isAdmin }) {
 
   const generateQRCode = async () => {
     const savedTunnelUrl = localStorage.getItem('tunnel_url');
-    const url = savedTunnelUrl || window.location.origin;
+    const baseUrl = savedTunnelUrl || window.location.origin;
+    
+    // Add session code to URL if provided
+    const url = sessionCode ? `${baseUrl}?session=${sessionCode}` : baseUrl;
+    
     setAccessUrl(url);
     setTunnelUrl(savedTunnelUrl || '');
     
@@ -99,8 +103,8 @@ function QRCodeButton({ isAdmin }) {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join The Compagnon Session',
-          text: 'Join our training session!',
+          title: sessionCode ? 'Join Training Session' : 'Join The Compagnon',
+          text: sessionCode ? `Join with code: ${sessionCode}` : 'Join our training session!',
           url: accessUrl
         });
       } catch (error) {

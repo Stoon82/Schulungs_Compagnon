@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Users, Crown, Shield, UserCheck, X, Copy, Check, LogOut } from 'lucide-react';
 import ModuleViewer from './ModuleViewer';
 import AdminNavigationBar from './AdminNavigationBar';
-import SessionQRCode from './SessionQRCode';
+import QRCodeButton from './QRCodeButton';
 
 function ActiveSessionView({ session, adminUser, participantData, socket, onEndSession }) {
   const [participants, setParticipants] = useState([]);
@@ -183,6 +183,9 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
           </div>
 
           <div className="flex items-center gap-4">
+            {/* QR Code Button - visible to all */}
+            <QRCodeButton sessionCode={session.session_code} isAdmin={isAdmin} />
+
             {/* Session Code */}
             <button
               onClick={copySessionCode}
