@@ -1,0 +1,1148 @@
+# THE COMPAGNON - PRODUCT REQUIREMENTS DOCUMENT
+# Version 2.0 | Generated: 2026-01-18
+# Complete Technical Documentation
+
+================================================================================
+# TABLE OF CONTENTS
+================================================================================
+
+1. EXECUTIVE SUMMARY
+2. SYSTEM ARCHITECTURE
+3. SERVER ROUTES & API REFERENCE
+4. DATABASE SCHEMA
+5. CLIENT COMPONENTS
+6. SERVICES LAYER
+7. REAL-TIME COMMUNICATION (WEBSOCKETS)
+8. TEMPLATE SYSTEM
+9. AUTHENTICATION & AUTHORIZATION
+10. FEATURE MODULES
+11. KNOWN ISSUES & TECHNICAL DEBT
+
+================================================================================
+# 1. EXECUTIVE SUMMARY
+================================================================================
+
+## 1.1 Product Overview
+
+The Compagnon is an interactive training/presentation companion application 
+designed for live sessions, workshops, and educational content delivery.
+
+## 1.2 Core Capabilities
+
+- **Live Session Management**: Real-time synchronized presentations
+- **Interactive Templates**: Polls, quizzes, word clouds, discussions
+- **Multi-Module Classes**: Organize content into classes with multiple modules
+- **Real-time Feedback**: Mood reactions, pause requests, overwhelm alerts
+- **Media Management**: Upload, optimize, and embed images/videos/audio
+- **Theming System**: Full customization of colors, fonts, backgrounds
+- **Analytics**: Session tracking, quiz performance, engagement metrics
+- **Admin Dashboard**: Complete control over sessions and content
+
+## 1.3 Technology Stack
+
+| Layer       | Technology                                    |
+|-------------|-----------------------------------------------|
+| Frontend    | React 18, Vite, TailwindCSS, Lucide Icons     |
+| Backend     | Node.js, Express.js                           |
+| Database    | SQLite3                                       |
+| Real-time   | Socket.io                                     |
+| Auth        | bcryptjs (password hashing), JWT-like tokens  |
+| Media       | Sharp (image processing), Multer (uploads)    |
+
+================================================================================
+# 2. SYSTEM ARCHITECTURE
+================================================================================
+
+## 2.1 High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                           CLIENT (React)                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐   │
+│  │   MainApp    │  │ AdminDashboard│  │  ActiveSessionView       │   │
+│  │   (Entry)    │  │  (Admin UI)  │  │  (Live Session)          │   │
+│  └──────────────┘  └──────────────┘  └──────────────────────────┘   │
+│                              │                                       │
+│                     ┌────────┴────────┐                             │
+│                     │   API Service   │                             │
+│                     └────────┬────────┘                             │
+└──────────────────────────────┼──────────────────────────────────────┘
+                               │ HTTP/REST + WebSocket
+┌──────────────────────────────┼──────────────────────────────────────┐
+│                      SERVER (Express.js)                            │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                    Route Handlers                             │   │
+│  │  sessionManagement | moduleCreator | publicSession | admin    │   │
+│  │  themes | media | analytics | gamification                    │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                    Services Layer                             │   │
+│  │  database | adminService | sessionManager | auditLogger       │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                    Socket.io Server                           │   │
+│  │  mood:update | theme:update | submodule:advance | wordcloud   │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+                               │
+                     ┌─────────┴─────────┐
+                     │   SQLite Database │
+                     └───────────────────┘
+```
+
+## 2.2 Directory Structure
+
+```
+Compagnon/
+├── client/                      # React Frontend
+│   ├── src/
+│   │   ├── components/          # React Components
+│   │   │   ├── templates/       # Interactive Templates
+│   │   │   └── *.jsx            # Core Components
+│   │   ├── contexts/            # React Contexts
+│   │   ├── services/            # API Client Service
+│   │   └── styles/              # CSS/Accessibility
+│   └── public/                  # Static Assets
+│
+├── server/                      # Express Backend
+│   ├── src/
+│   │   ├── routes/              # API Route Handlers
+│   │   ├── services/            # Business Logic
+│   │   ├── middleware/          # Auth, Rate Limiting
+│   │   ├── migrations/          # Database Migrations
+│   │   └── utils/               # Utilities
+│   └── uploads/                 # Media Storage
+│
+└── database/                    # SQLite Database File
+```
+
+================================================================================
+# 3. SERVER ROUTES & API REFERENCE
+================================================================================
+
+## 3.1 Session Management Routes
+Mount: `/api/session-management`
+File: `server/src/routes/sessionManagement.js`
+
+### Admin Authentication
+| Method | Endpoint                    | Description                      |
+|--------|----------------------------|----------------------------------|
+| POST   | /admin/register            | Register new admin account       |
+| POST   | /admin/login               | Admin login, returns token       |
+
+### Class Management
+| Method | Endpoint                    | Description                      |
+|--------|----------------------------|----------------------------------|
+| GET    | /admin/:adminId/classes    | Get all classes for admin        |
+| GET    | /classes/:classId          | Get single class details         |
+| POST   | /admin/:adminId/classes    | Create new class                 |
+| PUT    | /classes/:classId          | Update class                     |
+| DELETE | /classes/:classId          | Delete class                     |
+| POST   | /classes/:classId/share    | Share class with another admin   |
+
+### Live Session Management
+| Method | Endpoint                           | Description                    |
+|--------|------------------------------------|--------------------------------|
+| POST   | /sessions/start                    | Start new live session         |
+| GET    | /classes/:classId/sessions         | Get active sessions for class  |
+| GET    | /sessions/code/:code               | Get session by join code       |
+| POST   | /sessions/:sessionId/join          | Join session as participant    |
+| GET    | /sessions/:sessionId/participants  | Get session participants       |
+| PUT    | /sessions/:sessionId/participants/:id/role | Update participant role |
+| PUT    | /sessions/:sessionId/navigate      | Update session navigation      |
+| POST   | /sessions/:sessionId/end           | End live session               |
+| POST   | /sessions/advance                  | Advance to next submodule      |
+| POST   | /sessions/force-sync               | Force all clients to position  |
+| GET    | /sessions/state/:code/:moduleId    | Get current session state      |
+
+### Word Cloud
+| Method | Endpoint                           | Description                    |
+|--------|------------------------------------|--------------------------------|
+| POST   | /wordcloud/submit                  | Submit word to cloud           |
+| GET    | /wordcloud/:sessionCode/:subId     | Get all words                  |
+| DELETE | /wordcloud/:sessionCode/:subId     | Clear word cloud               |
+
+---
+
+## 3.2 Module Creator Routes
+Mount: `/api/module-creator`
+File: `server/src/routes/moduleCreator.js`
+
+### Module CRUD
+| Method | Endpoint              | Description                           |
+|--------|-----------------------|---------------------------------------|
+| GET    | /modules              | List all modules (with filters)       |
+| GET    | /modules/:id          | Get single module                     |
+| POST   | /modules              | Create new module                     |
+| PUT    | /modules/:id          | Update module                         |
+| DELETE | /modules/:id          | Delete module                         |
+
+### Submodule CRUD
+| Method | Endpoint                           | Description                   |
+|--------|------------------------------------|-------------------------------|
+| GET    | /modules/:moduleId/submodules      | List submodules               |
+| GET    | /submodules/:id                    | Get single submodule          |
+| POST   | /modules/:moduleId/submodules      | Create submodule              |
+| PUT    | /submodules/:id                    | Update submodule              |
+| DELETE | /submodules/:id                    | Delete submodule              |
+| PUT    | /submodules/reorder                | Reorder submodules            |
+
+### Media Management
+| Method | Endpoint              | Description                           |
+|--------|-----------------------|---------------------------------------|
+| GET    | /media                | List media assets                     |
+| POST   | /media/upload         | Upload media file                     |
+| DELETE | /media/:id            | Delete media asset                    |
+
+### Interactive Results
+| Method | Endpoint                           | Description                   |
+|--------|------------------------------------|-------------------------------|
+| POST   | /quiz/:submoduleId/submit          | Submit quiz answer            |
+| POST   | /quiz/:submoduleId/submit-multi    | Submit multi-question quiz    |
+| GET    | /quiz/:submoduleId/results         | Get quiz results              |
+| POST   | /polls/:submoduleId/vote           | Submit poll vote              |
+| GET    | /polls/:submoduleId/results        | Get poll results              |
+| POST   | /wordcloud/:submoduleId/submit     | Submit word                   |
+| GET    | /wordcloud/:submoduleId/words      | Get word cloud data           |
+
+### Class-Module Management
+| Method | Endpoint                              | Description               |
+|--------|---------------------------------------|---------------------------|
+| GET    | /classes/:classId/modules             | Get class modules         |
+| POST   | /classes/:classId/modules             | Add module to class       |
+| DELETE | /classes/:classId/modules/:id         | Remove module from class  |
+| PUT    | /classes/:classId/modules/reorder     | Reorder class modules     |
+
+---
+
+## 3.3 Public Session Routes
+Mount: `/api/public-session`
+File: `server/src/routes/publicSession.js`
+
+*No authentication required - uses session code*
+
+| Method | Endpoint                              | Description               |
+|--------|---------------------------------------|---------------------------|
+| GET    | /module/:moduleId                     | Get module (public)       |
+| GET    | /module/:moduleId/submodules          | Get submodules (public)   |
+| GET    | /session/:sessionId                   | Get session info          |
+| GET    | /session/:sessionCode/modules         | Get class modules         |
+| POST   | /session/:sessionCode/mood            | Send mood feedback        |
+| PUT    | /session/:code/modules/:id/unlock     | Unlock module (admin)     |
+
+---
+
+## 3.4 Admin Routes
+Mount: `/api/admin`
+File: `server/src/routes/admin.js`
+
+| Method | Endpoint                    | Description                      |
+|--------|----------------------------|----------------------------------|
+| POST   | /login                     | Admin login                      |
+| POST   | /logout                    | Admin logout                     |
+| GET    | /stats                     | Dashboard statistics             |
+| GET    | /participants              | List all participants            |
+| GET    | /participants/:id          | Participant details              |
+| GET    | /analytics/moods           | Mood analytics                   |
+| GET    | /analytics/engagement      | Engagement heatmap               |
+| POST   | /modules/unlock            | Unlock module for participant    |
+| POST   | /broadcast                 | Send broadcast message           |
+| POST   | /participants/:id/kick     | Kick participant                 |
+| POST   | /system/pause              | Pause system                     |
+| POST   | /system/resume             | Resume system                    |
+| POST   | /codes/generate            | Generate secret code             |
+| GET    | /codes                     | List secret codes                |
+| POST   | /codes/:code/deactivate    | Deactivate code                  |
+| GET    | /logs                      | Get admin logs                   |
+| GET    | /export                    | Export data                      |
+
+---
+
+## 3.5 Theme Routes
+Mount: `/api/themes`
+File: `server/src/routes/themes.js`
+
+| Method | Endpoint              | Description                           |
+|--------|-----------------------|---------------------------------------|
+| GET    | /                     | Get all themes                        |
+| GET    | /global/current       | Get current global theme              |
+| GET    | /:id                  | Get specific theme                    |
+| POST   | /save                 | Save/update theme                     |
+| DELETE | /:id                  | Delete theme                          |
+| POST   | /background/upload    | Upload background image               |
+
+---
+
+## 3.6 Media Routes
+Mount: `/api/media`
+File: `server/src/routes/media.js`
+
+| Method | Endpoint              | Description                           |
+|--------|-----------------------|---------------------------------------|
+| POST   | /upload               | Upload & optimize media               |
+| GET    | /assets               | List all assets                       |
+| GET    | /assets/:id           | Get specific asset                    |
+| DELETE | /assets/:id           | Delete asset                          |
+| PUT    | /assets/:id           | Update asset metadata                 |
+
+---
+
+## 3.7 Analytics Routes
+Mount: `/api/analytics`
+File: `server/src/routes/analytics.js`
+
+| Method | Endpoint                      | Description                       |
+|--------|------------------------------|-----------------------------------|
+| GET    | /overview                    | Overall analytics                 |
+| GET    | /session/:id                 | Session-specific analytics        |
+| POST   | /track/view                  | Track submodule view              |
+| POST   | /track/quiz                  | Track quiz submission             |
+| POST   | /track/interaction           | Track interaction                 |
+| GET    | /participant/:userId/progress| Get participant progress          |
+| POST   | /certificate/generate        | Generate certificate              |
+| GET    | /export/:sessionId           | Export analytics report           |
+| GET    | /participant/:userId/report  | Generate participant report       |
+| POST   | /compare                     | Compare multiple sessions         |
+
+---
+
+## 3.8 Gamification Routes
+Mount: `/api/gamification`
+File: `server/src/routes/gamification.js`
+
+| Method | Endpoint              | Description                           |
+|--------|-----------------------|---------------------------------------|
+| POST   | /points/award         | Award points to user                  |
+| GET    | /points/:userId       | Get user points                       |
+| GET    | /leaderboard          | Get leaderboard                       |
+| POST   | /badges/award         | Award badge to user                   |
+| GET    | /badges/:userId       | Get user badges                       |
+| GET    | /badges/available     | Get all available badges              |
+
+---
+
+## 3.9 GDPR Routes
+Mount: `/api/gdpr`
+File: `server/src/routes/gdpr.js`
+
+*GDPR compliance for data export, deletion, anonymization*
+
+| Method | Endpoint              | Description                           |
+|--------|-----------------------|---------------------------------------|
+| GET    | /export               | Export user data (GDPR)               |
+| POST   | /delete               | Delete user data                      |
+| POST   | /anonymize            | Anonymize user data                   |
+| GET    | /admin/report         | Data retention report (admin)         |
+| POST   | /admin/cleanup        | Cleanup old data (admin)              |
+
+---
+
+## 3.10 Legacy Routes (Deprecated)
+
+These routes exist for backward compatibility but should be migrated:
+
+| Mount          | File              | Status    | Notes                         |
+|----------------|-------------------|-----------|-------------------------------|
+| /api/auth      | auth.js           | LEGACY    | Old participant join system   |
+| /api/mood      | mood.js           | LEGACY    | Old mood system (use public)  |
+| /api/modules   | modules.js        | LEGACY    | Old module system             |
+| /api/sandbox   | sandbox.js        | UNUSED    | Code sandbox feature          | // this is for futre use
+| /api/chat      | chat.js           | UNUSED    | Ollama AI chat                | // this is for futre use
+| /api/materials | materials.js      | UNUSED    | Material library              | // ?? unsure if this is deprecated
+================================================================================
+# 4. DATABASE SCHEMA
+================================================================================
+
+## 4.1 Core Tables
+
+### admin_users
+```sql
+CREATE TABLE admin_users (
+  id TEXT PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  email TEXT,
+  display_name TEXT,
+  is_active INTEGER DEFAULT 1,
+  last_login DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### classes
+```sql
+CREATE TABLE classes (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_by TEXT NOT NULL,             -- FK: admin_users.id
+  module_id TEXT,                        -- Deprecated: single module
+  start_date DATETIME,
+  end_date DATETIME,
+  max_participants INTEGER,
+  is_active INTEGER DEFAULT 1,
+  theme_override TEXT,                   -- JSON theme data
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### class_modules
+```sql
+CREATE TABLE class_modules (
+  id TEXT PRIMARY KEY,
+  class_id TEXT NOT NULL,                -- FK: classes.id
+  module_id TEXT NOT NULL,               -- FK: modules.id
+  order_index INTEGER DEFAULT 0,
+  is_locked INTEGER DEFAULT 1,
+  unlocked_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### modules
+```sql
+CREATE TABLE modules (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT,
+  difficulty TEXT,                       -- 'beginner', 'intermediate', 'advanced'
+  estimated_duration INTEGER,            -- minutes
+  prerequisites TEXT,                    -- JSON array
+  learning_objectives TEXT,              -- JSON array
+  theme_override TEXT,                   -- JSON theme data
+  author TEXT DEFAULT 'admin',
+  is_published INTEGER DEFAULT 0,
+  order_index INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### submodules
+```sql
+CREATE TABLE submodules (
+  id TEXT PRIMARY KEY,
+  module_id TEXT NOT NULL,               -- FK: modules.id
+  title TEXT NOT NULL,
+  template_type TEXT NOT NULL,           -- Template identifier
+  content TEXT,                          -- JSON content data
+  styling TEXT,                          -- JSON styling data
+  duration_estimate INTEGER,
+  notes TEXT,
+  order_index INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### live_sessions
+```sql
+CREATE TABLE live_sessions (
+  id TEXT PRIMARY KEY,
+  class_id TEXT NOT NULL,                -- FK: classes.id
+  session_code TEXT UNIQUE NOT NULL,     -- 6-digit join code
+  started_by TEXT NOT NULL,              -- FK: admin_users.id
+  presentation_mode TEXT DEFAULT 'manual',
+  status TEXT DEFAULT 'active',          -- 'active', 'paused', 'ended'
+  current_submodule_id TEXT,
+  current_submodule_index INTEGER DEFAULT 0,
+  started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  ended_at DATETIME
+);
+```
+
+### session_participants
+```sql
+CREATE TABLE session_participants (
+  id TEXT PRIMARY KEY,                   -- UUID
+  session_id TEXT NOT NULL,              -- FK: live_sessions.id
+  participant_name TEXT NOT NULL,
+  role TEXT DEFAULT 'participant',       -- 'participant', 'moderator', 'co-admin'
+  is_online INTEGER DEFAULT 1,
+  joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_activity DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### session_moods
+```sql
+CREATE TABLE session_moods (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,              -- FK: live_sessions.id
+  participant_id TEXT NOT NULL,          -- FK: session_participants.id
+  mood TEXT NOT NULL,                    -- 'confused','thinking','aha','wow','pause_request','overwhelmed'
+  module_id TEXT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### session_activity
+```sql
+CREATE TABLE session_activity (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  participant_id TEXT,
+  activity_type TEXT NOT NULL,           -- 'join', 'leave', 'role_change', etc.
+  activity_data TEXT,                    -- JSON
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## 4.2 Content Tables
+
+### media_assets
+```sql
+CREATE TABLE media_assets (
+  id TEXT PRIMARY KEY,
+  filename TEXT NOT NULL,
+  original_filename TEXT,
+  file_path TEXT NOT NULL,
+  thumbnail_path TEXT,
+  file_type TEXT,                        -- 'image', 'video', 'audio', 'document'
+  mime_type TEXT,
+  file_size INTEGER,
+  width INTEGER,
+  height INTEGER,
+  tags TEXT,                             -- JSON array
+  description TEXT,
+  uploaded_by TEXT,
+  uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  is_optimized INTEGER DEFAULT 0
+);
+```
+
+### themes
+```sql
+CREATE TABLE themes (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  theme_data TEXT NOT NULL,              -- JSON theme configuration
+  is_global INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### wordcloud_words
+```sql
+CREATE TABLE wordcloud_words (
+  id TEXT PRIMARY KEY,
+  session_code TEXT NOT NULL,
+  submodule_id TEXT NOT NULL,
+  word TEXT NOT NULL,
+  participant_id TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## 4.3 Interactive Results Tables
+
+### poll_results
+```sql
+CREATE TABLE poll_results (
+  id TEXT PRIMARY KEY,
+  submodule_id TEXT NOT NULL,
+  session_id TEXT,
+  user_id TEXT,
+  option_selected TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### quiz_responses
+```sql
+CREATE TABLE quiz_responses (
+  id TEXT PRIMARY KEY,
+  session_id TEXT,
+  user_id TEXT,
+  question_id TEXT NOT NULL,
+  answer TEXT NOT NULL,                  -- JSON
+  is_correct INTEGER DEFAULT 0,
+  time_taken INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## 4.4 Analytics Tables
+
+### quiz_analytics
+```sql
+CREATE TABLE quiz_analytics (
+  id TEXT PRIMARY KEY,
+  session_id TEXT,
+  submodule_id TEXT,
+  user_id TEXT,
+  score INTEGER,
+  max_score INTEGER,
+  time_to_complete INTEGER,
+  answers TEXT,                          -- JSON
+  submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### submodule_views
+```sql
+CREATE TABLE submodule_views (
+  id TEXT PRIMARY KEY,
+  session_id TEXT,
+  submodule_id TEXT,
+  user_id TEXT,
+  viewed_at DATETIME,
+  time_spent INTEGER,
+  completed INTEGER DEFAULT 0
+);
+```
+
+### interaction_analytics
+```sql
+CREATE TABLE interaction_analytics (
+  id TEXT PRIMARY KEY,
+  session_id TEXT,
+  submodule_id TEXT,
+  user_id TEXT,
+  interaction_type TEXT,                 -- 'emoji', 'poll', 'wordcloud', 'qa'
+  interaction_data TEXT,                 -- JSON
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### certificates
+```sql
+CREATE TABLE certificates (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  user_name TEXT,
+  module_id TEXT,
+  module_title TEXT,
+  issued_at DATETIME,
+  verification_code TEXT UNIQUE,
+  certificate_data TEXT,                 -- JSON
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## 4.5 Legacy Tables (To Be Removed)
+
+| Table              | Purpose                    | Replacement                |
+|--------------------|----------------------------|----------------------------|
+| participants       | Old participant system     | session_participants       |
+| progress           | Old module progress        | participant_progress       |
+| moods              | Old mood tracking          | session_moods              |
+| chat_history       | Ollama chat history        | (Feature unused)           | // this is for futre use
+| materials          | Material library           | (Feature unused)           | // ?? unsure if this is deprecated
+| sandbox_apps       | Code sandbox               | (Feature unused)           | // this is for futre use
+| sandbox_votes      | Sandbox voting             | (Feature unused)           | // this is for futre use
+
+================================================================================
+# 5. CLIENT COMPONENTS
+================================================================================
+
+## 5.1 Core Application Components
+
+### MainApp.jsx
+**Purpose**: Primary application entry point
+**Location**: `client/src/components/MainApp.jsx`
+**Responsibilities**:
+- Socket.io connection management
+- Authentication state (admin vs participant)
+- Session state management
+- View routing (landing, classes, session, dashboard)
+- Theme application
+
+### App.jsx
+**Purpose**: Legacy wrapper (redirects to MainApp)
+**Location**: `client/src/App.jsx`
+**Note**: Contains old system code behind `useNewSystem = false` flag
+
+---
+
+## 5.2 Session Components
+
+### ActiveSessionView.jsx
+**Purpose**: Live session experience for participants and admin
+**Key Features**:
+- Module/submodule navigation
+- Real-time mood reactions display
+- Socket event handling (mood:update, submodule:advance)
+- Admin controls sidebar
+- FloatingMoodBar integration
+
+### SessionJoinScreen.jsx
+**Purpose**: Session joining interface
+**Features**:
+- Session code entry
+- Participant name input
+- QR code display/scanning
+
+### FloatingMoodBar.jsx
+**Purpose**: Participant mood reaction interface
+**Mood Types**:
+- confused (😕)
+- thinking (🤔)
+- aha (💡)
+- wow (🤯)
+- pause_request (⏸️)
+- overwhelmed (🚨)
+
+---
+
+## 5.3 Admin Components
+
+### AdminDashboard.jsx
+**Purpose**: Admin control center
+**Features**:
+- Session overview
+- Participant management
+- Analytics display
+- Content management access
+
+### AdminControls.jsx  // unused... unsure if this is needed ... bring this back for now??
+**Purpose**: Session control sidebar for admins
+**Features**:
+- Navigation controls
+- Participant list
+- Broadcast messages
+- Session pause/end
+
+### ClassManagement.jsx
+**Purpose**: Class CRUD interface
+**Features**:
+- Create/edit/delete classes
+- Module assignment
+- Session start
+
+### ModuleCreatorV2.jsx
+**Purpose**: Visual module/submodule editor
+**Features**:
+- Drag-and-drop submodule ordering
+- Template selection
+- Content configuration
+- Preview mode
+
+### ThemeDesigner.jsx
+**Purpose**: Visual theme customization
+**Features**:
+- Color picker
+- Font selection
+- Background configuration
+- Live preview
+- Theme save/load
+
+---
+
+## 5.4 Content Display Components
+
+### ModuleViewer.jsx
+**Purpose**: Render submodule content with appropriate template
+**Responsibilities**:
+- Template component selection
+- Navigation state
+- Content passing to templates
+
+---
+
+## 5.5 Orphaned Components (Not Imported)
+
+These components exist but are not used:
+- CertificateGenerator.jsx          // for future use 
+- MentorMatching.jsx                // for future use 
+- Model3DViewer.jsx                 // for future use 
+- MaterialHub.jsx                   // ?? for future use - is this deprecated for we have assets library ??
+- ChatInterface.jsx                 // for future use 
+- MoodBarometer.jsx                 // for future use - is this deprecated for we have mood reactions or should we consolidate ?? 
+
+================================================================================
+# 6. SERVICES LAYER
+================================================================================
+
+## 6.1 Server Services
+
+### database.js
+**Purpose**: SQLite database connection and migrations
+**Methods**:
+- `run(sql, params)` - Execute statement
+- `get(sql, params)` - Get single row
+- `all(sql, params)` - Get all rows
+- `runMigrations()` - Auto-run schema migrations
+
+### adminService.js
+**Purpose**: Admin-specific business logic
+**Methods**:
+- `getDashboardStats()` - Session/participant counts
+- `getParticipantsList()` - List participants
+- `getParticipantDetails(id)` - Detailed participant info
+- `getMoodAnalytics(timeRange)` - Mood statistics
+- `broadcastMessage(message, type)` - Send broadcast        // we should bring in a message system 
+- `kickParticipant(id)` - Remove participant
+- `pauseSystem()` / `resumeSystem()` - Control flow
+
+### sessionManager.js
+**Purpose**: Session lifecycle management
+**Methods**:
+- Session cleanup (end stale sessions)
+- Participant presence tracking
+
+### auditLogger.js
+**Purpose**: Admin action logging for compliance
+**Methods**:
+- `log(action, data)` - Record admin action
+
+---
+
+## 6.2 Legacy Services (To Be Removed)
+
+| Service               | Purpose                    | Replacement           |
+|-----------------------|----------------------------|-----------------------|
+| participantService.js | Old participant system     | sessionManagement     |
+| moodService.js        | Old mood tracking          | publicSession routes  |
+| moduleService.js      | Old module progress        | moduleCreator routes  |
+| materialService.js    | Material library           | (Unused feature)      |
+| ollamaService.js      | AI chat                    | (Unused feature)      |
+| sandboxService.js     | Code sandbox               | (Unused feature)      |
+| gdprService.js        | GDPR compliance            | Keep for future use   |
+
+---
+
+## 6.3 Client API Service
+
+### api.js
+**Location**: `client/src/services/api.js`
+**Purpose**: HTTP client for all API calls
+
+**Active Methods**:
+- Admin: `adminLogin`, `getAdminToken`, admin CRUD
+- Modules: `getCreatorModule`, `createCreatorModule`, submodule CRUD
+- Public: `getPublicModule`, `getPublicSubmodules`
+- Media: `getMediaAssets`, `deleteMediaAsset`
+
+**Legacy Methods (To Remove)**:
+- `join()`, `getSession()`, `getModules()`, `completeModule()`
+- `sendMood()`, `getMoodHistory()`
+- `sendChatMessage()`, `getChatHistory()`, `getChatStatus()`
+- `getMaterials()`, `getMaterial()`, `getMaterialSummary()`
+
+================================================================================
+# 7. REAL-TIME COMMUNICATION (WEBSOCKETS)
+================================================================================
+
+## 7.1 Socket.io Configuration
+
+**Server**: `server/src/index.js`
+**Port**: Same as HTTP server (default 3000)
+**CORS**: Localhost + ngrok domains
+
+## 7.2 Socket Events
+
+### Client → Server Events
+
+| Event              | Payload                           | Description              |
+|--------------------|-----------------------------------|--------------------------|
+| ping               | -                                 | Connection check         |
+| design:update      | { scope, theme }                  | Design change            |
+| theme:getCurrent   | -                                 | Request current theme    |
+| theme:update       | { theme, timestamp }              | Update theme             |
+| theme:setGlobal    | { theme }                         | Set global theme         |
+| submodule:advance  | { moduleId, allowedIndex }        | Admin advances session   |
+| module:navigate    | { moduleId, submoduleIndex }      | Module navigation        |
+| module:sync        | { moduleId, submoduleIndex }      | Sync all clients         |
+| session:navigate   | { sessionId, submoduleIndex }     | Session navigation       |
+
+### Server → Client Events
+
+| Event               | Payload                          | Description              |
+|---------------------|----------------------------------|--------------------------|
+| pong                | { timestamp }                    | Ping response            |
+| design:update       | { scope, theme }                 | Broadcast design change  |
+| theme:current       | { theme, timestamp }             | Current theme response   |
+| theme:update        | { theme, timestamp, source }     | Theme update broadcast   |
+| mood:update         | { participantId, name, mood }    | Real-time mood reaction  |
+| feedback:pause      | { participantId, nickname }      | Pause request alert      |
+| feedback:overwhelmed| { participantId, nickname }      | Overwhelm alert          |
+| submodule:advance   | { sessionCode, moduleId, index } | Advance broadcast        |
+| module:force-sync   | { sessionCode, moduleId, index } | Force navigation         |
+| wordcloud:update    | { sessionCode, submoduleId, words } | Word cloud update     |
+| admin:broadcast     | { message, type }                | Admin broadcast          |
+| admin:kick          | { participantId }                | Kick notification        |
+| admin:system_pause  | { timestamp }                    | System pause             |
+| admin:system_resume | { timestamp }                    | System resume            |
+
+================================================================================
+# 8. TEMPLATE SYSTEM
+================================================================================
+
+## 8.1 Available Templates
+
+Templates are stored in `client/src/components/templates/`
+
+| Template                    | Purpose                                    |
+|-----------------------------|--------------------------------------------|
+| TitleTemplate               | Title/cover slide                          |
+| SlideTemplate               | Standard presentation slide                | // test this
+| ContentTemplate             | Rich text content                          |
+| BlockContentTemplate        | Block-based layout                         | // test this
+| SplitScreenTemplate         | Two-column layout                          |
+| MediaTemplate               | Image/video/audio display                  |
+| EmbedTemplate               | External content embed (iframe)            |
+| PollTemplate                | Single/multi choice polls                  |
+| MultiPollTemplate           | Multiple poll questions                    | // test this
+| QuizTemplate                | Single quiz question                       |
+| MultiQuizTemplate           | Multiple quiz questions                    | // test this
+| WordCloudTemplate           | Interactive word cloud                     |
+| EnhancedWordCloudTemplate   | Advanced word cloud                        | // test this
+| DiscussionBoardTemplate     | Q&A / Discussion threads                   | // test this
+| TableTemplate               | Data table display                         |
+| TimelineTemplate            | Timeline visualization                     |
+| AppGalleryTemplate          | Showcase apps/projects                     | // test this
+| ResourceLibraryTemplate     | File/resource links                        |
+| ResultsComparisonTemplate   | Compare quiz/poll results                  | // test this
+| BlankCanvasTemplate         | Empty canvas for custom content            |
+// bring in mind map template
+
+## 8.2 Template Content Structure
+
+Each submodule has a `template_type` and `content` (JSON):
+
+```javascript
+{
+  template_type: "poll",
+  content: {
+    question: "What is your favorite color?",
+    options: ["Red", "Blue", "Green"],
+    allowMultiple: false,
+    showResults: true
+  }
+}
+```
+
+## 8.3 Template Styling
+
+Templates support custom styling via `styling` JSON:
+
+```javascript
+{
+  styling: {
+    backgroundColor: "#1e1b4b",
+    textColor: "#ffffff",
+    fontSize: "18px",
+    padding: "20px"
+  }
+}
+```
+
+================================================================================
+# 9. AUTHENTICATION & AUTHORIZATION
+================================================================================
+
+## 9.1 Admin Authentication
+
+**Flow**:
+1. Admin submits username/password to `/api/session-management/admin/login`
+2. Server validates with bcrypt
+3. Server generates random 64-character token
+4. Token stored in memory (adminSessions map)
+5. Token returned to client, stored in localStorage
+6. Subsequent requests include token in Authorization header
+
+**Token Format**: `Authorization: Bearer {token}`
+
+**Session Duration**: 24 hours
+
+## 9.2 Participant Authentication
+
+**Flow**:
+1. Participant joins via session code + name
+2. POST to `/api/session-management/sessions/:id/join`
+3. Server creates session_participants record with UUID
+4. UUID returned as participantId
+5. Stored in client localStorage
+6. Used in headers for mood/interaction calls
+
+**No password required** - session-based access only
+
+## 9.3 Admin Middleware
+
+**File**: `server/src/middleware/adminAuth.js`
+
+```javascript
+const requireAdmin = async (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  const session = adminSessions.get(token);
+  
+  if (!session || session.expiresAt < Date.now()) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  req.admin = session;
+  next();
+};
+```
+
+================================================================================
+# 10. FEATURE MODULES
+================================================================================
+
+## 10.1 Theme System
+
+**Capabilities**:
+- Global theme (applies to all sessions)
+- Class-level theme override
+- Module-level theme override
+- Page-specific styles
+
+**Theme Properties**:
+```javascript
+{
+  name: "Custom Theme",
+  colors: {
+    primaryColor: "#6366f1",
+    secondaryColor: "#8b5cf6",
+    accentColor: "#f59e0b",
+    textPrimary: "#ffffff",
+    textSecondary: "#94a3b8",
+    appBackgroundGradient: "linear-gradient(...)"
+  },
+  fonts: {
+    fontFamily: "Inter, sans-serif",
+    fontSize: "medium"
+  },
+  pageStyles: {
+    landing: { background: "...", textColor: "..." },
+    session: { ... }
+  }
+}
+```
+
+## 10.2 Live Mood Reactions
+
+**Mood Types**:
+| Mood          | Emoji | Purpose                          |
+|---------------|-------|----------------------------------|
+| confused      | 😕    | Participant is confused          |
+| thinking      | 🤔    | Needs time to think              |
+| aha           | 💡    | Understanding achieved           |
+| wow           | 🤯    | Amazed/impressed                 |
+| pause_request | ⏸️    | Request presentation pause       |
+| overwhelmed   | 🚨    | Feeling overwhelmed              |
+
+**Real-time Flow**:
+1. Participant clicks mood in FloatingMoodBar
+2. POST to `/api/public-session/session/:code/mood`
+3. Server records in session_moods table
+4. Server emits `mood:update` via Socket.io
+5. Admin sees animated reaction in ActiveSessionView
+
+## 10.3 Word Cloud
+
+**Flow**:
+1. Submodule uses WordCloudTemplate
+2. Participants submit words via form
+3. POST to `/api/session-management/wordcloud/submit`
+4. Server broadcasts `wordcloud:update` event
+5. All clients see updated word cloud in real-time
+
+## 10.4 Polls & Quizzes
+
+**Poll Flow**:
+1. Participant votes on option
+2. POST to `/api/module-creator/polls/:id/vote`
+3. Results update (can be shown live or hidden until end)
+
+**Quiz Flow**:
+1. Participant answers question(s)
+2. POST to `/api/module-creator/quiz/:id/submit`
+3. Score calculated server-side
+4. Results shown to participant
+
+================================================================================
+# 11. KNOWN ISSUES & TECHNICAL DEBT
+================================================================================
+
+## 11.1 Critical Issues
+
+1. **Duplicate Participant Systems**
+   - OLD: `participants` table with `p_xxx` IDs
+   - NEW: `session_participants` table with UUIDs
+   - Impact: Confusion, potential data inconsistency
+   - Resolution: Remove legacy system
+
+2. **500 Errors on Analytics/Gamification**
+   - Missing database tables: `user_total_points`, `user_points`, `user_badges`
+   - Resolution: Create tables or disable routes
+
+3. **Legacy Mood API Still Callable**
+   - `/api/mood/update` still registered
+   - Uses old `participants` table
+   - Resolution: Remove route registration
+
+## 11.2 Orphaned Code
+
+**Components** (6):
+- CertificateGenerator.jsx      // for future use
+- MentorMatching.jsx            // for future use
+- Model3DViewer.jsx             // for future use
+- MaterialHub.jsx               // unsure if this is deprecated for we have assets system
+- ChatInterface.jsx             // for ai chat ... or admin<->client, client<-> client chats ??
+- MoodBarometer.jsx             // deprecated or use with new moods feedback system
+
+**Routes** (4):
+- auth.js (legacy)
+- mood.js (legacy)
+- modules.js (legacy)
+- sandbox.js, chat.js, materials.js (unused features)
+
+**Services** (6):
+- participantService.js
+- moodService.js
+- moduleService.js
+- materialService.js
+- ollamaService.js
+- sandboxService.js
+
+## 11.3 Duplicate Code
+
+1. **Authentication middleware** copied in 5+ route files  
+   - Should extract to shared middleware  // yes, definately
+
+2. **Mood endpoints** in both `mood.js` and `publicSession.js`
+   - Should consolidate to publicSession.js     // yes
+
+3. **Word cloud endpoints** in both `sessionManagement.js` and `moduleCreator.js`
+   - Should consolidate         // can we as we fixed this to a colaboration word cloud system
+
+## 11.4 Missing Features
+
+1. **Gamification tables** not created
+2. **Analytics tables** partially missing
+3. **Certificate generation** UI not implemented
+4. **GDPR endpoints** not connected to UI
+
+## 11.5 Performance Considerations
+
+1. **SQLite** may become bottleneck with many concurrent users
+2. **Socket.io memory** - admin sessions stored in memory  // how can we consolidate this??
+3. **Image optimization** - Sharp processing on every upload  // can we use cloudinary or something??
+
+================================================================================
+# END OF DOCUMENT
+================================================================================
+
+Document Version: 2.0
+Last Updated: 2026-01-18
+Maintainer: Development Team
+
+For questions or updates, refer to the codebase at:
+- Client: client/src/
+- Server: server/src/
+- Database: database/compagnon.db
+

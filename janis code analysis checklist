@@ -1,0 +1,231 @@
+# COMPAGNON CODEBASE ANALYSIS CHECKLIST
+# Generated: 2026-01-18
+# Status: [ ] = TODO, [x] = DONE, [-] = SKIPPED/DEFERRED
+
+================================================================================
+## CRITICAL ISSUES (Fix First)
+================================================================================
+
+### Duplicate Participant Systems
+[ ] Decide: Keep NEW session-based system, deprecate OLD participant system // yes, keep sessions, remove old participants system
+[ ] Remove or disable legacy /api/auth routes (auth.js) // yes if truly legacy
+[ ] Remove or disable legacy /api/mood routes (mood.js) // yes if truly legacy
+[ ] Remove or disable legacy /api/modules routes (modules.js) // yes if truly legacy
+[ ] Clean up participantService.js (legacy) // yes
+[ ] Clean up moodService.js (legacy, duplicates publicSession.js) // yes
+[ ] Clean up moduleService.js (legacy) // is it??
+[ ] Remove legacy database tables: participants, progress, moods // i dont get why we created new systems when we had those, but since we did, remove the old stuff
+
+### 500 Errors - Missing Database Tables
+[ ] Create user_total_points table for gamification
+[ ] Create user_points table for gamification
+[ ] Create user_badges table for gamification
+[ ] Add missing analytics tables or disable analytics routes
+[ ] Test /api/analytics endpoints after fix
+[ ] Test /api/gamification endpoints after fix
+
+### Legacy Mood API Still Called
+[x] Fixed FloatingMoodBar to use onMoodSelect prop for pause/overwhelmed
+[ ] Remove api.sendMood() fallback in FloatingMoodBar (currently kept for backwards compat)
+[ ] Remove sendMood() method from api.js entirely
+
+================================================================================
+## SERVER ROUTES CLEANUP
+================================================================================
+
+### Routes to REMOVE/DISABLE (Legacy)
+[ ] server/src/routes/auth.js - Old participant join system
+[ ] server/src/routes/mood.js - Old mood system (duplicated in publicSession.js)
+[ ] server/src/routes/modules.js - Old module system
+
+### Routes to REVIEW (Possibly Unused)
+[ ] server/src/routes/sandbox.js - No client calls found // will be integrated for code lab classes??
+[ ] server/src/routes/chat.js - Ollama AI chat, not integrated in MainApp // still not sure if that is coming
+[ ] server/src/routes/materials.js - Material system, no client calls // maybe duplicate for assets?
+[ ] server/src/routes/gdpr.js - GDPR endpoints, no client calls --> what is this? what was it supposed to do?
+
+### Routes that are ACTIVE (Keep)
+[-] server/src/routes/moduleCreator.js - Core functionality
+[-] server/src/routes/sessionManagement.js - New session system
+[-] server/src/routes/publicSession.js - Public session access
+[-] server/src/routes/admin.js - Admin functions
+[-] server/src/routes/themes.js - Theme management
+[-] server/src/routes/media.js - Media upload
+[-] server/src/routes/version.js - Version checking
+[-] server/src/routes/analytics.js - Keep but fix DB tables
+[-] server/src/routes/gamification.js - Keep but fix DB tables
+
+================================================================================
+## SERVER SERVICES CLEANUP
+================================================================================
+
+### Services to REMOVE/DISABLE (Legacy)
+[ ] server/src/services/participantService.js - Uses old participants table
+[ ] server/src/services/moodService.js - Uses old moods table
+[ ] server/src/services/moduleService.js - Uses old progress table
+
+### Services to REVIEW (Possibly Unused)
+[ ] server/src/services/materialService.js - Not called from new system
+[ ] server/src/services/ollamaService.js - AI chat, not integrated // but will be
+[ ] server/src/services/sandboxService.js - App sandbox, not integrated // but should be
+[ ] server/src/services/gdprService.js - GDPR, no client integration // i dont know what this is
+
+### Services that are ACTIVE (Keep)
+[-] server/src/services/database.js - Core
+[-] server/src/services/sessionManager.js - Session cleanup
+[-] server/src/services/adminService.js - Admin functions
+[-] server/src/services/auditLogger.js - Audit logging
+
+================================================================================
+## CLIENT COMPONENTS CLEANUP
+================================================================================
+
+### ORPHAN Components (No imports found - REMOVE)
+[ ] client/src/components/CertificateGenerator.jsx
+[ ] client/src/components/MentorMatching.jsx
+[ ] client/src/components/Model3DViewer.jsx
+[ ] client/src/components/MaterialHub.jsx
+[ ] client/src/components/ChatInterface.jsx
+[ ] client/src/components/MoodBarometer.jsx
+
+### LEGACY Components (Only used in old App.jsx system)
+[ ] client/src/components/JoinScreen.jsx - Old join screen
+[ ] client/src/components/ModuleList.jsx - Old module list (also in AdminProjectorView)
+[ ] client/src/components/AdminLogin.jsx - Old admin login
+[ ] client/src/components/AdminProjectorView.jsx - Old projector view
+[ ] client/src/components/QRCodeButton.jsx - Old QR button
+
+### Components to REVIEW (Imported but check if functional)
+[ ] AdaptiveDifficulty.jsx - Check if fully functional
+[ ] BranchingScenario.jsx - Check if fully functional
+[ ] BreakoutRooms.jsx - Check if fully functional
+[ ] CoPresentingMode.jsx - Check if fully functional
+[ ] CodePlayground.jsx - Check if fully functional
+[ ] DiscussionForum.jsx - Check if fully functional
+[ ] InteractionHeatmap.jsx - Check if fully functional
+[ ] LearningPaths.jsx - Check if fully functional
+[ ] ScreenShareSetup.jsx - Check if fully functional
+[ ] VirtualWhiteboard.jsx - Check if fully functional
+
+### ACTIVE Components (Keep)
+[-] MainApp.jsx - Main entry point
+[-] AdminAuthModal.jsx
+[-] SessionJoinScreen.jsx
+[-] ClassManagement.jsx
+[-] ActiveSessionView.jsx
+[-] AdminDashboard.jsx
+[-] AccessibilityControls.jsx
+[-] UpdateNotification.jsx
+[-] ThemeDesigner.jsx
+[-] FloatingMoodBar.jsx
+[-] ModuleViewer.jsx
+[-] ModuleCreatorV2.jsx
+[-] All templates in templates/ folder
+
+================================================================================
+## API.JS CLIENT SERVICE CLEANUP
+================================================================================
+
+### Legacy Methods to REMOVE
+[ ] join() - Uses old /api/auth/join
+[ ] getSession() - Uses old /api/auth/session
+[ ] getModules() - Uses old /api/modules
+[ ] completeModule() - Uses old system
+[ ] sendMood() - Uses old /api/mood/update
+[ ] getMoodHistory() - Uses old system
+[ ] sendChatMessage() - Ollama chat (unused)
+[ ] getChatHistory() - Ollama chat (unused)
+[ ] getChatStatus() - Ollama chat (unused)
+[ ] getMaterials() - Unused material system
+[ ] getMaterial() - Unused material system
+[ ] getMaterialSummary() - Unused material system
+
+================================================================================
+## DATABASE CLEANUP
+================================================================================
+
+### Legacy Tables to REMOVE (After confirming no usage)
+[ ] participants - Old participant system
+[ ] progress - Old module progress
+[ ] moods - Old mood tracking
+[ ] chat_history - Old chat system
+[ ] materials - Unused material system
+[ ] material_access - Unused material system
+[ ] sandbox_apps - Unused sandbox system
+[ ] sandbox_votes - Unused sandbox system
+
+### Tables to CREATE (Missing)
+[ ] user_total_points - For gamification
+[ ] user_points - For gamification
+[ ] user_badges - For gamification
+
+### Tables that are ACTIVE (Keep)
+[-] live_sessions
+[-] session_participants
+[-] session_activity
+[-] session_moods
+[-] classes
+[-] class_modules
+[-] modules
+[-] submodules
+[-] themes
+[-] media_assets
+[-] wordcloud_words
+[-] admin_settings
+
+================================================================================
+## APP.JSX CLEANUP
+================================================================================
+
+[ ] Remove dead code in App.jsx (entire old system behind useNewSystem=false)
+[ ] App.jsx can be simplified to just render <MainApp />
+[ ] Remove unused imports in App.jsx (JoinScreen, ModuleList, AdminLogin, etc.)
+
+================================================================================
+## CODE QUALITY IMPROVEMENTS
+================================================================================
+
+### Remove Duplicate Authentication Logic
+[ ] Extract authentication middleware to shared file
+[ ] Currently duplicated in: mood.js, modules.js, chat.js, materials.js, sandbox.js
+
+### EventBus Cleanup
+[ ] Review eventBus usage - some events may be legacy
+[ ] feedback:pause and feedback:overwhelmed now emitted from two places
+
+### Console.log Cleanup
+[ ] Remove debug console.log statements added during development
+[ ] Keep only essential logging
+
+================================================================================
+## TESTING AFTER CLEANUP
+================================================================================
+
+[ ] Test admin login flow
+[ ] Test session creation and joining
+[ ] Test module viewing
+[ ] Test mood reactions (all types)
+[ ] Test theme changes
+[ ] Test media uploads
+[ ] Test analytics (after DB fix)
+[ ] Test gamification (after DB fix)
+
+================================================================================
+## NOTES
+================================================================================
+
+- The codebase has TWO parallel systems:
+  1. OLD: participants table with p_xxx IDs, used by auth.js, mood.js, modules.js
+  2. NEW: session_participants table with UUIDs, used by sessionManagement.js, publicSession.js
+  
+- MainApp.jsx is the new entry point, App.jsx is legacy wrapper
+- useNewSystem = true means old system code never runs but is still loaded
+
+- Priority order:
+  1. Fix 500 errors (DB tables)
+  2. Remove legacy routes/services
+  3. Remove orphan components
+  4. Clean up api.js
+  5. Database cleanup
+  6. Code quality
+

@@ -1,0 +1,14 @@
+add submodule template : mind map
+integrate white board 
+add local ai chat --> ollama / gemma system
+test all submap templates in creation, admin live session
+test and refine styling system
+add chat trainer <--> student; student <--> student; group chat live session
+
+test live session with multiple users and real content
+
+new role based system :      
+        class trainer (= current admin) --> class trainer (can create class, add students, manage class, start live session ) --> student (can join class, ask questions, participate in live session)
+        admin --> new role (can set system styling, create class trainer, manage class trainer, manage student, manage admin, manage system, manage users, manage roles, manage settings, manage ai, manage billing, manage subscriptions, manage payments  )
+        student --> new role (can join class, ask questions, participate in live session, manage profile, manage settings, manage billing, manage subscriptions, manage payments)
+        guest ( = current client user) --> new role (can join class on invite, ask questions, participate in live session, manage profile, manage settings, manage billing, manage subscriptions, manage payments)
