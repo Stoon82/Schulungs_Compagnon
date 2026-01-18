@@ -209,6 +209,106 @@ router.get('/session/:sessionCode/modules', async (req, res) => {
   }
 });
 
+// Send mood feedback from session participant
+router.post('/session/:sessionCode/mood', async (req, res) => {
+  try {
+    const { sessionCode } = req.params;
+    const { participantId, mood, moduleId } = req.body;
+
+    // Validate session
+    const session = await db.get(`
+      SELECT s.* FROM live_sessions s
+      WHERE s.session_code = ? AND s.status = 'active'
+    `, [sessionCode]);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found or not active'
+      });
+    }
+
+    // Validate participant belongs to this session
+    const participant = await db.get(`
+      SELECT * FROM session_participants 
+      WHERE id = ? AND session_id = ?
+    `, [participantId, session.id]);
+
+    if (!participant) {
+      return res.status(403).json({
+        success: false,
+        error: 'Participant not found in this session'
+      });
+    }
+
+    // Valid moods
+    const validMoods = ['confused', 'thinking', 'aha', 'wow', 'pause_request', 'overwhelmed'];
+    if (!validMoods.includes(mood)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid mood type'
+      });
+    }
+
+    // Record the mood (using session_participant_id)
+    const moodId = require('uuid').v4();
+    await db.run(`
+      INSERT INTO session_moods (id, session_id, participant_id, mood, module_id, timestamp)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `, [moodId, session.id, participantId, mood, moduleId || null]);
+
+    // Emit socket events for real-time updates
+    const io = req.app.get('io');
+    if (io) {
+      // Emit mood update
+      io.emit('mood:update', {
+        participantId,
+        participantName: participant.participant_name,
+        mood,
+        moduleId,
+        sessionCode,
+        timestamp: new Date().toISOString()
+      });
+
+      // Emit special feedback events
+      if (mood === 'pause_request') {
+        console.log('⏸️ Broadcasting feedback:pause for session participant');
+        io.emit('feedback:pause', {
+          participantId,
+          nickname: participant.participant_name,
+          moduleId,
+          sessionCode,
+          timestamp: new Date().toISOString()
+        });
+      } else if (mood === 'overwhelmed') {
+        console.log('🚨 Broadcasting feedback:overwhelmed for session participant');
+        io.emit('feedback:overwhelmed', {
+          participantId,
+          nickname: participant.participant_name,
+          moduleId,
+          sessionCode,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: moodId,
+        mood,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error recording session mood:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to record mood'
+    });
+  }
+});
+
 // Unlock a module in a live session (admin only)
 router.put('/session/:sessionCode/modules/:classModuleId/unlock', async (req, res) => {
   try {

@@ -151,6 +151,9 @@ app.get('/', (req, res) => {
   });
 });
 
+// Make io accessible to routes via app.get('io')
+app.set('io', io);
+
 eventBus.on('admin:broadcast', (data) => {
   io.emit('admin:broadcast', data);
 });
@@ -268,6 +271,31 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('🎨 Error saving global theme:', error);
     }
+  });
+
+  // Session/Module navigation events - broadcast to all clients
+  socket.on('submodule:advance', (data) => {
+    console.log(`📍 Submodule advance from admin - Module: ${data.moduleId}, AllowedIndex: ${data.allowedIndex}`);
+    // Broadcast to ALL clients so participants can continue
+    io.emit('submodule:advance', data);
+  });
+
+  socket.on('module:navigate', (data) => {
+    console.log(`📍 Module navigate - Module: ${data.moduleId}, Index: ${data.submoduleIndex}`);
+    // Broadcast to ALL clients
+    io.emit('module:navigate', data);
+  });
+
+  socket.on('module:sync', (data) => {
+    console.log(`📍 Module sync - Module: ${data.moduleId}, Index: ${data.submoduleIndex}`);
+    // Broadcast to ALL clients
+    io.emit('module:sync', data);
+  });
+
+  socket.on('session:navigate', (data) => {
+    console.log(`📍 Session navigate - Session: ${data.sessionId}, Index: ${data.submoduleIndex}`);
+    // Broadcast to ALL clients
+    io.emit('session:navigate', data);
   });
 });
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Crown, Shield, UserCheck, X, Copy, Check, LogOut, User, Trophy, Bell, Download } from 'lucide-react';
+import { Users, Crown, Shield, UserCheck, X, Copy, Check, LogOut, User, Trophy, Bell, Download, Pause, AlertTriangle } from 'lucide-react';
 import ModuleViewer from './ModuleViewer';
 import ClassSessionView from './ClassSessionView';
 import AdminNavigationBar from './AdminNavigationBar';
@@ -8,6 +8,7 @@ import PersonalDashboard from './PersonalDashboard';
 import Leaderboard from './Leaderboard';
 import StudyReminders from './StudyReminders';
 import OfflinePackageExport from './OfflinePackageExport';
+import FloatingMoodBar from './FloatingMoodBar';
 import api from '../services/api';
 
 function ActiveSessionView({ session, adminUser, participantData, socket, onEndSession }) {
@@ -21,6 +22,10 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showStudyReminders, setShowStudyReminders] = useState(false);
   const [showOfflineExport, setShowOfflineExport] = useState(false);
+  
+  // Live feedback state
+  const [recentAlerts, setRecentAlerts] = useState([]);
+  const [liveMoodReactions, setLiveMoodReactions] = useState([]);
 
   const isAdmin = !!adminUser;
 
@@ -54,10 +59,52 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
       }
     });
 
+    // Live mood feedback listeners (for admin display)
+    socket.on('mood:update', (data) => {
+      console.log('[ActiveSessionView] Mood update received:', data);
+      const moodEmoji = {
+        confused: '😕',
+        thinking: '🤔',
+        aha: '💡',
+        wow: '🤩',
+        pause_request: '⏸️',
+        overwhelmed: '🚨'
+      };
+      setLiveMoodReactions(prev => [{
+        ...data,
+        emoji: moodEmoji[data.mood] || '❓',
+        timestamp: Date.now(),
+        id: Math.random()
+      }, ...prev].slice(0, 10));
+    });
+
+    socket.on('feedback:pause', (data) => {
+      console.log('[ActiveSessionView] 🔔 Pause request received:', data);
+      setRecentAlerts(prev => [{
+        type: 'pause',
+        participant: data.nickname || 'Teilnehmer',
+        timestamp: Date.now(),
+        id: Math.random()
+      }, ...prev].slice(0, 5));
+    });
+
+    socket.on('feedback:overwhelmed', (data) => {
+      console.log('[ActiveSessionView] 🔔 Overwhelmed alert received:', data);
+      setRecentAlerts(prev => [{
+        type: 'overwhelmed',
+        participant: data.nickname || 'Teilnehmer',
+        timestamp: Date.now(),
+        id: Math.random()
+      }, ...prev].slice(0, 5));
+    });
+
     return () => {
       socket.off('participant:joined');
       socket.off('participant:left');
       socket.off('session:navigate');
+      socket.off('mood:update');
+      socket.off('feedback:pause');
+      socket.off('feedback:overwhelmed');
     };
   }, [socket, session.id]);
 
@@ -66,9 +113,16 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
       console.log('[ActiveSessionView] Loading session data, module_id:', session.module_id);
       console.log('[ActiveSessionView] isAdmin:', isAdmin);
       console.log('[ActiveSessionView] session_code:', session.session_code);
+      console.log('[ActiveSessionView] session.modules:', session.modules);
       
+      // For multi-module class sessions, we don't need a specific module_id
+      // The ClassSessionView component will handle showing all modules
       if (!session.module_id) {
-        console.error('[ActiveSessionView] No module_id in session:', session);
+        if (session.modules && session.modules.length > 0) {
+          console.log('[ActiveSessionView] Multi-module class session - no single module_id needed');
+          return; // ClassSessionView will handle this
+        }
+        console.warn('[ActiveSessionView] No module_id and no modules in session:', session);
         return;
       }
       
@@ -240,7 +294,7 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
             <div>
               <h1 className="text-xl font-bold text-white">{session.class_name}</h1>
               <p className="text-sm text-gray-400">
-                {module?.title || 'Lädt...'}
+                {module?.title || (session.modules?.length > 0 ? `${session.modules.length} Module verfügbar` : 'Lädt...')}
               </p>
             </div>
           </div>
@@ -357,7 +411,7 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
             onExit={onEndSession}
             participantData={participantData}
           />
-        ) : module && submodules.length > 0 ? (
+        ) : session.module_id && module && submodules.length > 0 ? (
           /* Single module session - show ModuleViewer directly (legacy) */
           <ModuleViewer
             moduleId={session.module_id}
@@ -367,11 +421,20 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
             sessionCode={session.session_code}
             isAdmin={isAdmin}
           />
-        ) : (
+        ) : session.module_id ? (
+          /* Single module session but still loading */
           <div className="flex items-center justify-center h-full relative z-10">
             <div className="text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
               <p className="text-white text-lg">Modul wird geladen...</p>
+            </div>
+          </div>
+        ) : (
+          /* No module_id and no modules - show error state */
+          <div className="flex items-center justify-center h-full relative z-10">
+            <div className="text-center p-8 bg-white/5 rounded-xl border border-white/10">
+              <p className="text-white text-lg mb-2">Keine Module in dieser Sitzung</p>
+              <p className="text-gray-400 text-sm">Diese Sitzung hat keine verfügbaren Module.</p>
             </div>
           </div>
         )}
@@ -473,6 +536,96 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
           </div>
         )}
       </div>
+
+      {/* Live Reactions Display (Admin view - shows on beamer) */}
+      {isAdmin && (liveMoodReactions.length > 0 || recentAlerts.length > 0) && (
+        <div className="fixed bottom-6 left-6 z-40 space-y-2 max-w-sm">
+          {/* Urgent Alerts */}
+          {recentAlerts.map((alert) => (
+            <div
+              key={alert.id}
+              className={`animate-pulse p-4 rounded-xl border backdrop-blur-lg shadow-2xl ${
+                alert.type === 'pause'
+                  ? 'bg-yellow-500/20 border-yellow-500/50'
+                  : 'bg-red-500/20 border-red-500/50'
+              }`}
+              style={{ animation: 'slideIn 0.3s ease-out' }}
+            >
+              <div className="flex items-center gap-3">
+                {alert.type === 'pause' ? (
+                  <Pause size={24} className="text-yellow-400" />
+                ) : (
+                  <AlertTriangle size={24} className="text-red-400" />
+                )}
+                <div>
+                  <p className={`font-semibold ${alert.type === 'pause' ? 'text-yellow-300' : 'text-red-300'}`}>
+                    {alert.type === 'pause' ? 'Pause erbeten' : 'Hilfe benötigt'}
+                  </p>
+                  <p className="text-sm text-gray-300">{alert.participant}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Live Mood Reactions */}
+          <div className="flex flex-wrap gap-2">
+            {liveMoodReactions.slice(0, 5).map((reaction) => (
+              <div
+                key={reaction.id}
+                className="bg-black/40 backdrop-blur-lg rounded-full px-3 py-2 border border-white/20 animate-bounce"
+                style={{ 
+                  animation: 'popIn 0.5s ease-out',
+                  animationDelay: `${Math.random() * 0.2}s`
+                }}
+              >
+                <span className="text-2xl">{reaction.emoji}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Floating Mood Bar (Client view - for sending feedback) */}
+      {!isAdmin && participantData && (
+        <FloatingMoodBar 
+          currentModuleId={module?.id || null}
+          onMoodSelect={async (mood, moduleId) => {
+            try {
+              // Use session-specific mood endpoint for session participants
+              const response = await fetch(`/api/public-session/session/${session.session_code}/mood`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  participantId: participantData.id,
+                  mood,
+                  moduleId
+                })
+              });
+              const result = await response.json();
+              if (result.success) {
+                console.log('[ActiveSessionView] Mood sent via session API:', mood);
+              } else {
+                console.error('[ActiveSessionView] Mood API error:', result.error);
+              }
+            } catch (error) {
+              console.error('[ActiveSessionView] Failed to send mood:', error);
+            }
+          }}
+        />
+      )}
+
+      {/* CSS for animations */}
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(-100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes popIn {
+          0% { transform: scale(0); opacity: 0; }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

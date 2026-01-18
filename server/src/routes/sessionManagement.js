@@ -450,7 +450,7 @@ router.get('/sessions/code/:code', async (req, res) => {
 
     const session = await db.get(`
       SELECT s.*, c.module_id, c.name as class_name, c.description as class_description,
-        m.title as module_title
+        c.theme_override, m.title as module_title
       FROM live_sessions s
       JOIN classes c ON s.class_id = c.id
       LEFT JOIN modules m ON c.module_id = m.id
@@ -464,9 +464,31 @@ router.get('/sessions/code/:code', async (req, res) => {
       });
     }
 
+    // Fetch modules for multi-module classes
+    const modules = await db.all(`
+      SELECT 
+        cm.id as class_module_id,
+        cm.order_index,
+        cm.is_locked,
+        cm.unlocked_at,
+        m.id, m.title, m.description, m.category, m.difficulty,
+        m.estimated_duration
+      FROM class_modules cm
+      JOIN modules m ON cm.module_id = m.id
+      WHERE cm.class_id = ?
+      ORDER BY cm.order_index ASC
+    `, [session.class_id]);
+
+    // Parse theme_override if it exists
+    const themeOverride = session.theme_override ? JSON.parse(session.theme_override) : null;
+
     res.json({
       success: true,
-      data: session
+      data: {
+        ...session,
+        theme_override: themeOverride,
+        modules: modules.length > 0 ? modules : undefined
+      }
     });
   } catch (error) {
     console.error('Error fetching session:', error);
@@ -602,6 +624,257 @@ router.put('/sessions/:sessionId/navigate', async (req, res) => {
       success: false,
       error: 'Failed to update navigation'
     });
+  }
+});
+
+// Get session state for polling (fallback for socket events)
+router.get('/sessions/state/:sessionCode/:moduleId', async (req, res) => {
+  try {
+    const { sessionCode, moduleId } = req.params;
+    
+    // Get the current allowed index from session_module_state table or session
+    const state = await db.get(`
+      SELECT allowed_index FROM session_module_state 
+      WHERE session_code = ? AND module_id = ?
+    `, [sessionCode, moduleId]);
+    
+    if (state) {
+      res.json({
+        success: true,
+        allowedIndex: state.allowed_index
+      });
+    } else {
+      // No state found, return 0 (first submodule)
+      res.json({
+        success: true,
+        allowedIndex: 0
+      });
+    }
+  } catch (error) {
+    console.error('Error getting session state:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get session state'
+    });
+  }
+});
+
+// Admin advances submodule - broadcasts to all clients via server
+router.post('/sessions/advance', async (req, res) => {
+  try {
+    const { sessionCode, moduleId, allowedIndex } = req.body;
+    
+    console.log(`📍 [API] Submodule advance request - Session: ${sessionCode}, Module: ${moduleId}, AllowedIndex: ${allowedIndex}`);
+    
+    // Save to database for polling fallback
+    // First ensure the table exists
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS session_module_state (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_code TEXT NOT NULL,
+        module_id TEXT NOT NULL,
+        allowed_index INTEGER DEFAULT 0,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(session_code, module_id)
+      )
+    `);
+    
+    // Upsert the state
+    await db.run(`
+      INSERT INTO session_module_state (session_code, module_id, allowed_index, updated_at)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(session_code, module_id) 
+      DO UPDATE SET allowed_index = ?, updated_at = CURRENT_TIMESTAMP
+    `, [sessionCode, moduleId, allowedIndex, allowedIndex]);
+    
+    console.log(`📍 [API] Saved state to DB: sessionCode=${sessionCode}, moduleId=${moduleId}, allowedIndex=${allowedIndex}`);
+    
+    // Get the io instance from the app
+    const io = req.app.get('io');
+    
+    if (io) {
+      // Log connected clients count
+      const connectedSockets = io.sockets.sockets.size;
+      console.log(`📍 [API] Connected clients: ${connectedSockets}`);
+      
+      // Broadcast to ALL connected clients
+      io.emit('submodule:advance', {
+        sessionCode,
+        moduleId,
+        allowedIndex
+      });
+      console.log(`📍 [API] Broadcasted submodule:advance to ${connectedSockets} clients`);
+    } else {
+      console.warn('📍 [API] Socket.io not available');
+    }
+
+    res.json({
+      success: true,
+      message: 'Advance broadcasted and saved'
+    });
+  } catch (error) {
+    console.error('Error broadcasting advance:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to broadcast advance'
+    });
+  }
+});
+
+// Admin forces all clients to a specific position
+router.post('/sessions/force-sync', async (req, res) => {
+  try {
+    const { sessionCode, moduleId, targetIndex } = req.body;
+    
+    console.log(`📍 [API] Force sync request - Session: ${sessionCode}, Module: ${moduleId}, TargetIndex: ${targetIndex}`);
+    
+    // Get the io instance from the app
+    const io = req.app.get('io');
+    
+    if (io) {
+      const connectedSockets = io.sockets.sockets.size;
+      console.log(`📍 [API] Connected clients: ${connectedSockets}`);
+      
+      // Broadcast force navigation to ALL connected clients
+      io.emit('module:force-sync', {
+        sessionCode,
+        moduleId,
+        targetIndex
+      });
+      console.log(`📍 [API] Broadcasted module:force-sync to ${connectedSockets} clients`);
+    }
+
+    res.json({
+      success: true,
+      message: 'Force sync broadcasted'
+    });
+  } catch (error) {
+    console.error('Error force syncing:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to force sync'
+    });
+  }
+});
+
+// Word Cloud - Submit a word
+router.post('/wordcloud/submit', async (req, res) => {
+  try {
+    const { sessionCode, submoduleId, word, participantId } = req.body;
+    
+    if (!sessionCode || !submoduleId || !word) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    // Ensure table exists
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS wordcloud_words (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_code TEXT NOT NULL,
+        submodule_id TEXT NOT NULL,
+        word TEXT NOT NULL,
+        participant_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Insert the word
+    await db.run(`
+      INSERT INTO wordcloud_words (session_code, submodule_id, word, participant_id)
+      VALUES (?, ?, ?, ?)
+    `, [sessionCode, submoduleId, word.toLowerCase().trim(), participantId || 'admin']);
+    
+    console.log(`☁️ Word submitted: "${word}" for session ${sessionCode}, submodule ${submoduleId}`);
+    
+    // Get all words for this submodule
+    const words = await db.all(`
+      SELECT word, COUNT(*) as count 
+      FROM wordcloud_words 
+      WHERE session_code = ? AND submodule_id = ?
+      GROUP BY word
+      ORDER BY count DESC
+    `, [sessionCode, submoduleId]);
+    
+    // Broadcast to all clients via socket
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('wordcloud:update', {
+        sessionCode,
+        submoduleId,
+        words
+      });
+      console.log(`☁️ Broadcasted wordcloud:update with ${words.length} unique words`);
+    }
+
+    res.json({
+      success: true,
+      words
+    });
+  } catch (error) {
+    console.error('Error submitting word:', error);
+    res.status(500).json({ success: false, error: 'Failed to submit word' });
+  }
+});
+
+// Word Cloud - Get all words for a submodule
+router.get('/wordcloud/:sessionCode/:submoduleId', async (req, res) => {
+  try {
+    const { sessionCode, submoduleId } = req.params;
+    
+    // Ensure table exists
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS wordcloud_words (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_code TEXT NOT NULL,
+        submodule_id TEXT NOT NULL,
+        word TEXT NOT NULL,
+        participant_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    const words = await db.all(`
+      SELECT word, COUNT(*) as count 
+      FROM wordcloud_words 
+      WHERE session_code = ? AND submodule_id = ?
+      GROUP BY word
+      ORDER BY count DESC
+    `, [sessionCode, submoduleId]);
+
+    res.json({
+      success: true,
+      words
+    });
+  } catch (error) {
+    console.error('Error getting words:', error);
+    res.status(500).json({ success: false, error: 'Failed to get words' });
+  }
+});
+
+// Word Cloud - Clear all words (admin only)
+router.delete('/wordcloud/:sessionCode/:submoduleId', async (req, res) => {
+  try {
+    const { sessionCode, submoduleId } = req.params;
+    
+    await db.run(`
+      DELETE FROM wordcloud_words 
+      WHERE session_code = ? AND submodule_id = ?
+    `, [sessionCode, submoduleId]);
+    
+    // Broadcast clear to all clients
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('wordcloud:update', {
+        sessionCode,
+        submoduleId,
+        words: []
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error clearing words:', error);
+    res.status(500).json({ success: false, error: 'Failed to clear words' });
   }
 });
 

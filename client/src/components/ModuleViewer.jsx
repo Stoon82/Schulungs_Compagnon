@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { ChevronLeft, ChevronRight, Home, BookOpen, Clock, CheckCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, BookOpen, Clock, CheckCircle, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TitleTemplate, 
@@ -34,7 +34,19 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
   const [progress, setProgress] = useState({});
   const [transitionMode, setTransitionMode] = useState('fade'); // 'fade', 'slide', 'zoom'
   const [submoduleCompleted, setSubmoduleCompleted] = useState(false); // Track if current submodule is completed
-  const [adminAllowedIndex, setAdminAllowedIndex] = useState(0); // Admin-controlled max index participants can access
+  const [adminAllowedIndex, setAdminAllowedIndex] = useState(0); // Highest index admin has ever advanced to (never decreases)
+
+  // Blocking template types that require admin approval to advance
+  const BLOCKING_TEMPLATES = ['quiz', 'poll'];
+
+  // Check if current submodule blocks advancement
+  const currentSubmoduleBlocks = submodules[currentIndex] && 
+    BLOCKING_TEMPLATES.includes(submodules[currentIndex].template_type);
+
+  // Participants can advance if:
+  // 1. Not on a blocking submodule, OR
+  // 2. Admin has already advanced past this submodule (adminAllowedIndex > currentIndex)
+  const canParticipantAdvance = !currentSubmoduleBlocks || (adminAllowedIndex > currentIndex);
 
   // Animation variants
   const transitions = {
@@ -66,11 +78,46 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
 
+  // Polling fallback for session state (in case socket events don't work)
   useEffect(() => {
-    if (!socket) return;
+    if (!sessionCode || isAdmin) return;
+
+    const pollSessionState = async () => {
+      try {
+        const response = await fetch(`/api/session-management/sessions/state/${sessionCode}/${moduleId}`);
+        const data = await response.json();
+        if (data.success && data.allowedIndex !== undefined) {
+          // Only update if server value is higher (never decrease)
+          if (data.allowedIndex > adminAllowedIndex) {
+            console.log('[ModuleViewer] Poll: Updating allowedIndex to:', data.allowedIndex);
+            setAdminAllowedIndex(data.allowedIndex);
+            // Don't auto-navigate - just update allowed index so "Weiter" button appears
+          }
+        }
+      } catch (error) {
+        // Silently ignore poll errors
+      }
+    };
+
+    // Poll every 3 seconds as fallback
+    const interval = setInterval(pollSessionState, 3000);
+    // Also poll immediately
+    pollSessionState();
+
+    return () => clearInterval(interval);
+  }, [sessionCode, moduleId, isAdmin, adminAllowedIndex]);
+
+  useEffect(() => {
+    if (!socket) {
+      console.log('[ModuleViewer] No socket available');
+      return;
+    }
+
+    console.log('[ModuleViewer] Setting up socket listeners, moduleId:', moduleId, 'isAdmin:', isAdmin);
 
     // Listen for navigation events from admin
     socket.on('module:navigate', (data) => {
+      console.log('[ModuleViewer] Received module:navigate:', data);
       if (data.moduleId === moduleId) {
         setCurrentIndex(data.submoduleIndex);
       }
@@ -78,20 +125,29 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
 
     // Listen for sync events
     socket.on('module:sync', (data) => {
+      console.log('[ModuleViewer] Received module:sync:', data);
       if (data.moduleId === moduleId) {
         setCurrentIndex(data.submoduleIndex);
       }
     });
 
-    // Listen for admin allowing next submodule
+    // Listen for admin allowing next submodule (just updates allowed index, doesn't force navigation)
     socket.on('submodule:advance', (data) => {
+      console.log('[ModuleViewer] Received submodule:advance:', data, 'my moduleId:', moduleId);
       if (data.moduleId === moduleId) {
-        setAdminAllowedIndex(data.allowedIndex);
-        // Auto-navigate participants to the new submodule
-        if (!isAdmin) {
-          setCurrentIndex(data.allowedIndex);
-          setSubmoduleCompleted(false);
-        }
+        console.log('[ModuleViewer] moduleId matches! Setting allowedIndex to:', data.allowedIndex);
+        // Only update if new value is higher (never decrease)
+        setAdminAllowedIndex(prev => Math.max(prev, data.allowedIndex));
+      }
+    });
+
+    // Listen for admin forcing all clients to a specific position
+    socket.on('module:force-sync', (data) => {
+      console.log('[ModuleViewer] Received module:force-sync:', data, 'my moduleId:', moduleId);
+      if (data.moduleId === moduleId && !isAdmin) {
+        console.log('[ModuleViewer] Force navigating to index:', data.targetIndex);
+        setCurrentIndex(data.targetIndex);
+        setSubmoduleCompleted(false);
       }
     });
 
@@ -99,8 +155,9 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
       socket.off('module:navigate');
       socket.off('module:sync');
       socket.off('submodule:advance');
+      socket.off('module:force-sync');
     };
-  }, [socket, moduleId]);
+  }, [socket, moduleId, isAdmin]);
 
   const loadModule = async () => {
     setLoading(true);
@@ -137,12 +194,11 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
     }
   };
 
-  const goToNext = () => {
-    // In session mode, participants can only advance if admin allows
+  const goToNext = async () => {
+    // In session mode, participants can only advance if allowed
     if (sessionCode && !isAdmin) {
-      // Participants can't advance beyond admin-allowed index
-      if (currentIndex >= adminAllowedIndex) {
-        return; // Can't go further than admin allows
+      if (!canParticipantAdvance) {
+        return; // Blocked on quiz/poll, waiting for admin
       }
     }
     
@@ -152,15 +208,51 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
       markAsViewed(currentIndex);
       setSubmoduleCompleted(false);
       
-      // Admin broadcasts navigation to all participants
-      if (isAdmin && socket && sessionCode) {
-        socket.emit('submodule:advance', {
+      // Admin: update allowed index (only increase, never decrease)
+      if (isAdmin && sessionCode) {
+        const newAllowedIndex = Math.max(adminAllowedIndex, nextIndex);
+        if (newAllowedIndex > adminAllowedIndex) {
+          try {
+            console.log('[ModuleViewer] Admin advancing allowedIndex to:', newAllowedIndex);
+            const response = await fetch('/api/session-management/sessions/advance', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionCode,
+                moduleId,
+                allowedIndex: newAllowedIndex
+              })
+            });
+            const result = await response.json();
+            console.log('[ModuleViewer] Advance API response:', result);
+          } catch (error) {
+            console.error('[ModuleViewer] Error broadcasting advance:', error);
+          }
+          setAdminAllowedIndex(newAllowedIndex);
+        }
+      }
+    }
+  };
+
+  // Admin function to force all clients to current position
+  const forceClientsToHere = async () => {
+    if (!isAdmin || !sessionCode) return;
+    
+    try {
+      console.log('[ModuleViewer] Admin forcing clients to index:', currentIndex);
+      const response = await fetch('/api/session-management/sessions/force-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           sessionCode,
           moduleId,
-          allowedIndex: nextIndex
-        });
-        setAdminAllowedIndex(nextIndex);
-      }
+          targetIndex: currentIndex
+        })
+      });
+      const result = await response.json();
+      console.log('[ModuleViewer] Force sync response:', result);
+    } catch (error) {
+      console.error('[ModuleViewer] Error forcing sync:', error);
     }
   };
 
@@ -372,6 +464,7 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
                     isAdmin={isAdmin}
                     socket={socket}
                     sessionCode={sessionCode}
+                    submoduleId={currentSubmodule.id}
                     onComplete={() => setSubmoduleCompleted(true)}
                   />
                 </Suspense>
@@ -404,8 +497,8 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
 
           {/* Next button - different behavior for admin vs participants in session */}
           {sessionCode && !isAdmin ? (
-            // Participants: show waiting message if can't advance
-            currentIndex >= adminAllowedIndex ? (
+            // Participants: show waiting message only on blocking submodules when not yet allowed
+            !canParticipantAdvance ? (
               <div className="px-6 py-3 bg-yellow-500/20 text-yellow-400 rounded-lg flex items-center gap-2">
                 <Clock size={20} />
                 <span>Warten auf Kursleiter...</span>
@@ -421,15 +514,27 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
               </button>
             )
           ) : (
-            // Admin or non-session: normal next button
-            <button
-              onClick={goToNext}
-              disabled={currentIndex === submodules.length - 1}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-2"
-            >
-              <span>{isAdmin && sessionCode ? 'Alle weiter' : 'Weiter'}</span>
-              <ChevronRight size={20} />
-            </button>
+            // Admin: normal next button + sync button
+            <div className="flex items-center gap-3">
+              {sessionCode && (
+                <button
+                  onClick={forceClientsToHere}
+                  className="px-4 py-3 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg transition-all flex items-center gap-2 text-sm"
+                  title="Alle Teilnehmer hierher synchronisieren"
+                >
+                  <Users size={18} />
+                  <span>Sync</span>
+                </button>
+              )}
+              <button
+                onClick={goToNext}
+                disabled={currentIndex === submodules.length - 1}
+                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-2"
+              >
+                <span>{isAdmin && sessionCode ? 'Alle weiter' : 'Weiter'}</span>
+                <ChevronRight size={20} />
+              </button>
+            </div>
           )}
         </div>
       </div>

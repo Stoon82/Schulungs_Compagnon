@@ -31,6 +31,9 @@ function QuizTemplate({ content, onChange, onSave, isEditing, isSessionMode = fa
 
   const [matchingAnswers, setMatchingAnswers] = useState({});
   const [draggedItem, setDraggedItem] = useState(null);
+  const [selectedMatchItem, setSelectedMatchItem] = useState(null); // For tap-to-match on mobile
+  const [touchDragItem, setTouchDragItem] = useState(null); // For touch drag-and-drop
+  const [touchDragPosition, setTouchDragPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     if (content && !isEditing) {
@@ -647,6 +650,56 @@ function QuizTemplate({ content, onChange, onSave, isEditing, isSessionMode = fa
     return items;
   };
 
+  // Touch drag-and-drop handlers
+  const handleTouchStart = (e, type, value) => {
+    if (submitted) return;
+    const touch = e.touches[0];
+    setTouchDragItem({ type, value });
+    setTouchDragPosition({ x: touch.clientX, y: touch.clientY });
+    setSelectedMatchItem(null);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchDragItem) return;
+    e.preventDefault(); // Prevent scrolling while dragging
+    const touch = e.touches[0];
+    setTouchDragPosition({ x: touch.clientX, y: touch.clientY });
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchDragItem) return;
+    
+    const touch = e.changedTouches[0];
+    const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    // Find the drop target element with data attributes
+    let targetElement = dropTarget;
+    while (targetElement && !targetElement.dataset?.matchType) {
+      targetElement = targetElement.parentElement;
+    }
+    
+    if (targetElement && targetElement.dataset?.matchType) {
+      const targetType = targetElement.dataset.matchType;
+      const targetValue = targetElement.dataset.matchValue;
+      
+      // Check if we can make a match (opposite types)
+      if (touchDragItem.type === 'left' && targetType === 'right') {
+        const isTargetMatched = Object.values(matchingAnswers).includes(targetValue);
+        if (!isTargetMatched) {
+          setMatchingAnswers({ ...matchingAnswers, [touchDragItem.value]: targetValue });
+        }
+      } else if (touchDragItem.type === 'right' && targetType === 'left') {
+        const isTargetMatched = matchingAnswers[targetValue];
+        if (!isTargetMatched) {
+          setMatchingAnswers({ ...matchingAnswers, [targetValue]: touchDragItem.value });
+        }
+      }
+    }
+    
+    setTouchDragItem(null);
+    setTouchDragPosition({ x: 0, y: 0 });
+  };
+
   // Handle moving to next question in session mode
   const handleNextQuestion = () => {
     if (sessionQuestionIndex < totalQuestions - 1) {
@@ -655,6 +708,8 @@ function QuizTemplate({ content, onChange, onSave, isEditing, isSessionMode = fa
       setSelectedAnswers([]);
       setShortAnswer('');
       setMatchingAnswers({});
+      setSelectedMatchItem(null); // Reset tap-to-match selection
+      setTouchDragItem(null); // Reset touch drag
     } else {
       // All questions completed
       setAllQuestionsCompleted(true);
@@ -880,29 +935,87 @@ function QuizTemplate({ content, onChange, onSave, isEditing, isSessionMode = fa
 
       {/* Matching Pairs - Interactive */}
       {activeQuestion.questionType === 'matching' && activeQuestion.matchingPairs && (
-        <div className="space-y-4">
+        <div className="space-y-4" onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
           <p className="text-sm text-purple-400 text-center mb-2">
-            Ziehen Sie einen Begriff auf die passende Zuordnung (oder umgekehrt). Klicken Sie auf ein Paar, um es zu trennen.
+            📱 Ziehen Sie per Touch oder tippen Sie auf einen Begriff und dann auf die Zuordnung. 
+            💻 Drag & Drop funktioniert auch. Tippen Sie auf ein Paar, um es zu trennen.
           </p>
           
+          {/* Touch drag ghost element */}
+          {touchDragItem && (
+            <div 
+              className="fixed z-50 px-4 py-2 bg-purple-500 text-white rounded-lg shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-1/2 opacity-90"
+              style={{ left: touchDragPosition.x, top: touchDragPosition.y }}
+            >
+              {touchDragItem.value}
+            </div>
+          )}
+          
+          {/* Selection indicator for tap-to-match */}
+          {selectedMatchItem && !touchDragItem && (
+            <div className="bg-purple-500/20 border border-purple-500 rounded-lg p-3 text-center">
+              <span className="text-purple-300">
+                Ausgewählt: <strong className="text-white">{selectedMatchItem.value}</strong>
+                {' '}- Tippen Sie auf {selectedMatchItem.type === 'left' ? 'eine Zuordnung' : 'einen Begriff'}
+              </span>
+              <button
+                onClick={() => setSelectedMatchItem(null)}
+                className="ml-3 text-xs text-gray-400 hover:text-white underline"
+              >
+                Abbrechen
+              </button>
+            </div>
+          )}
+          
           {/* Two columns side by side - both draggable, both droppable */}
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-2 gap-4 sm:gap-8">
             {/* Left column - Terms (draggable + drop zone for right items) */}
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-gray-300 text-center">Begriffe</h4>
               {activeQuestion.matchingPairs.map((pair, index) => {
                 const isMatched = matchingAnswers[pair.left];
                 const isBeingDragged = draggedItem?.type === 'left' && draggedItem?.value === pair.left;
+                const isSelected = selectedMatchItem?.type === 'left' && selectedMatchItem?.value === pair.left;
+                
+                const handleLeftItemClick = () => {
+                  if (submitted) return;
+                  
+                  // If already matched, unmatch it
+                  if (isMatched) {
+                    const newAnswers = { ...matchingAnswers };
+                    delete newAnswers[pair.left];
+                    setMatchingAnswers(newAnswers);
+                    setSelectedMatchItem(null);
+                    return;
+                  }
+                  
+                  // If a right item is selected, create match
+                  if (selectedMatchItem?.type === 'right') {
+                    const rightValue = selectedMatchItem.value;
+                    const isRightMatched = Object.values(matchingAnswers).includes(rightValue);
+                    if (!isRightMatched) {
+                      setMatchingAnswers({ ...matchingAnswers, [pair.left]: rightValue });
+                      setSelectedMatchItem(null);
+                    }
+                    return;
+                  }
+                  
+                  // Select this left item for matching
+                  setSelectedMatchItem({ type: 'left', value: pair.left });
+                };
                 
                 return (
                   <div
                     key={`left-${pair.id}`}
+                    data-match-type="left"
+                    data-match-value={pair.left}
                     draggable={!submitted && !isMatched}
                     onDragStart={(e) => {
                       if (!submitted && !isMatched) {
                         e.dataTransfer.effectAllowed = 'move';
                         e.dataTransfer.setData('text/plain', pair.left);
                         setDraggedItem({ type: 'left', value: pair.left });
+                        setSelectedMatchItem(null);
                       }
                     }}
                     onDragEnd={() => setDraggedItem(null)}
@@ -927,32 +1040,33 @@ function QuizTemplate({ content, onChange, onSave, isEditing, isSessionMode = fa
                         setDraggedItem(null);
                       }
                     }}
-                    onClick={() => {
-                      if (!submitted && isMatched) {
-                        const newAnswers = { ...matchingAnswers };
-                        delete newAnswers[pair.left];
-                        setMatchingAnswers(newAnswers);
+                    onTouchStart={(e) => {
+                      if (!isMatched) {
+                        handleTouchStart(e, 'left', pair.left);
                       }
                     }}
-                    className={`px-4 py-3 rounded-lg border-2 transition-all select-none ${
+                    onClick={handleLeftItemClick}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all select-none touch-none ${
                       submitted && isMatched && matchingAnswers[pair.left] === pair.right
                         ? 'bg-green-500/20 border-green-500 text-green-400'
                         : submitted && isMatched
                         ? 'bg-red-500/20 border-red-500 text-red-400'
                         : isMatched
                         ? 'bg-blue-500/20 border-blue-500 text-white cursor-pointer hover:bg-blue-500/30'
+                        : isSelected
+                        ? 'bg-purple-500/40 border-purple-400 text-white ring-2 ring-purple-400'
                         : isBeingDragged
                         ? 'bg-purple-500/40 border-purple-400 text-white cursor-grabbing opacity-50'
-                        : 'bg-white/5 border-white/20 text-white cursor-grab hover:bg-white/10 hover:border-purple-500/50'
+                        : 'bg-white/5 border-white/20 text-white cursor-pointer hover:bg-white/10 hover:border-purple-500/50 active:bg-purple-500/20'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span>{pair.left}</span>
+                      <span className="break-words">{pair.left}</span>
                       {isMatched && (
-                        <span className="text-xs text-blue-400">→ {matchingAnswers[pair.left]}</span>
+                        <span className="text-xs text-blue-400 ml-2 flex-shrink-0">→ {matchingAnswers[pair.left]}</span>
                       )}
                       {submitted && isMatched && (
-                        <span className={matchingAnswers[pair.left] === pair.right ? 'text-green-400' : 'text-red-400'}>
+                        <span className={`ml-2 flex-shrink-0 ${matchingAnswers[pair.left] === pair.right ? 'text-green-400' : 'text-red-400'}`}>
                           {matchingAnswers[pair.left] === pair.right ? '✓' : '✗'}
                         </span>
                       )}
@@ -969,16 +1083,47 @@ function QuizTemplate({ content, onChange, onSave, isEditing, isSessionMode = fa
                 const isMatched = Object.values(matchingAnswers).includes(rightItem);
                 const matchedLeft = Object.keys(matchingAnswers).find(k => matchingAnswers[k] === rightItem);
                 const isBeingDragged = draggedItem?.type === 'right' && draggedItem?.value === rightItem;
+                const isSelected = selectedMatchItem?.type === 'right' && selectedMatchItem?.value === rightItem;
+                
+                const handleRightItemClick = () => {
+                  if (submitted) return;
+                  
+                  // If already matched, unmatch it
+                  if (isMatched && matchedLeft) {
+                    const newAnswers = { ...matchingAnswers };
+                    delete newAnswers[matchedLeft];
+                    setMatchingAnswers(newAnswers);
+                    setSelectedMatchItem(null);
+                    return;
+                  }
+                  
+                  // If a left item is selected, create match
+                  if (selectedMatchItem?.type === 'left') {
+                    const leftValue = selectedMatchItem.value;
+                    const isLeftMatched = matchingAnswers[leftValue];
+                    if (!isLeftMatched) {
+                      setMatchingAnswers({ ...matchingAnswers, [leftValue]: rightItem });
+                      setSelectedMatchItem(null);
+                    }
+                    return;
+                  }
+                  
+                  // Select this right item for matching
+                  setSelectedMatchItem({ type: 'right', value: rightItem });
+                };
                 
                 return (
                   <div
                     key={`right-${rightItem}-${index}`}
+                    data-match-type="right"
+                    data-match-value={rightItem}
                     draggable={!submitted && !isMatched}
                     onDragStart={(e) => {
                       if (!submitted && !isMatched) {
                         e.dataTransfer.effectAllowed = 'move';
                         e.dataTransfer.setData('text/plain', rightItem);
                         setDraggedItem({ type: 'right', value: rightItem });
+                        setSelectedMatchItem(null);
                       }
                     }}
                     onDragEnd={() => setDraggedItem(null)}
@@ -1003,32 +1148,33 @@ function QuizTemplate({ content, onChange, onSave, isEditing, isSessionMode = fa
                         setDraggedItem(null);
                       }
                     }}
-                    onClick={() => {
-                      if (!submitted && isMatched && matchedLeft) {
-                        const newAnswers = { ...matchingAnswers };
-                        delete newAnswers[matchedLeft];
-                        setMatchingAnswers(newAnswers);
+                    onTouchStart={(e) => {
+                      if (!isMatched) {
+                        handleTouchStart(e, 'right', rightItem);
                       }
                     }}
-                    className={`px-4 py-3 rounded-lg border-2 transition-all select-none ${
+                    onClick={handleRightItemClick}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all select-none touch-none ${
                       submitted && isMatched && matchedLeft && activeQuestion.matchingPairs.find(p => p.left === matchedLeft)?.right === rightItem
                         ? 'bg-green-500/20 border-green-500 text-green-400'
                         : submitted && isMatched
                         ? 'bg-red-500/20 border-red-500 text-red-400'
                         : isMatched
                         ? 'bg-blue-500/20 border-blue-500 text-white cursor-pointer hover:bg-blue-500/30'
+                        : isSelected
+                        ? 'bg-purple-500/40 border-purple-400 text-white ring-2 ring-purple-400'
                         : isBeingDragged
                         ? 'bg-purple-500/40 border-purple-400 text-white cursor-grabbing opacity-50'
-                        : 'bg-purple-500/10 border-purple-500/30 text-white cursor-grab hover:bg-purple-500/20 hover:border-purple-500'
+                        : 'bg-purple-500/10 border-purple-500/30 text-white cursor-pointer hover:bg-purple-500/20 hover:border-purple-500 active:bg-purple-500/30'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       {isMatched && matchedLeft && (
-                        <span className="text-xs text-blue-400">{matchedLeft} ←</span>
+                        <span className="text-xs text-blue-400 mr-2 flex-shrink-0">{matchedLeft} ←</span>
                       )}
-                      <span className={isMatched ? '' : 'w-full'}>{rightItem || `Option ${index + 1}`}</span>
+                      <span className={`break-words ${isMatched ? '' : 'w-full'}`}>{rightItem || `Option ${index + 1}`}</span>
                       {submitted && isMatched && matchedLeft && (
-                        <span className={activeQuestion.matchingPairs.find(p => p.left === matchedLeft)?.right === rightItem ? 'text-green-400' : 'text-red-400'}>
+                        <span className={`ml-2 flex-shrink-0 ${activeQuestion.matchingPairs.find(p => p.left === matchedLeft)?.right === rightItem ? 'text-green-400' : 'text-red-400'}`}>
                           {activeQuestion.matchingPairs.find(p => p.left === matchedLeft)?.right === rightItem ? '✓' : '✗'}
                         </span>
                       )}

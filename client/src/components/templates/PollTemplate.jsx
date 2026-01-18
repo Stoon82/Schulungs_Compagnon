@@ -36,6 +36,18 @@ function PollTemplate({ content, onChange, onSave, isEditing, isSessionMode = fa
   // Live results from server (per question)
   const [liveResults, setLiveResults] = useState({}); // { questionIndex: { optionVotes: [], ratingVotes: {}, textResponses: [], totalVotes: 0 } }
   
+  // Computed values for questions
+  const totalQuestions = formData.questions?.length || 1;
+  const activeQuestionIndex = isSessionMode ? sessionQuestionIndex : formData.currentQuestionIndex;
+  const currentQuestion = formData.questions?.[activeQuestionIndex] || formData.questions?.[0] || {
+    question: '',
+    questionType: 'single-choice',
+    options: ['', ''],
+    showResults: 'after',
+    ratingScale: 5,
+    ratingStyle: 'stars'
+  };
+  
   // Listen for live poll results from socket
   useEffect(() => {
     if (!socket || !isSessionMode) return;

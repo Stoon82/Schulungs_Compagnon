@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Cloud, Download, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
-function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
+function WordCloudTemplate({ content = {}, onSave, isEditing = true, isSessionMode = false, sessionCode = null, socket = null, submoduleId = null, isAdmin = false }) {
   const [formData, setFormData] = useState({
     prompt: content.prompt || '',
     maxWords: content.maxWords || 100,
@@ -21,6 +21,44 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
     animationStyle: content.animationStyle || 'fade', // 'fade', 'grow', 'slide', 'none'
     wordRotation: content.wordRotation || 'mixed' // 'horizontal', 'vertical', 'mixed', 'diagonal'
   });
+
+  // Shared words from all participants (session mode)
+  const [sharedWords, setSharedWords] = useState([]);
+
+  // Load shared words on mount and listen for updates (session mode)
+  useEffect(() => {
+    if (!isSessionMode || !sessionCode || !submoduleId) return;
+
+    // Fetch existing words
+    const fetchWords = async () => {
+      try {
+        const response = await fetch(`/api/session-management/wordcloud/${sessionCode}/${submoduleId}`);
+        const data = await response.json();
+        if (data.success) {
+          setSharedWords(data.words);
+        }
+      } catch (error) {
+        console.error('[WordCloud] Error fetching words:', error);
+      }
+    };
+    fetchWords();
+
+    // Listen for real-time updates via socket
+    if (socket) {
+      const handleWordCloudUpdate = (data) => {
+        if (data.sessionCode === sessionCode && data.submoduleId === submoduleId) {
+          console.log('[WordCloud] Received update:', data.words.length, 'words');
+          setSharedWords(data.words);
+        }
+      };
+      socket.on('wordcloud:update', handleWordCloudUpdate);
+      return () => socket.off('wordcloud:update', handleWordCloudUpdate);
+    }
+
+    // Polling fallback if no socket
+    const interval = setInterval(fetchWords, 3000);
+    return () => clearInterval(interval);
+  }, [isSessionMode, sessionCode, submoduleId, socket]);
 
   const [newBannedWord, setNewBannedWord] = useState('');
 
@@ -114,7 +152,7 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
   const [error, setError] = useState('');
   const wordCloudRef = useRef(null);
 
-  const handleSubmitWord = () => {
+  const handleSubmitWord = async () => {
     const word = userWord.trim().toLowerCase();
     
     if (!word) {
@@ -142,10 +180,28 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
       return;
     }
     
+    // Track locally submitted words to prevent duplicates from same user
     setSubmittedWords([...submittedWords, word]);
     setUserWord('');
     setError('');
-    // TODO: Send word to backend via socket/API
+    
+    // In session mode, submit to server for shared word cloud
+    if (isSessionMode && sessionCode && submoduleId) {
+      try {
+        await fetch('/api/session-management/wordcloud/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionCode,
+            submoduleId,
+            word,
+            participantId: isAdmin ? 'admin' : localStorage.getItem('participantId')
+          })
+        });
+      } catch (error) {
+        console.error('[WordCloud] Error submitting word:', error);
+      }
+    }
   };
 
   const handleExportImage = () => {
@@ -249,53 +305,71 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
           </div>
         )}
 
-        {/* Word Cloud Display */}
-        <div className="bg-white/5 rounded-xl p-8 border border-white/10 min-h-[400px] relative">
-          {submittedWords.length > 0 && (
-            <button
-              onClick={handleExportImage}
-              className="absolute top-4 right-4 px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all flex items-center gap-2 text-sm"
-              title="Als Bild exportieren"
-            >
-              <Download size={16} />
-              Export
-            </button>
-          )}
-          {submittedWords.length > 0 ? (
-            <div 
-              ref={wordCloudRef} 
-              className={`min-h-[300px] ${
-                formData.layoutStyle === 'top-lines' ? 'flex flex-col items-center gap-2' :
-                formData.layoutStyle === 'centered' ? 'flex flex-wrap items-center justify-center gap-3' :
-                formData.layoutStyle === 'spiral' ? 'relative flex items-center justify-center' :
-                formData.layoutStyle === 'wave' ? 'flex flex-wrap items-end justify-center gap-2 pb-8' :
-                'flex flex-wrap gap-3'
-              }`}
-            >
-              {submittedWords.map((word, index, arr) => {
-                // Calculate font size based on sizeMethod
-                let fontSize;
-                const minSize = formData.fontSizes?.min || 16;
-                const maxSize = formData.fontSizes?.max || 48;
-                
-                switch (formData.sizeMethod) {
-                  case 'frequency':
-                    // Count occurrences (for now simulate with index position)
-                    const count = arr.filter(w => w === word).length;
-                    const maxCount = Math.max(...arr.map(w => arr.filter(x => x === w).length));
-                    fontSize = minSize + ((count / maxCount) * (maxSize - minSize));
-                    break;
-                  case 'timing':
-                    // Earlier words are bigger
-                    fontSize = maxSize - ((index / arr.length) * (maxSize - minSize));
-                    break;
-                  case 'equal':
-                    fontSize = (minSize + maxSize) / 2;
-                    break;
-                  case 'random':
-                  default:
-                    fontSize = Math.floor(Math.random() * (maxSize - minSize)) + minSize;
-                }
+        {/* Word Cloud Display - shows shared words in session mode */}
+        {(() => {
+          // In session mode, use shared words from server; otherwise use local submitted words
+          const displayWords = isSessionMode && sharedWords.length > 0 
+            ? sharedWords 
+            : submittedWords.map(w => ({ word: w, count: 1 }));
+          const hasWords = displayWords.length > 0;
+          const maxCount = hasWords ? Math.max(...displayWords.map(w => w.count || 1)) : 1;
+          const totalWords = displayWords.reduce((sum, w) => sum + (w.count || 1), 0);
+
+          return (
+            <div className="bg-white/5 rounded-xl p-8 border border-white/10 min-h-[400px] relative">
+              {/* Header with stats */}
+              {isSessionMode && hasWords && (
+                <div className="absolute top-4 left-4 flex items-center gap-2 text-sm text-gray-400">
+                  <Cloud size={16} />
+                  <span>{displayWords.length} Wörter • {totalWords} Eingaben</span>
+                </div>
+              )}
+              {hasWords && (
+                <button
+                  onClick={handleExportImage}
+                  className="absolute top-4 right-4 px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all flex items-center gap-2 text-sm"
+                  title="Als Bild exportieren"
+                >
+                  <Download size={16} />
+                  Export
+                </button>
+              )}
+              {hasWords ? (
+                <div 
+                  ref={wordCloudRef} 
+                  className={`min-h-[300px] pt-8 ${
+                    formData.layoutStyle === 'top-lines' ? 'flex flex-col items-center gap-2' :
+                    formData.layoutStyle === 'centered' ? 'flex flex-wrap items-center justify-center gap-3' :
+                    formData.layoutStyle === 'spiral' ? 'relative flex items-center justify-center' :
+                    formData.layoutStyle === 'wave' ? 'flex flex-wrap items-end justify-center gap-2 pb-8' :
+                    'flex flex-wrap gap-3'
+                  }`}
+                >
+                  {displayWords.map((wordData, index) => {
+                    const word = wordData.word || wordData;
+                    const count = wordData.count || 1;
+                    
+                    // Calculate font size based on sizeMethod
+                    let fontSize;
+                    const minSize = formData.fontSizes?.min || 16;
+                    const maxSize = formData.fontSizes?.max || 48;
+                    
+                    switch (formData.sizeMethod) {
+                      case 'frequency':
+                        // Size based on actual count from server
+                        fontSize = minSize + ((count / maxCount) * (maxSize - minSize));
+                        break;
+                      case 'timing':
+                        // Earlier words are bigger
+                        fontSize = maxSize - ((index / displayWords.length) * (maxSize - minSize));
+                        break;
+                      case 'equal':
+                        fontSize = (minSize + maxSize) / 2;
+                        break;
+                      case 'random':
+                      default:
+                        fontSize = Math.floor(Math.random() * (maxSize - minSize)) + minSize;
+                    }
                 
                 const colors = [
                   'text-purple-400',
@@ -370,20 +444,22 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
               </div>
             </div>
           )}
-        </div>
+            </div>
+          );
+        })()}
 
-        {/* Word List Preview */}
+        {/* Word List Preview - shows shared words with counts in session mode */}
         {(formData.displayMode === 'list' || formData.displayMode === 'both') && (
           <div className="bg-white/5 rounded-xl p-6 border border-white/10">
             <h4 className="text-lg font-semibold text-white mb-4">Eingereichte Wörter</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {mockWords.map((word, idx) => (
+              {(isSessionMode && sharedWords.length > 0 ? sharedWords : mockWords.map(w => ({ word: w.text, count: w.value }))).map((wordData, idx) => (
                 <div
                   key={idx}
                   className="bg-white/5 rounded-lg px-4 py-2 border border-white/10 flex items-center justify-between"
                 >
-                  <span className="text-white">{word.text}</span>
-                  <span className="text-sm text-gray-400">{word.value}x</span>
+                  <span className="text-white">{wordData.word || wordData.text}</span>
+                  <span className="text-sm text-gray-400">{wordData.count || wordData.value}x</span>
                 </div>
               ))}
             </div>
