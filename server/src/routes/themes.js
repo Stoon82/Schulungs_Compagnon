@@ -30,6 +30,36 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/themes/global/current - Get current global theme (MUST be before /:id route)
+router.get('/global/current', async (req, res) => {
+  try {
+    const theme = await db.get(
+      'SELECT * FROM themes WHERE is_global = 1 ORDER BY updated_at DESC LIMIT 1'
+    );
+    
+    if (!theme) {
+      return res.json({
+        success: true,
+        data: null
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        ...theme,
+        theme_data: JSON.parse(theme.theme_data)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching global theme:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch global theme'
+    });
+  }
+});
+
 // GET /api/themes/:id - Get specific theme
 router.get('/:id', async (req, res) => {
   try {
@@ -111,36 +141,6 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete theme'
-    });
-  }
-});
-
-// GET /api/themes/global/current - Get current global theme
-router.get('/global/current', async (req, res) => {
-  try {
-    const theme = await db.get(
-      'SELECT * FROM themes WHERE is_global = 1 ORDER BY updated_at DESC LIMIT 1'
-    );
-    
-    if (!theme) {
-      return res.json({
-        success: true,
-        data: null
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: {
-        ...theme,
-        theme_data: JSON.parse(theme.theme_data)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching global theme:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch global theme'
     });
   }
 });

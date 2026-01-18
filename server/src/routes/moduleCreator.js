@@ -1045,7 +1045,12 @@ router.get('/classes/:classId/modules', requireAdmin, async (req, res) => {
 
     res.json({
       success: true,
-      data: modules
+      data: modules.map(m => ({
+        ...m,
+        prerequisites: m.prerequisites ? JSON.parse(m.prerequisites) : [],
+        learning_objectives: m.learning_objectives ? JSON.parse(m.learning_objectives) : [],
+        theme_override: m.theme_override ? JSON.parse(m.theme_override) : null
+      }))
     });
   } catch (error) {
     console.error('Error fetching class modules:', error);

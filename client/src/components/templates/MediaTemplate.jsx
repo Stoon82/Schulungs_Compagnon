@@ -61,10 +61,45 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
     
     if (['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'].includes(ext)) {
       return 'video';
-    } else if (['mp3', 'm4a', 'wav', 'ogg', 'aac', 'flac'].includes(ext)) {
+    } else if (['mp3', 'm4a', 'wav', 'aac', 'flac'].includes(ext)) {
       return 'audio';
-    } else {
+    } else if (['pdf'].includes(ext)) {
+      return 'pdf';
+    } else if (['doc', 'docx'].includes(ext)) {
+      return 'word';
+    } else if (['xls', 'xlsx'].includes(ext)) {
+      return 'excel';
+    } else if (['ppt', 'pptx'].includes(ext)) {
+      return 'powerpoint';
+    } else if (['txt', 'rtf', 'md'].includes(ext)) {
+      return 'text';
+    } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+      return 'archive';
+    } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) {
       return 'image';
+    } else {
+      return 'file';
+    }
+  };
+
+  // Get file name from URL
+  const getFileName = (url) => {
+    if (!url) return 'Datei';
+    const parts = url.split('/');
+    const fileName = parts[parts.length - 1].split('?')[0];
+    return decodeURIComponent(fileName);
+  };
+
+  // Get icon and color for document type
+  const getDocumentStyle = (type) => {
+    switch (type) {
+      case 'pdf': return { icon: '📄', color: 'text-red-400', bg: 'bg-red-500/20' };
+      case 'word': return { icon: '📝', color: 'text-blue-400', bg: 'bg-blue-500/20' };
+      case 'excel': return { icon: '📊', color: 'text-green-400', bg: 'bg-green-500/20' };
+      case 'powerpoint': return { icon: '📽️', color: 'text-orange-400', bg: 'bg-orange-500/20' };
+      case 'text': return { icon: '📃', color: 'text-gray-400', bg: 'bg-gray-500/20' };
+      case 'archive': return { icon: '📦', color: 'text-yellow-400', bg: 'bg-yellow-500/20' };
+      default: return { icon: '📎', color: 'text-purple-400', bg: 'bg-purple-500/20' };
     }
   };
 
@@ -303,6 +338,55 @@ function MediaTemplate({ content, onChange, onSave, isEditing }) {
               >
                 Ihr Browser unterstützt das Audio-Tag nicht.
               </audio>
+            </div>
+          ) : currentMediaType === 'pdf' ? (
+            <div className="bg-gradient-to-br from-red-900/30 to-pink-900/30 rounded-lg shadow-2xl overflow-hidden">
+              <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">📄</span>
+                  <span className="text-white font-medium">{getFileName(currentUrl)}</span>
+                </div>
+                <a
+                  href={currentUrl}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg flex items-center gap-2"
+                >
+                  <Upload size={16} className="rotate-180" />
+                  Download
+                </a>
+              </div>
+              <iframe
+                src={currentUrl}
+                className="w-full h-[500px] bg-white"
+                title={getFileName(currentUrl)}
+              />
+            </div>
+          ) : ['word', 'excel', 'powerpoint', 'text', 'archive', 'file'].includes(currentMediaType) ? (
+            <div className={`${getDocumentStyle(currentMediaType).bg} rounded-lg p-8 shadow-2xl`}>
+              <div className="flex flex-col items-center justify-center py-8">
+                <span className="text-6xl mb-4">{getDocumentStyle(currentMediaType).icon}</span>
+                <p className={`text-lg font-medium ${getDocumentStyle(currentMediaType).color} mb-2`}>
+                  {getFileName(currentUrl)}
+                </p>
+                <p className="text-gray-400 text-sm mb-6">
+                  {currentMediaType === 'word' && 'Microsoft Word Dokument'}
+                  {currentMediaType === 'excel' && 'Microsoft Excel Tabelle'}
+                  {currentMediaType === 'powerpoint' && 'Microsoft PowerPoint Präsentation'}
+                  {currentMediaType === 'text' && 'Textdatei'}
+                  {currentMediaType === 'archive' && 'Archivdatei'}
+                  {currentMediaType === 'file' && 'Datei'}
+                </p>
+                <a
+                  href={currentUrl}
+                  download
+                  className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center gap-2 transition-all"
+                >
+                  <Upload size={18} className="rotate-180" />
+                  Herunterladen
+                </a>
+              </div>
             </div>
           ) : (
             <img

@@ -158,7 +158,10 @@ router.get('/admin/:adminId/classes', async (req, res) => {
 
     res.json({
       success: true,
-      data: classes
+      data: classes.map(c => ({
+        ...c,
+        theme_override: c.theme_override ? JSON.parse(c.theme_override) : null
+      }))
     });
   } catch (error) {
     console.error('Error fetching classes:', error);

@@ -6,6 +6,7 @@ import {
   FolderOpen, Upload, Route
 } from 'lucide-react';
 import api from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 import AdminStats from './AdminStats';
 import AdminParticipants from './AdminParticipants';
 import AdminAnalytics from './AdminAnalytics';
@@ -13,22 +14,28 @@ import AdminControls from './AdminControls';
 import ProjectorMode from './ProjectorMode';
 import ModuleEditor from './ModuleEditor';
 import ModuleCreatorV2 from './ModuleCreatorV2';
-import DesignEditor from './DesignEditor';
+import ThemeDesigner from './ThemeDesigner';
 import AssetLibrary from './AssetLibrary';
 import ModuleImportExport from './ModuleImportExport';
 import LearningPaths from './LearningPaths';
 
 function AdminDashboard({ onLogout, onBackToProjector }) {
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showProjector, setShowProjector] = useState(false);
   const [showModuleEditor, setShowModuleEditor] = useState(false);
   const [showModuleCreator, setShowModuleCreator] = useState(false);
-  const [showDesignEditor, setShowDesignEditor] = useState(false);
+  const [showThemeDesigner, setShowThemeDesigner] = useState(false);
   const [showAssetLibrary, setShowAssetLibrary] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
   const [showLearningPaths, setShowLearningPaths] = useState(false);
+
+  // Get page-specific or global background
+  const pageBackground = theme?.pageStyles?.adminDashboard?.background 
+    || theme?.colors?.appBackgroundGradient 
+    || 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)';
 
   useEffect(() => {
     loadStats();
@@ -67,7 +74,7 @@ function AdminDashboard({ onLogout, onBackToProjector }) {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen" style={{ background: pageBackground }}>
       {/* Header */}
       <header className="bg-black/30 backdrop-blur-lg border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -113,12 +120,12 @@ function AdminDashboard({ onLogout, onBackToProjector }) {
               </button>
               
               <button
-                onClick={() => setShowDesignEditor(true)}
+                onClick={() => setShowThemeDesigner(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 rounded-lg transition-all"
-                title="Design Editor"
+                title="Theme Designer"
               >
                 <Palette size={18} />
-                <span>Design</span>
+                <span>Theme</span>
               </button>
               
               <button
@@ -259,9 +266,9 @@ function AdminDashboard({ onLogout, onBackToProjector }) {
         <ModuleCreatorV2 onClose={() => setShowModuleCreator(false)} />
       )}
 
-      {/* Design Editor Modal */}
-      {showDesignEditor && (
-        <DesignEditor onClose={() => setShowDesignEditor(false)} />
+      {/* Theme Designer Modal */}
+      {showThemeDesigner && (
+        <ThemeDesigner onClose={() => setShowThemeDesigner(false)} />
       )}
 
       {/* Asset Library Modal */}

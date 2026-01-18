@@ -14,16 +14,21 @@ import {
   EmbedTemplate,
   ResourceLibraryTemplate,
   BlankCanvasTemplate,
-  DiscussionBoardTemplate
+  DiscussionBoardTemplate,
+  SlideTemplate,
+  ResultsComparisonTemplate
 } from './templates';
+import TemplateSelector from './TemplateSelector';
 import StylingEditor from './StylingEditor';
 
 const TEMPLATE_TYPES = [
   { value: 'title', label: 'Titel-Folie', icon: '📄', component: TitleTemplate },
   { value: 'content', label: 'Inhalts-Folie', icon: '📝', component: ContentTemplate },
   { value: 'media', label: 'Medien-Präsentation', icon: '🎬', component: MediaTemplate },
+  { value: 'slide', label: 'Folien-Designer', icon: '🖼️', component: SlideTemplate },
   { value: 'quiz', label: 'Interaktives Quiz', icon: '❓', component: QuizTemplate },
   { value: 'poll', label: 'Live-Umfrage', icon: '📊', component: PollTemplate },
+  { value: 'comparison', label: 'Ergebnisvergleich', icon: '📈', component: ResultsComparisonTemplate },
   { value: 'wordcloud', label: 'Wortwolke', icon: '☁️', component: WordCloudTemplate },
   { value: 'appgallery', label: 'App-Galerie', icon: '📱', component: AppGalleryTemplate },
   { value: 'table', label: 'Tabelle/Vergleich', icon: '📊', component: TableTemplate },
@@ -217,12 +222,29 @@ function SubmoduleEditor({ submodule, moduleId, onSave, onClose }) {
                 )}
               </div>
 
-              {/* Styling Panel */}
-              <StylingEditor
-                styling={formData.styling || {}}
-                onChange={(newStyling) => setFormData({ ...formData, styling: newStyling })}
-                label="Styling (Optional)"
+              {/* Template Selection */}
+              <TemplateSelector
+                selectedTemplate={formData.styling}
+                onSelect={(themeData) => setFormData({ ...formData, styling: themeData })}
+                onClear={() => setFormData({ ...formData, styling: {} })}
+                label="Styling-Vorlage auswählen"
+                compact={true}
               />
+
+              {/* Custom Styling Panel */}
+              <details className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10">
+                <summary className="px-6 py-4 cursor-pointer text-sm font-medium text-gray-300 hover:text-white flex items-center justify-between">
+                  <span>Erweiterte Styling-Anpassungen</span>
+                  <span className="text-xs text-gray-500">(Optional)</span>
+                </summary>
+                <div className="px-6 pb-6">
+                  <StylingEditor
+                    styling={formData.styling || {}}
+                    onChange={(newStyling) => setFormData({ ...formData, styling: newStyling })}
+                    label=""
+                  />
+                </div>
+              </details>
 
               {/* Save Button */}
               <button
@@ -254,12 +276,27 @@ function SubmoduleEditor({ submodule, moduleId, onSave, onClose }) {
               <div 
                 className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-8 min-h-[500px]"
                 style={{
-                  background: formData.styling?.background || undefined,
-                  color: formData.styling?.textColor || undefined,
-                  border: formData.styling?.border || undefined,
-                  borderRadius: formData.styling?.borderRadius || undefined,
-                  boxShadow: formData.styling?.boxShadow || undefined,
-                  ...(formData.styling?.customCSS ? {} : {})
+                  background: formData.styling?.background 
+                    || formData.styling?.colors?.appBackgroundGradient 
+                    || formData.styling?.colors?.cardBackground 
+                    || undefined,
+                  color: formData.styling?.textColor 
+                    || formData.styling?.colors?.textPrimary 
+                    || undefined,
+                  border: formData.styling?.borderWidth 
+                    ? `${formData.styling.borderWidth} ${formData.styling.borderStyle || 'solid'} ${formData.styling.borderColor || 'rgba(255,255,255,0.1)'}` 
+                    : (formData.styling?.borders?.width?.default 
+                      ? `${formData.styling.borders.width.default} solid ${formData.styling.colors?.borderDefault || 'rgba(255,255,255,0.1)'}` 
+                      : undefined),
+                  borderRadius: formData.styling?.borderRadius 
+                    || formData.styling?.borders?.defaultRadius 
+                    || undefined,
+                  boxShadow: formData.styling?.boxShadow 
+                    || formData.styling?.shadows?.glow 
+                    || undefined,
+                  backdropFilter: formData.styling?.backdropBlur 
+                    ? `blur(${formData.styling.backdropBlur})` 
+                    : undefined,
                 }}
               >
                 {formData.title && (

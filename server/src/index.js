@@ -177,6 +177,26 @@ eventBus.on('feedback:overwhelmed', (data) => {
   io.emit('feedback:overwhelmed', data);
 });
 
+// Store current global theme in memory for quick access
+let currentGlobalTheme = null;
+
+// Load global theme from database on startup
+const loadGlobalTheme = async () => {
+  try {
+    const db = (await import('./services/database.js')).default;
+    const theme = await db.get(
+      'SELECT * FROM themes WHERE is_global = 1 ORDER BY updated_at DESC LIMIT 1'
+    );
+    if (theme) {
+      currentGlobalTheme = JSON.parse(theme.theme_data);
+      console.log('🎨 Global theme loaded from database');
+    }
+  } catch (error) {
+    console.log('🎨 No global theme found, using defaults');
+  }
+};
+loadGlobalTheme();
+
 io.on('connection', (socket) => {
   console.log(`✅ Client connected: ${socket.id}`);
   
@@ -192,6 +212,62 @@ io.on('connection', (socket) => {
     console.log(`🎨 Design update received - Scope: ${data.scope}`);
     // Broadcast design changes to all connected clients
     io.emit('design:update', data);
+  });
+
+  // Theme-related socket events
+  socket.on('theme:getCurrent', () => {
+    console.log(`🎨 Client ${socket.id} requested current theme`);
+    socket.emit('theme:current', { 
+      theme: currentGlobalTheme,
+      timestamp: Date.now()
+    });
+  });
+
+  socket.on('theme:update', (data) => {
+    console.log(`🎨 Theme update received from ${socket.id}`);
+    // Broadcast theme changes to ALL connected clients (including sender for consistency)
+    io.emit('theme:update', {
+      theme: data.theme,
+      timestamp: data.timestamp || Date.now(),
+      source: socket.id
+    });
+  });
+
+  socket.on('theme:setGlobal', async (data) => {
+    console.log(`🎨 Setting global theme from ${socket.id}`);
+    currentGlobalTheme = data.theme;
+    
+    // Broadcast to all clients
+    io.emit('theme:update', {
+      theme: data.theme,
+      timestamp: Date.now(),
+      isGlobal: true,
+      source: socket.id
+    });
+    
+    // Save to database
+    try {
+      const db = (await import('./services/database.js')).default;
+      const themeId = 'global-theme';
+      const themeData = JSON.stringify(data.theme);
+      const now = new Date().toISOString();
+      
+      const existing = await db.get('SELECT id FROM themes WHERE id = ?', [themeId]);
+      if (existing) {
+        await db.run(
+          'UPDATE themes SET theme_data = ?, updated_at = ? WHERE id = ?',
+          [themeData, now, themeId]
+        );
+      } else {
+        await db.run(
+          'INSERT INTO themes (id, name, theme_data, is_global, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [themeId, 'Global Theme', themeData, 1, now, now]
+        );
+      }
+      console.log('🎨 Global theme saved to database');
+    } catch (error) {
+      console.error('🎨 Error saving global theme:', error);
+    }
   });
 });
 

@@ -3,7 +3,7 @@ import { Plus, Edit3, Trash2, Share2, Play, Calendar, Users, BookOpen } from 'lu
 import api from '../services/api';
 import ClassModuleManager from './ClassModuleManager';
 import ClassViewer from './ClassViewer';
-import StylingEditor from './StylingEditor';
+import TemplateSelector from './TemplateSelector';
 import ModuleCreatorV2 from './ModuleCreatorV2';
 
 function ClassManagement({ adminUser, onStartSession }) {
@@ -202,10 +202,22 @@ function ClassManagement({ adminUser, onStartSession }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((classItem) => (
+          {classes.map((classItem) => {
+            // Get styling from class theme override
+            const themeData = classItem.theme_override;
+            const cardStyle = themeData ? {
+              background: themeData.background || themeData.colors?.appBackgroundGradient || themeData.colors?.cardBackground,
+              color: themeData.textColor || themeData.colors?.textPrimary,
+              borderColor: themeData.borderColor || themeData.colors?.borderDefault,
+              borderRadius: themeData.borderRadius || themeData.borders?.defaultRadius,
+              boxShadow: themeData.boxShadow || themeData.shadows?.glow,
+            } : {};
+            
+            return (
             <div
               key={classItem.id}
               className="bg-white/5 rounded-xl border border-white/10 overflow-hidden hover:border-purple-500/50 transition-all"
+              style={cardStyle}
             >
               <div className="p-6 space-y-4">
                 <div className="flex items-start justify-between">
@@ -292,7 +304,8 @@ function ClassManagement({ adminUser, onStartSession }) {
                 </div>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 
@@ -431,11 +444,12 @@ function ClassModal({ classData, modules, onSave, onClose, onCreateModule }) {
             />
           </div>
 
-          {/* Styling Section */}
-          <StylingEditor
-            styling={formData.themeOverride || {}}
-            onChange={(newStyling) => setFormData({ ...formData, themeOverride: newStyling })}
-            label="Theme-Anpassung (Optional)"
+          {/* Styling Template Selection */}
+          <TemplateSelector
+            selectedTemplate={formData.themeOverride}
+            onSelect={(themeData, template) => setFormData({ ...formData, themeOverride: themeData, selectedTemplateId: template.id })}
+            onClear={() => setFormData({ ...formData, themeOverride: null, selectedTemplateId: null })}
+            label="Styling-Vorlage auswählen"
           />
 
           <div className="flex gap-3 pt-4">

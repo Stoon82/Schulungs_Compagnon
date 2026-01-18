@@ -332,7 +332,25 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
 
           {/* Template Content */}
           <AnimatePresence mode="wait">
-            {TemplateComponent && currentSubmodule && (
+            {TemplateComponent && currentSubmodule && (() => {
+              // Get styling from submodule or module theme override
+              const subStyling = currentSubmodule.styling || {};
+              const modStyling = module?.theme_override || {};
+              const styling = { ...modStyling, ...subStyling };
+              
+              // Build style object from styling data (handle both flat and nested structures)
+              const borderWidth = styling.borderWidth || styling.borders?.width?.default;
+              const borderColor = styling.borderColor || styling.colors?.borderAccent || styling.colors?.borderDefault;
+              const containerStyle = Object.keys(styling).length > 0 ? {
+                background: styling.background || styling.colors?.cardBackground || styling.colors?.appBackgroundGradient,
+                color: styling.textColor || styling.colors?.textPrimary,
+                borderRadius: styling.borderRadius || styling.borders?.defaultRadius,
+                boxShadow: styling.boxShadow || styling.shadows?.glow,
+                border: borderWidth ? `${borderWidth} ${styling.borderStyle || 'solid'} ${borderColor || 'rgba(255,255,255,0.1)'}` : undefined,
+                backdropFilter: styling.backdropBlur ? `blur(${styling.backdropBlur})` : undefined,
+              } : {};
+              
+              return (
               <motion.div
                 key={currentSubmodule.id}
                 initial={transitions[transitionMode].initial}
@@ -340,6 +358,7 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
                 exit={transitions[transitionMode].exit}
                 transition={transitions[transitionMode].transition}
                 className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-8"
+                style={containerStyle}
               >
                 <Suspense fallback={
                   <div className="flex items-center justify-center py-12">
@@ -357,7 +376,8 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
                   />
                 </Suspense>
               </motion.div>
-            )}
+            );
+            })()}
           </AnimatePresence>
         </div>
       </div>

@@ -73,13 +73,41 @@ function ClassViewer({ classId, onBack }) {
     );
   }
 
-  // Get styling from class theme override
-  const themeStyle = classInfo?.theme_override ? {
-    background: classInfo.theme_override.background || undefined,
-    color: classInfo.theme_override.textColor || undefined,
-    borderRadius: classInfo.theme_override.borderRadius || undefined,
-    boxShadow: classInfo.theme_override.boxShadow || undefined,
-  } : {};
+  // Get styling from class theme override - handle both flat and nested structures
+  const getThemeStyle = (themeData) => {
+    if (!themeData) return {};
+    
+    // Handle both flat structure (built-in presets) and nested structure (saved themes)
+    const background = themeData.background 
+      || themeData.colors?.appBackgroundGradient 
+      || themeData.colors?.appBackground 
+      || themeData.colors?.cardBackground;
+    
+    const textColor = themeData.textColor 
+      || themeData.colors?.textPrimary;
+    
+    const borderRadius = themeData.borderRadius 
+      || themeData.borders?.defaultRadius;
+    
+    const boxShadow = themeData.boxShadow 
+      || themeData.shadows?.glow;
+    
+    const borderColor = themeData.borderColor 
+      || themeData.colors?.borderDefault;
+    
+    const borderWidth = themeData.borderWidth 
+      || themeData.borders?.width?.default;
+    
+    return {
+      background,
+      color: textColor,
+      borderRadius,
+      boxShadow,
+      border: borderColor && borderWidth ? `${borderWidth} solid ${borderColor}` : undefined,
+    };
+  };
+  
+  const themeStyle = getThemeStyle(classInfo?.theme_override);
 
   // Default view: Module list
   return (

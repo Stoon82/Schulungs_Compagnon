@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Save, X, Plus, Trash2, Eye, Edit3, GripVertical, BookOpen, FileText, MessageSquare, BarChart3, Image, Video, CheckSquare, FolderOpen, Upload, GitBranch, Download } from 'lucide-react';
+import { Save, X, Plus, Trash2, Eye, Edit3, GripVertical, BookOpen, FileText, MessageSquare, BarChart3, Image, Video, CheckSquare, FolderOpen, Upload, GitBranch, Download, Palette } from 'lucide-react';
 import api from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 import SubmoduleEditor from './SubmoduleEditor';
 import AssetLibrary from './AssetLibrary';
 import MediaUploadModal from './MediaUploadModal';
@@ -11,8 +12,10 @@ import PowerPointImporter from './PowerPointImporter';
 import PDFImporter from './PDFImporter';
 import MarkdownImporter from './MarkdownImporter';
 import OfflinePackageExport from './OfflinePackageExport';
+import TemplateSelector from './TemplateSelector';
 
 function ModuleCreatorV2({ onClose }) {
+  const { theme } = useTheme();
   const [modules, setModules] = useState([]);
   const [selectedModule, setSelectedModule] = useState(null);
   const [submodules, setSubmodules] = useState([]);
@@ -20,6 +23,11 @@ function ModuleCreatorV2({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('metadata');
+  
+  // Get page-specific or global background
+  const pageBackground = theme?.pageStyles?.moduleCreator?.background 
+    || theme?.colors?.appBackgroundGradient 
+    || 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)';
   const [showSubmoduleEditor, setShowSubmoduleEditor] = useState(false);
   const [editingSubmodule, setEditingSubmodule] = useState(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState(''); // '', 'saving', 'saved'
@@ -390,7 +398,7 @@ function ModuleCreatorV2({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-hidden" style={{ background: pageBackground }}>
       {/* Header */}
       <div className="bg-black/30 backdrop-blur-lg border-b border-white/10 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -553,6 +561,17 @@ function ModuleCreatorV2({ onClose }) {
                     }`}
                   >
                     Metadaten
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('styling')}
+                    className={`px-4 py-2 font-medium transition-all flex items-center gap-2 ${
+                      activeTab === 'styling'
+                        ? 'text-purple-400 border-b-2 border-purple-400'
+                        : 'text-gray-400 hover:text-gray-300'
+                    }`}
+                  >
+                    <Palette size={16} />
+                    Styling
                   </button>
                   {selectedModule && (
                     <button
@@ -782,6 +801,31 @@ function ModuleCreatorV2({ onClose }) {
                           Abbrechen
                         </button>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Styling Tab */}
+                {activeTab === 'styling' && (
+                  <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-8">
+                    <h2 className="text-2xl font-bold text-white mb-6">
+                      Modul-Styling
+                    </h2>
+                    <p className="text-gray-400 mb-6">
+                      Wählen Sie eine Styling-Vorlage für dieses Modul. Diese wird auf alle Submodule angewendet, sofern diese keine eigene Vorlage haben.
+                    </p>
+                    
+                    <TemplateSelector
+                      selectedTemplate={formData.theme_override}
+                      onSelect={(themeData, template) => handleChange('theme_override', themeData)}
+                      onClear={() => handleChange('theme_override', null)}
+                      label="Modul-Vorlage auswählen"
+                    />
+
+                    <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <p className="text-sm text-blue-400">
+                        💡 Tipp: Sie können im globalen Theme Designer neue Vorlagen erstellen, die dann hier zur Auswahl stehen.
+                      </p>
                     </div>
                   </div>
                 )}

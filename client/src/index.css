@@ -3,16 +3,105 @@
 @tailwind utilities;
 
 :root {
-  /* Default theme colors */
-  --primary-color: #00fff2;
-  --secondary-color: #ff00ff;
-  --accent-color: #ffff00;
-  --bg-color: #0a0e1a;
-  --text-color: #ffffff;
+  /* ============================================
+     THEME CSS VARIABLES - Set by ThemeContext
+     These are the master variables that control ALL styling
+     ============================================ */
   
-  /* Background gradient colors */
+  /* Primary Colors */
+  --color-primary: #8b5cf6;
+  --color-primary-hover: #7c3aed;
+  --color-secondary: #ec4899;
+  --color-secondary-hover: #db2777;
+  --color-accent: #06b6d4;
+  --color-accent-hover: #0891b2;
+  
+  /* Background Colors */
+  --color-app-background: #0f172a;
+  --color-app-background-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  --color-card-background: rgba(255, 255, 255, 0.05);
+  --color-card-background-hover: rgba(255, 255, 255, 0.08);
+  --color-input-background: rgba(255, 255, 255, 0.05);
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-overlay-dark: rgba(0, 0, 0, 0.8);
+  
+  /* Text Colors */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-text-accent: #a78bfa;
+  
+  /* Border Colors */
+  --color-border-default: rgba(255, 255, 255, 0.1);
+  --color-border-hover: rgba(255, 255, 255, 0.2);
+  --color-border-focus: #8b5cf6;
+  --color-border-accent: #8b5cf6;
+  
+  /* Status Colors */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+  
+  /* Border Radius */
+  --border-radius-default: 12px;
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --border-radius-2xl: 24px;
+  
+  /* Shadows */
+  --shadow-default: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.3);
+  --shadow-glow-strong: 0 0 40px rgba(139, 92, 246, 0.5);
+  
+  /* Card Styling */
+  --card-background: rgba(255, 255, 255, 0.05);
+  --card-background-hover: rgba(255, 255, 255, 0.08);
+  --card-border-width: 1px;
+  --card-border-color: rgba(255, 255, 255, 0.1);
+  --card-border-color-hover: rgba(255, 255, 255, 0.2);
+  --card-border-radius: 12px;
+  --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --card-backdrop-blur: 12px;
+  
+  /* Button Styling */
+  --btn-primary-bg: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  --btn-primary-bg-hover: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+  --btn-primary-text: #ffffff;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.15);
+  --btn-secondary-text: #ffffff;
+  
+  /* Input Styling */
+  --input-background: rgba(255, 255, 255, 0.05);
+  --input-background-focus: rgba(255, 255, 255, 0.08);
+  --input-border-color: rgba(255, 255, 255, 0.1);
+  --input-border-color-focus: #8b5cf6;
+  --input-border-radius: 8px;
+  --input-text-color: #ffffff;
+  --input-placeholder-color: #64748b;
+  
+  /* Modal Styling */
+  --modal-background: linear-gradient(135deg, #1e293b 0%, #312e81 50%, #1e293b 100%);
+  --modal-border-radius: 16px;
+  --modal-border-color: rgba(255, 255, 255, 0.1);
+  --modal-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  
+  /* Animation */
+  --animation-duration: 300ms;
+  --animation-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --backdrop-blur: 12px;
+  
+  /* Legacy compatibility */
+  --primary-color: var(--color-primary);
+  --secondary-color: var(--color-secondary);
+  --accent-color: var(--color-accent);
+  --bg-color: var(--color-app-background);
+  --text-color: var(--color-text-primary);
   --bg-gradient-start: #0f172a;
-  --bg-gradient-middle: #581c87;
+  --bg-gradient-middle: #1e1b4b;
   --bg-gradient-end: #0f172a;
   
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -20,8 +109,8 @@
   font-weight: 400;
 
   color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background: linear-gradient(to bottom right, var(--bg-gradient-start), var(--bg-gradient-middle), var(--bg-gradient-end));
+  color: var(--color-text-primary);
+  background: var(--color-app-background-gradient);
   background-attachment: fixed;
 
   font-synthesis: none;
@@ -31,107 +120,245 @@
 }
 
 @layer utilities {
+  /* ============================================
+     THEME-AWARE UTILITY CLASSES
+     ============================================ */
+  
   /* Theme-aware gradient backgrounds */
   .bg-gradient-primary {
-    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+    background: var(--btn-primary-bg);
   }
   
   .bg-gradient-theme {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   }
   
   /* Theme-aware text colors */
-  .text-theme-primary {
-    color: var(--primary-color);
-  }
-  
-  .text-theme-secondary {
-    color: var(--secondary-color);
-  }
-  
-  .text-theme-accent {
-    color: var(--accent-color);
-  }
+  .text-theme-primary { color: var(--color-primary); }
+  .text-theme-secondary { color: var(--color-secondary); }
+  .text-theme-accent { color: var(--color-accent); }
   
   /* Theme-aware backgrounds with opacity */
-  .bg-theme-primary {
-    background-color: var(--primary-color);
-  }
-  
-  .bg-theme-primary-10 {
-    background-color: color-mix(in srgb, var(--primary-color) 10%, transparent);
-  }
-  
-  .bg-theme-primary-20 {
-    background-color: color-mix(in srgb, var(--primary-color) 20%, transparent);
-  }
-  
-  .bg-theme-secondary-20 {
-    background-color: color-mix(in srgb, var(--secondary-color) 20%, transparent);
-  }
+  .bg-theme-primary { background-color: var(--color-primary); }
+  .bg-theme-primary-10 { background-color: color-mix(in srgb, var(--color-primary) 10%, transparent); }
+  .bg-theme-primary-20 { background-color: color-mix(in srgb, var(--color-primary) 20%, transparent); }
+  .bg-theme-secondary-20 { background-color: color-mix(in srgb, var(--color-secondary) 20%, transparent); }
   
   /* Theme-aware borders */
-  .border-theme-primary {
-    border-color: var(--primary-color);
+  .border-theme-primary { border-color: var(--color-primary); }
+  .border-theme-primary-30 { border-color: color-mix(in srgb, var(--color-primary) 30%, transparent); }
+  .border-theme-primary-50 { border-color: color-mix(in srgb, var(--color-primary) 50%, transparent); }
+}
+
+@layer components {
+  /* ============================================
+     GLOBAL ELEMENT OVERRIDES
+     These apply theme styles to ALL matching elements
+     ============================================ */
+  
+  /* === PURPLE COLOR OVERRIDES (Primary Theme Color) === */
+  .bg-purple-500 { background-color: var(--color-primary) !important; }
+  .bg-purple-600 { background-color: var(--color-primary-hover) !important; }
+  .bg-purple-500\/10, .bg-purple-500\/20, .bg-purple-500\/30 {
+    background-color: color-mix(in srgb, var(--color-primary) 20%, transparent) !important;
+  }
+  .text-purple-400, .text-purple-500 { color: var(--color-primary) !important; }
+  .text-purple-300 { color: color-mix(in srgb, var(--color-primary) 80%, white) !important; }
+  .border-purple-500, .border-purple-500\/50, .border-purple-500\/30 {
+    border-color: color-mix(in srgb, var(--color-primary) 50%, transparent) !important;
+  }
+  .ring-purple-500 { --tw-ring-color: var(--color-primary) !important; }
+  .focus\:ring-purple-500:focus { --tw-ring-color: var(--color-primary) !important; }
+  
+  /* === PINK COLOR OVERRIDES (Secondary Theme Color) === */
+  .bg-pink-500 { background-color: var(--color-secondary) !important; }
+  .bg-pink-600 { background-color: var(--color-secondary-hover) !important; }
+  .bg-pink-500\/20, .bg-pink-500\/30 {
+    background-color: color-mix(in srgb, var(--color-secondary) 20%, transparent) !important;
+  }
+  .text-pink-400, .text-pink-500 { color: var(--color-secondary) !important; }
+  .border-pink-500\/50 { border-color: color-mix(in srgb, var(--color-secondary) 50%, transparent) !important; }
+  
+  /* === CYAN/TEAL OVERRIDES (Accent Theme Color) === */
+  .bg-cyan-500 { background-color: var(--color-accent) !important; }
+  .bg-cyan-500\/20, .bg-cyan-500\/30 {
+    background-color: color-mix(in srgb, var(--color-accent) 20%, transparent) !important;
+  }
+  .text-cyan-400, .text-cyan-500 { color: var(--color-accent) !important; }
+  .border-cyan-500\/50 { border-color: color-mix(in srgb, var(--color-accent) 50%, transparent) !important; }
+  
+  /* === GREEN COLOR OVERRIDES (Success) === */
+  .bg-green-500 { background-color: var(--color-success) !important; }
+  .bg-green-500\/20, .bg-green-500\/30 {
+    background-color: color-mix(in srgb, var(--color-success) 20%, transparent) !important;
+  }
+  .text-green-400, .text-green-500 { color: var(--color-success) !important; }
+  .border-green-500\/50 { border-color: color-mix(in srgb, var(--color-success) 50%, transparent) !important; }
+  
+  /* === RED COLOR OVERRIDES (Error/Danger) === */
+  .bg-red-500 { background-color: var(--color-error) !important; }
+  .bg-red-500\/20, .bg-red-500\/30 {
+    background-color: color-mix(in srgb, var(--color-error) 20%, transparent) !important;
+  }
+  .text-red-400, .text-red-500 { color: var(--color-error) !important; }
+  .border-red-500\/50 { border-color: color-mix(in srgb, var(--color-error) 50%, transparent) !important; }
+  
+  /* === BLUE COLOR OVERRIDES (Info) === */
+  .bg-blue-500 { background-color: var(--color-info) !important; }
+  .bg-blue-500\/20, .bg-blue-500\/30 {
+    background-color: color-mix(in srgb, var(--color-info) 20%, transparent) !important;
+  }
+  .text-blue-400, .text-blue-500 { color: var(--color-info) !important; }
+  .border-blue-500\/50 { border-color: color-mix(in srgb, var(--color-info) 50%, transparent) !important; }
+  
+  /* === YELLOW/ORANGE OVERRIDES (Warning) === */
+  .bg-yellow-500, .bg-orange-500 { background-color: var(--color-warning) !important; }
+  .bg-yellow-500\/20, .bg-orange-500\/20 {
+    background-color: color-mix(in srgb, var(--color-warning) 20%, transparent) !important;
+  }
+  .text-yellow-400, .text-yellow-500, .text-orange-400 { color: var(--color-warning) !important; }
+  
+  /* === GRAY TEXT COLORS (Use theme text colors) === */
+  .text-gray-300 { color: color-mix(in srgb, var(--color-text-primary) 85%, transparent) !important; }
+  .text-gray-400 { color: var(--color-text-secondary) !important; }
+  .text-gray-500 { color: var(--color-text-muted) !important; }
+  .text-gray-600 { color: color-mix(in srgb, var(--color-text-muted) 80%, transparent) !important; }
+  
+  /* === WHITE BACKGROUNDS WITH OPACITY (Cards, Glass Effects) === */
+  .bg-white\/5 { background-color: var(--card-background) !important; }
+  .bg-white\/10 { background-color: var(--card-background-hover) !important; }
+  .bg-white\/8, .bg-white\/15 { background-color: var(--card-background-hover) !important; }
+  
+  /* === BLACK BACKGROUNDS (Overlays, Headers) === */
+  .bg-black\/20 { background-color: color-mix(in srgb, var(--color-app-background) 60%, transparent) !important; }
+  .bg-black\/30 { background-color: color-mix(in srgb, var(--color-app-background) 70%, transparent) !important; }
+  .bg-black\/50 { background-color: var(--color-overlay) !important; }
+  .bg-black\/80 { background-color: var(--color-overlay-dark) !important; }
+  
+  /* === BORDER COLORS === */
+  .border-white\/10 { border-color: var(--card-border-color) !important; }
+  .border-white\/20 { border-color: var(--card-border-color-hover) !important; }
+  .border-white\/5 { border-color: color-mix(in srgb, var(--card-border-color) 50%, transparent) !important; }
+  
+  /* === GRADIENT OVERRIDES === */
+  .from-purple-500 { --tw-gradient-from: var(--color-primary) var(--tw-gradient-from-position); }
+  .to-pink-500 { --tw-gradient-to: var(--color-secondary) var(--tw-gradient-to-position); }
+  .from-purple-600 { --tw-gradient-from: var(--color-primary-hover) var(--tw-gradient-from-position); }
+  .to-pink-600 { --tw-gradient-to: var(--color-secondary-hover) var(--tw-gradient-to-position); }
+  .from-cyan-400, .from-cyan-500 { --tw-gradient-from: var(--color-accent) var(--tw-gradient-from-position); }
+  .to-purple-400 { --tw-gradient-to: var(--color-primary) var(--tw-gradient-to-position); }
+  
+  /* Slate gradients (background) */
+  .from-slate-900 { --tw-gradient-from: var(--color-app-background) var(--tw-gradient-from-position); }
+  .via-purple-900 { --tw-gradient-via: var(--bg-gradient-middle) var(--tw-gradient-via-position); }
+  .to-slate-900 { --tw-gradient-to: var(--color-app-background) var(--tw-gradient-to-position); }
+  
+  /* Slate backgrounds */
+  .bg-slate-900 { background-color: var(--color-app-background) !important; }
+  .bg-slate-800 { background-color: color-mix(in srgb, var(--color-app-background) 90%, white 10%) !important; }
+  .bg-slate-950 { background-color: color-mix(in srgb, var(--color-app-background) 100%, black 20%) !important; }
+  
+  /* === HOVER STATE OVERRIDES === */
+  .hover\:bg-purple-500\/20:hover, .hover\:bg-purple-500\/30:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 30%, transparent) !important;
+  }
+  .hover\:bg-pink-500\/30:hover {
+    background-color: color-mix(in srgb, var(--color-secondary) 30%, transparent) !important;
+  }
+  .hover\:bg-white\/10:hover { background-color: var(--card-background-hover) !important; }
+  .hover\:bg-white\/15:hover { background-color: color-mix(in srgb, white 15%, transparent) !important; }
+  .hover\:text-white:hover { color: var(--color-text-primary) !important; }
+  .hover\:text-purple-300:hover { color: color-mix(in srgb, var(--color-primary) 80%, white) !important; }
+  .hover\:border-white\/20:hover { border-color: var(--card-border-color-hover) !important; }
+  .hover\:from-purple-600:hover { --tw-gradient-from: var(--color-primary-hover) var(--tw-gradient-from-position); }
+  .hover\:to-pink-600:hover { --tw-gradient-to: var(--color-secondary-hover) var(--tw-gradient-to-position); }
+  
+  /* === FOCUS STATE OVERRIDES === */
+  .focus\:ring-purple-500:focus { --tw-ring-color: var(--color-primary) !important; }
+  .focus\:border-purple-500:focus { border-color: var(--color-primary) !important; }
+  .focus\:outline-purple-500:focus { outline-color: var(--color-primary) !important; }
+  
+  /* === FORM INPUTS === */
+  input, textarea, select {
+    background-color: var(--input-background);
+    border-color: var(--input-border-color);
+    color: var(--input-text-color);
+    border-radius: var(--input-border-radius);
+    transition: border-color var(--animation-duration) var(--animation-easing),
+                background-color var(--animation-duration) var(--animation-easing);
   }
   
-  .border-theme-primary-30 {
-    border-color: color-mix(in srgb, var(--primary-color) 30%, transparent);
+  input:focus, textarea:focus, select:focus {
+    background-color: var(--input-background-focus);
+    border-color: var(--input-border-color-focus);
+    outline: none;
   }
   
-  .border-theme-primary-50 {
-    border-color: color-mix(in srgb, var(--primary-color) 50%, transparent);
+  input::placeholder, textarea::placeholder {
+    color: var(--input-placeholder-color);
   }
   
-  /* Override cyan/purple gradients to use theme colors */
-  .from-cyan-400 {
-    --tw-gradient-from: var(--primary-color) var(--tw-gradient-from-position);
+  /* === BUTTONS === */
+  button {
+    transition: all var(--animation-duration) var(--animation-easing);
   }
   
-  .to-purple-400 {
-    --tw-gradient-to: var(--secondary-color) var(--tw-gradient-to-position);
+  /* Primary button pattern */
+  .bg-gradient-to-r.from-purple-500.to-pink-500 {
+    background: var(--btn-primary-bg) !important;
+  }
+  .bg-gradient-to-r.from-purple-500.to-pink-500:hover {
+    background: var(--btn-primary-bg-hover) !important;
   }
   
-  .from-cyan-500 {
-    --tw-gradient-from: var(--primary-color) var(--tw-gradient-from-position);
+  /* === CARDS & PANELS === */
+  .backdrop-blur-lg, .backdrop-blur-sm, .backdrop-blur {
+    backdrop-filter: blur(var(--card-backdrop-blur));
   }
   
-  .to-purple-500 {
-    --tw-gradient-to: var(--secondary-color) var(--tw-gradient-to-position);
+  /* Card pattern: bg-white/5 + border + rounded */
+  .bg-white\/5.rounded-xl,
+  .bg-white\/5.rounded-lg,
+  .bg-white\/5.rounded-2xl {
+    background-color: var(--card-background) !important;
+    border-color: var(--card-border-color) !important;
+    border-radius: var(--card-border-radius) !important;
   }
   
-  .text-cyan-400 {
-    color: var(--primary-color);
+  /* === MODALS === */
+  .fixed.inset-0.bg-black\/50 {
+    background-color: var(--color-overlay) !important;
   }
   
-  .text-purple-400 {
-    color: var(--secondary-color);
+  /* Modal content pattern */
+  .bg-gradient-to-br.from-slate-900 {
+    background: var(--modal-background) !important;
   }
   
-  /* Hover states */
-  .hover\:from-cyan-600:hover {
-    --tw-gradient-from: color-mix(in srgb, var(--primary-color) 80%, black) var(--tw-gradient-from-position);
+  /* === SCROLLBAR THEMING === */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
   
-  .hover\:to-purple-600:hover {
-    --tw-gradient-to: color-mix(in srgb, var(--secondary-color) 80%, black) var(--tw-gradient-to-position);
+  ::-webkit-scrollbar-track {
+    background: var(--color-app-background);
+    border-radius: 4px;
   }
   
-  /* Override common background gradients */
-  .bg-gradient-to-br.from-slate-900.via-purple-900.to-slate-900 {
-    background: linear-gradient(to bottom right, var(--bg-gradient-start), var(--bg-gradient-middle), var(--bg-gradient-end)) !important;
+  ::-webkit-scrollbar-thumb {
+    background: var(--card-border-color);
+    border-radius: 4px;
   }
   
-  .from-slate-900 {
-    --tw-gradient-from: var(--bg-gradient-start) var(--tw-gradient-from-position);
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--card-border-color-hover);
   }
   
-  .via-purple-900 {
-    --tw-gradient-via: var(--bg-gradient-middle) var(--tw-gradient-via-position);
-  }
-  
-  .to-slate-900 {
-    --tw-gradient-to: var(--bg-gradient-end) var(--tw-gradient-to-position);
+  /* === SELECTION COLOR === */
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+    color: var(--color-text-primary);
   }
 }
 

@@ -12,3 +12,5 @@ export { default as EmbedTemplate } from './EmbedTemplate';
 export { default as ResourceLibraryTemplate } from './ResourceLibraryTemplate';
 export { default as BlankCanvasTemplate } from './BlankCanvasTemplate';
 export { default as DiscussionBoardTemplate } from './DiscussionBoardTemplate';
+export { default as SlideTemplate } from './SlideTemplate';
+export { default as ResultsComparisonTemplate } from './ResultsComparisonTemplate';
