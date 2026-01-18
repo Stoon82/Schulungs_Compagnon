@@ -229,26 +229,29 @@ function ThemeDesigner({ onClose }) {
       </Section>
 
       <Section id="backgrounds" title="Hintergründe" icon={Layers}>
-        <ColorInput 
-          label="App-Hintergrund (Solid)" 
-          value={theme.colors?.appBackground}
-          onChange={(v) => updateColor('appBackground', v)}
+        <GradientPicker
+          label="App-Hintergrund"
+          value={theme.colors?.appBackgroundGradient || theme.colors?.appBackground || 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)'}
+          onChange={(v) => {
+            updateColor('appBackgroundGradient', v);
+            // Also set solid color if it's a simple color
+            if (v && !v.includes('gradient')) {
+              updateColor('appBackground', v);
+            }
+          }}
+          title="App-Hintergrund"
         />
         <GradientPicker
-          label="App-Hintergrund Verlauf"
-          value={theme.colors?.appBackgroundGradient}
-          onChange={(v) => updateColor('appBackgroundGradient', v)}
-          title="App-Hintergrund Verlauf"
-        />
-        <ColorInput 
-          label="Karten-Hintergrund" 
-          value={theme.colors?.cardBackground}
+          label="Karten-Hintergrund"
+          value={theme.colors?.cardBackground || 'rgba(255, 255, 255, 0.05)'}
           onChange={(v) => updateColor('cardBackground', v)}
+          title="Karten-Hintergrund"
         />
-        <ColorInput 
-          label="Input-Hintergrund" 
-          value={theme.colors?.inputBackground}
+        <GradientPicker
+          label="Input-Hintergrund"
+          value={theme.colors?.inputBackground || 'rgba(255, 255, 255, 0.05)'}
           onChange={(v) => updateColor('inputBackground', v)}
+          title="Input-Hintergrund"
         />
       </Section>
 
@@ -322,15 +325,17 @@ function ThemeDesigner({ onClose }) {
   const renderCardsTab = () => (
     <div className="space-y-4">
       <Section id="card-appearance" title="Karten-Erscheinung" icon={Square}>
-        <ColorInput 
-          label="Hintergrund" 
-          value={theme.cards?.background}
+        <GradientPicker
+          label="Hintergrund"
+          value={theme.cards?.background || 'rgba(255, 255, 255, 0.05)'}
           onChange={(v) => updateCards({ background: v })}
+          title="Karten-Hintergrund"
         />
-        <ColorInput 
-          label="Hintergrund (Hover)" 
-          value={theme.cards?.backgroundHover}
+        <GradientPicker
+          label="Hintergrund (Hover)"
+          value={theme.cards?.backgroundHover || 'rgba(255, 255, 255, 0.08)'}
           onChange={(v) => updateCards({ backgroundHover: v })}
+          title="Karten-Hintergrund (Hover)"
         />
         <SliderInput
           label="Innenabstand"
@@ -513,10 +518,11 @@ function ThemeDesigner({ onClose }) {
         {/* Secondary Button */}
         <Section id="btn-secondary" title="Sekundäre Buttons" icon={MousePointer}>
           <div className="space-y-3">
-            <ColorInput
-              label="Hintergrundfarbe"
+            <GradientPicker
+              label="Hintergrund"
               value={theme.buttons?.secondary?.background || 'rgba(255, 255, 255, 0.1)'}
               onChange={(v) => updateButtons('secondary', { background: v })}
+              title="Sekundärer Button Hintergrund"
             />
             <ColorInput
               label="Textfarbe"
@@ -551,10 +557,11 @@ function ThemeDesigner({ onClose }) {
         {/* Inputs */}
         <Section id="inputs" title="Eingabefelder" icon={FormInput}>
           <div className="space-y-3">
-            <ColorInput
+            <GradientPicker
               label="Hintergrund"
               value={theme.inputs?.background || 'rgba(255, 255, 255, 0.05)'}
               onChange={(v) => updateInputs({ background: v })}
+              title="Eingabefeld Hintergrund"
             />
             <ColorInput
               label="Rahmenfarbe"
@@ -857,16 +864,12 @@ function ThemeDesigner({ onClose }) {
             <p className="text-xs text-gray-500 mb-3">{page.desc}</p>
             
             <div className="space-y-3">
-              <div>
-                <label className="text-sm text-gray-300 block mb-1">Hintergrund</label>
-                <input
-                  type="text"
-                  value={theme.pageStyles?.[page.id]?.background || ''}
-                  onChange={(e) => updatePageStyle(page.id, 'background', e.target.value)}
-                  placeholder="z.B. linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)"
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500"
-                />
-              </div>
+              <GradientPicker
+                label="Hintergrund"
+                value={theme.pageStyles?.[page.id]?.background || theme.colors?.appBackgroundGradient || 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)'}
+                onChange={(v) => updatePageStyle(page.id, 'background', v)}
+                title={`${page.label} Hintergrund`}
+              />
               
               <ColorInput
                 label="Textfarbe"
