@@ -41,14 +41,7 @@ function AdminAuthModal({ onClose, onAuthSuccess }) {
         return;
       }
 
-      // Store admin token in API service for authenticated requests
-      if (data.data.token) {
-        api.setAdminToken(data.data.token);
-      }
-
-      // Store admin info in localStorage
-      localStorage.setItem('adminUser', JSON.stringify(data.data));
-      
+      // Pass admin data to parent component which will handle storage
       if (onAuthSuccess) {
         onAuthSuccess(data.data);
       }

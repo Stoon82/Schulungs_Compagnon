@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { HelpCircle, Plus, Trash2, Save, Star, Clock, Eye, EyeOff } from 'lucide-react';
+import { HelpCircle, Plus, Trash2, Save, Star, Clock, Eye, EyeOff, ChevronLeft, ChevronRight } from 'lucide-react';
 
-function QuizTemplate({ content, onChange, onSave, isEditing }) {
+function QuizTemplate({ content, onChange, onSave, isEditing, isSessionMode = false, isAdmin = false, socket, sessionCode, onComplete }) {
   const [formData, setFormData] = useState({
+    multipleQuestions: content?.multipleQuestions || false,
     questions: content?.questions || [{
       id: 1,
       questionType: 'multiple-choice',
       question: '',
       options: ['', '', '', ''],
-      correctAnswer: [0], // Array to support multiple correct answers
+      correctAnswer: [0],
+      allowMultipleCorrect: false,
       correctText: '',
       ratingScale: 5,
       ratingStyle: 'stars',
@@ -21,43 +23,39 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
     }],
     timeLimit: content?.timeLimit || 0,
     showTimer: content?.showTimer || false,
-    currentQuestionIndex: 0
+    currentQuestionIndex: content?.currentQuestionIndex || 0
   });
 
-  // Safety check for questions array
-  const questions = formData.questions || [];
-  const currentQuestion = questions[formData.currentQuestionIndex] || questions[0] || {
-    id: 1,
-    questionType: 'multiple-choice',
-    question: '',
-    options: ['', '', '', ''],
-    correctAnswer: [0],
-    correctText: '',
-    ratingScale: 5,
-    ratingStyle: 'stars',
-    explanation: '',
-    points: 1,
-    matchingPairs: [{ id: 1, left: '', right: '' }, { id: 2, left: '', right: '' }]
-  };
+  const currentQuestion = formData.questions[formData.currentQuestionIndex] || formData.questions[0];
+  const totalQuestions = formData.questions.length;
+
+  const [matchingAnswers, setMatchingAnswers] = useState({});
+  const [draggedItem, setDraggedItem] = useState(null);
 
   useEffect(() => {
     if (content && !isEditing) {
       setFormData({
-        questionType: content?.questionType || 'multiple-choice',
-        question: content?.question || '',
-        options: content?.options || ['', '', '', ''],
-        correctAnswer: content?.correctAnswer || 0,
-        correctText: content?.correctText || '',
-        ratingScale: content?.ratingScale || 5,
-        ratingStyle: content?.ratingStyle || 'stars',
-        explanation: content?.explanation || '',
-        points: content?.points || 1,
+        multipleQuestions: content?.multipleQuestions || false,
+        questions: content?.questions || [{
+          id: 1,
+          questionType: 'multiple-choice',
+          question: '',
+          options: ['', '', '', ''],
+          correctAnswer: [0],
+          allowMultipleCorrect: false,
+          correctText: '',
+          ratingScale: 5,
+          ratingStyle: 'stars',
+          explanation: '',
+          points: 1,
+          matchingPairs: [
+            { id: 1, left: '', right: '' },
+            { id: 2, left: '', right: '' }
+          ]
+        }],
         timeLimit: content?.timeLimit || 0,
         showTimer: content?.showTimer || false,
-        matchingPairs: content?.matchingPairs || [
-          { id: 1, left: '', right: '' },
-          { id: 2, left: '', right: '' }
-        ]
+        currentQuestionIndex: 0
       });
     }
   }, [content, isEditing]);
@@ -70,6 +68,56 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
     }
   };
 
+  const handleQuestionChange = (questionIndex, updates) => {
+    const newQuestions = [...formData.questions];
+    newQuestions[questionIndex] = { ...newQuestions[questionIndex], ...updates };
+    handleChange({ questions: newQuestions });
+  };
+
+  const addQuestion = () => {
+    const newQuestion = {
+      id: Date.now(),
+      questionType: 'multiple-choice',
+      question: '',
+      options: ['', '', '', ''],
+      correctAnswer: [0],
+      allowMultipleCorrect: false,
+      correctText: '',
+      ratingScale: 5,
+      ratingStyle: 'stars',
+      explanation: '',
+      points: 1,
+      matchingPairs: [
+        { id: 1, left: '', right: '' },
+        { id: 2, left: '', right: '' }
+      ]
+    };
+    const newQuestions = [...formData.questions, newQuestion];
+    // Combine both updates into single handleChange to avoid race condition
+    handleChange({ 
+      questions: newQuestions, 
+      multipleQuestions: true,
+      currentQuestionIndex: newQuestions.length - 1  // Navigate to new question
+    });
+  };
+
+  const removeQuestion = (index) => {
+    if (formData.questions.length <= 1) {
+      alert('Ein Quiz muss mindestens eine Frage haben.');
+      return;
+    }
+    const newQuestions = formData.questions.filter((_, i) => i !== index);
+    // Calculate new index before updating state
+    const newIndex = formData.currentQuestionIndex >= newQuestions.length 
+      ? newQuestions.length - 1 
+      : formData.currentQuestionIndex;
+    // Combine both updates into single handleChange
+    handleChange({ 
+      questions: newQuestions,
+      currentQuestionIndex: newIndex
+    });
+  };
+
   const handleSave = () => {
     if (onSave) {
       onSave(formData);
@@ -77,40 +125,127 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
   };
 
   const addOption = () => {
-    handleChange({
-      options: [...formData.options, '']
-    });
+    const newOptions = [...currentQuestion.options, ''];
+    handleQuestionChange(formData.currentQuestionIndex, { options: newOptions });
   };
 
   const removeOption = (index) => {
-    if (formData.options.length <= 2) {
+    if (currentQuestion.options.length <= 2) {
       alert('Mindestens 2 Optionen erforderlich');
       return;
     }
-    const newOptions = formData.options.filter((_, i) => i !== index);
-    handleChange({
+    const newOptions = currentQuestion.options.filter((_, i) => i !== index);
+    const newCorrectAnswer = currentQuestion.correctAnswer.filter(ans => ans < newOptions.length);
+    handleQuestionChange(formData.currentQuestionIndex, { 
       options: newOptions,
-      correctAnswer: formData.correctAnswer >= newOptions.length ? 0 : formData.correctAnswer
+      correctAnswer: newCorrectAnswer.length > 0 ? newCorrectAnswer : [0]
     });
   };
 
   const updateOption = (index, value) => {
-    const newOptions = [...formData.options];
+    const newOptions = [...currentQuestion.options];
     newOptions[index] = value;
-    handleChange({ options: newOptions });
+    handleQuestionChange(formData.currentQuestionIndex, { options: newOptions });
+  };
+
+  const toggleCorrectAnswer = (index) => {
+    if (currentQuestion.allowMultipleCorrect) {
+      const newCorrectAnswer = currentQuestion.correctAnswer.includes(index)
+        ? currentQuestion.correctAnswer.filter(i => i !== index)
+        : [...currentQuestion.correctAnswer, index];
+      handleQuestionChange(formData.currentQuestionIndex, { 
+        correctAnswer: newCorrectAnswer.length > 0 ? newCorrectAnswer : [index]
+      });
+    } else {
+      handleQuestionChange(formData.currentQuestionIndex, { correctAnswer: [index] });
+    }
   };
 
   if (isEditing) {
     return (
       <div className="space-y-4">
+        {/* Question Navigation */}
+        {formData.multipleQuestions && (
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">
+                Frage {formData.currentQuestionIndex + 1} von {totalQuestions}
+              </h3>
+              <button
+                onClick={addQuestion}
+                className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Frage hinzufügen
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleChange({ currentQuestionIndex: Math.max(0, formData.currentQuestionIndex - 1) })}
+                disabled={formData.currentQuestionIndex === 0}
+                className="px-3 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={20} />
+              </button>
+
+              <div className="flex-1 flex gap-2 overflow-x-auto">
+                {formData.questions.map((q, index) => (
+                  <button
+                    key={q.id}
+                    onClick={() => handleChange({ currentQuestionIndex: index })}
+                    className={`px-4 py-2 rounded-lg whitespace-nowrap ${
+                      index === formData.currentQuestionIndex
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => handleChange({ currentQuestionIndex: Math.min(totalQuestions - 1, formData.currentQuestionIndex + 1) })}
+                disabled={formData.currentQuestionIndex === totalQuestions - 1}
+                className="px-3 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={20} />
+              </button>
+
+              {totalQuestions > 1 && (
+                <button
+                  onClick={() => removeQuestion(formData.currentQuestionIndex)}
+                  className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Enable Multiple Questions Toggle */}
+        {!formData.multipleQuestions && (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+            <button
+              onClick={() => handleChange({ multipleQuestions: true })}
+              className="w-full px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg flex items-center justify-center gap-2"
+            >
+              <Plus size={16} />
+              Mehrere Fragen aktivieren
+            </button>
+          </div>
+        )}
+
         {/* Question Type Selector */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Fragetyp
           </label>
           <select
-            value={formData.questionType}
-            onChange={(e) => handleChange({ questionType: e.target.value })}
+            value={currentQuestion.questionType}
+            onChange={(e) => handleQuestionChange(formData.currentQuestionIndex, { questionType: e.target.value })}
             className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="multiple-choice">Multiple Choice</option>
@@ -125,71 +260,87 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
             Frage
           </label>
           <textarea
-            value={formData.question}
-            onChange={(e) => handleChange({ question: e.target.value })}
+            value={currentQuestion.question}
+            onChange={(e) => handleQuestionChange(formData.currentQuestionIndex, { question: e.target.value })}
             className="w-full h-24 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
             placeholder="Frage eingeben"
           />
         </div>
 
         {/* Multiple Choice Options */}
-        {formData.questionType === 'multiple-choice' && (
+        {currentQuestion.questionType === 'multiple-choice' && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-300">
-              Antwortoptionen
+                Antwortoptionen
+              </label>
+              <button
+                onClick={addOption}
+                className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1"
+              >
+                <Plus size={16} />
+                Option hinzufügen
+              </button>
+            </div>
+            
+            <label className="flex items-center gap-2 text-sm text-gray-300 mb-3">
+              <input
+                type="checkbox"
+                checked={currentQuestion.allowMultipleCorrect}
+                onChange={(e) => handleQuestionChange(formData.currentQuestionIndex, { 
+                  allowMultipleCorrect: e.target.checked,
+                  correctAnswer: e.target.checked ? currentQuestion.correctAnswer : [currentQuestion.correctAnswer[0] || 0]
+                })}
+                className="w-5 h-5 rounded border-white/20 bg-white/5 text-purple-500"
+              />
+              Mehrere richtige Antworten erlauben
             </label>
-            <button
-              onClick={addOption}
-              className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1"
-            >
-              <Plus size={16} />
-              Option hinzufügen
-            </button>
-          </div>
-          <div className="space-y-2">
-            {formData.options.map((option, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <input
-                  type="radio"
-                  name="correctAnswer"
-                  checked={formData.correctAnswer === index}
-                  onChange={() => handleChange({ correctAnswer: index })}
-                  className="w-5 h-5 text-purple-500 focus:ring-purple-500"
-                />
-                <input
-                  type="text"
-                  value={option}
-                  onChange={(e) => updateOption(index, e.target.value)}
-                  className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder={`Option ${index + 1}`}
-                />
-                {formData.options.length > 2 && (
-                  <button
-                    onClick={() => removeOption(index)}
-                    className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-gray-400 mt-1">
-            Wählen Sie die richtige Antwort mit dem Radio-Button aus
-          </p>
+
+            <div className="space-y-2">
+              {currentQuestion.options.map((option, index) => (
+                <div key={index} className="flex gap-2 items-center">
+                  <input
+                    type={currentQuestion.allowMultipleCorrect ? "checkbox" : "radio"}
+                    name="correctAnswer"
+                    checked={currentQuestion.correctAnswer.includes(index)}
+                    onChange={() => toggleCorrectAnswer(index)}
+                    className="w-5 h-5 text-purple-500 focus:ring-purple-500"
+                  />
+                  <input
+                    type="text"
+                    value={option}
+                    onChange={(e) => updateOption(index, e.target.value)}
+                    className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder={`Option ${index + 1}`}
+                  />
+                  {currentQuestion.options.length > 2 && (
+                    <button
+                      onClick={() => removeOption(index)}
+                      className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              {currentQuestion.allowMultipleCorrect 
+                ? 'Wählen Sie alle richtigen Antworten aus' 
+                : 'Wählen Sie die richtige Antwort aus'}
+            </p>
           </div>
         )}
 
         {/* Short Answer */}
-        {formData.questionType === 'short-answer' && (
+        {currentQuestion.questionType === 'short-answer' && (
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Musterantwort (optional)
             </label>
             <textarea
-              value={formData.correctText}
-              onChange={(e) => handleChange({ correctText: e.target.value })}
+              value={currentQuestion.correctText}
+              onChange={(e) => handleQuestionChange(formData.currentQuestionIndex, { correctText: e.target.value })}
               className="w-full h-20 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
               placeholder="Beispiel einer korrekten Antwort (wird nicht zur Bewertung verwendet)"
             />
@@ -200,7 +351,7 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
         )}
 
         {/* Rating Scale */}
-        {formData.questionType === 'rating-scale' && (
+        {currentQuestion.questionType === 'rating-scale' && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -208,8 +359,8 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
                   Skala
                 </label>
                 <select
-                  value={formData.ratingScale}
-                  onChange={(e) => handleChange({ ratingScale: parseInt(e.target.value) })}
+                  value={currentQuestion.ratingScale}
+                  onChange={(e) => handleQuestionChange(formData.currentQuestionIndex, { ratingScale: parseInt(e.target.value) })}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="3">1-3</option>
@@ -223,12 +374,12 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
                   Stil
                 </label>
                 <select
-                  value={formData.ratingStyle}
-                  onChange={(e) => handleChange({ ratingStyle: e.target.value })}
+                  value={currentQuestion.ratingStyle}
+                  onChange={(e) => handleQuestionChange(formData.currentQuestionIndex, { ratingStyle: e.target.value })}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="stars">Sterne ⭐</option>
-                  <option value="numbers">Zahlen (1-{formData.ratingScale})</option>
+                  <option value="numbers">Zahlen (1-{currentQuestion.ratingScale})</option>
                   <option value="emojis">Emojis 😊</option>
                 </select>
               </div>
@@ -237,7 +388,7 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
         )}
 
         {/* Matching Pairs */}
-        {formData.questionType === 'matching' && (
+        {currentQuestion.questionType === 'matching' && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-300">
@@ -246,7 +397,7 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
               <button
                 onClick={() => {
                   const newPair = { id: Date.now(), left: '', right: '' };
-                  handleChange({ matchingPairs: [...formData.matchingPairs, newPair] });
+                  handleQuestionChange(formData.currentQuestionIndex, { matchingPairs: [...currentQuestion.matchingPairs, newPair] });
                 }}
                 className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1"
               >
@@ -255,16 +406,16 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
               </button>
             </div>
             <div className="space-y-3">
-              {formData.matchingPairs.map((pair, index) => (
+              {currentQuestion.matchingPairs.map((pair, index) => (
                 <div key={pair.id} className="grid grid-cols-2 gap-3">
                   <div>
                     <input
                       type="text"
                       value={pair.left}
                       onChange={(e) => {
-                        const newPairs = [...formData.matchingPairs];
+                        const newPairs = [...currentQuestion.matchingPairs];
                         newPairs[index].left = e.target.value;
-                        handleChange({ matchingPairs: newPairs });
+                        handleQuestionChange(formData.currentQuestionIndex, { matchingPairs: newPairs });
                       }}
                       className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       placeholder={`Begriff ${index + 1}`}
@@ -275,18 +426,18 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
                       type="text"
                       value={pair.right}
                       onChange={(e) => {
-                        const newPairs = [...formData.matchingPairs];
+                        const newPairs = [...currentQuestion.matchingPairs];
                         newPairs[index].right = e.target.value;
-                        handleChange({ matchingPairs: newPairs });
+                        handleQuestionChange(formData.currentQuestionIndex, { matchingPairs: newPairs });
                       }}
                       className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       placeholder={`Zuordnung ${index + 1}`}
                     />
-                    {formData.matchingPairs.length > 2 && (
+                    {currentQuestion.matchingPairs.length > 2 && (
                       <button
                         onClick={() => {
-                          const newPairs = formData.matchingPairs.filter((_, i) => i !== index);
-                          handleChange({ matchingPairs: newPairs });
+                          const newPairs = currentQuestion.matchingPairs.filter((_, i) => i !== index);
+                          handleQuestionChange(formData.currentQuestionIndex, { matchingPairs: newPairs });
                         }}
                         className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all"
                       >
@@ -308,8 +459,8 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
             Erklärung (optional)
           </label>
           <textarea
-            value={formData.explanation}
-            onChange={(e) => handleChange({ explanation: e.target.value })}
+            value={currentQuestion.explanation}
+            onChange={(e) => handleQuestionChange(formData.currentQuestionIndex, { explanation: e.target.value })}
             className="w-full h-20 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
             placeholder="Erklärung zur richtigen Antwort"
           />
@@ -321,8 +472,8 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
           </label>
           <input
             type="number"
-            value={formData.points}
-            onChange={(e) => handleChange({ points: parseInt(e.target.value) })}
+            value={currentQuestion.points}
+            onChange={(e) => handleQuestionChange(formData.currentQuestionIndex, { points: parseInt(e.target.value) })}
             className="w-32 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
             min="1"
           />
@@ -342,12 +493,37 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
   }
 
   // Client/Preview mode - Interactive quiz
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [selectedAnswers, setSelectedAnswers] = useState([]); // Changed to array for multiple selection
   const [shortAnswer, setShortAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(formData.timeLimit);
   const [timerExpired, setTimerExpired] = useState(false);
   const [adminRevealAnswer, setAdminRevealAnswer] = useState(false);
+  const [shuffledMatchingOptions, setShuffledMatchingOptions] = useState([]);
+  
+  // Multi-question session mode state
+  const [sessionQuestionIndex, setSessionQuestionIndex] = useState(0);
+  const [questionAnswers, setQuestionAnswers] = useState({}); // Track answers for all questions
+  const [allQuestionsCompleted, setAllQuestionsCompleted] = useState(false);
+  const [showFinalResults, setShowFinalResults] = useState(false);
+  
+  // In session mode, use sessionQuestionIndex; in editing mode, use formData.currentQuestionIndex
+  const activeQuestionIndex = isSessionMode ? sessionQuestionIndex : formData.currentQuestionIndex;
+  const activeQuestion = formData.questions[activeQuestionIndex] || formData.questions[0];
+  
+  // Shuffle matching options once when question changes
+  useEffect(() => {
+    if (activeQuestion.questionType === 'matching' && activeQuestion.matchingPairs) {
+      const options = activeQuestion.matchingPairs.map(pair => pair.right);
+      // Fisher-Yates shuffle
+      const shuffled = [...options];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      setShuffledMatchingOptions(shuffled);
+    }
+  }, [activeQuestionIndex, activeQuestion.questionType]);
 
   // Timer countdown
   useEffect(() => {
@@ -369,8 +545,62 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
   }, [isEditing, formData.timeLimit, submitted, timerExpired]);
 
   const handleSubmit = () => {
+    // Check if question has multiple correct answers
+    const hasMultipleCorrect = Array.isArray(activeQuestion.correctAnswer) && activeQuestion.correctAnswer.length > 1;
+    
+    // Calculate if answer is correct
+    let isCorrect = null;
+    if (activeQuestion.questionType === 'multiple-choice') {
+      if (hasMultipleCorrect) {
+        // For multiple correct answers: check if all selected match all correct
+        const correctSet = new Set(activeQuestion.correctAnswer);
+        const selectedSet = new Set(selectedAnswers);
+        isCorrect = correctSet.size === selectedSet.size && 
+                    [...correctSet].every(x => selectedSet.has(x));
+      } else {
+        // Single correct answer
+        const correctAnswer = Array.isArray(activeQuestion.correctAnswer) 
+          ? activeQuestion.correctAnswer[0] 
+          : activeQuestion.correctAnswer;
+        isCorrect = selectedAnswers.length === 1 && selectedAnswers[0] === correctAnswer;
+      }
+    } else if (activeQuestion.questionType === 'matching' && activeQuestion.matchingPairs) {
+      // Check if all matching pairs are correct
+      const allPairsMatched = activeQuestion.matchingPairs.length === Object.keys(matchingAnswers).length;
+      const allCorrect = activeQuestion.matchingPairs.every(pair => 
+        matchingAnswers[pair.left] === pair.right
+      );
+      isCorrect = allPairsMatched && allCorrect;
+    } else if (activeQuestion.questionType === 'rating-scale') {
+      // Rating scale is always "correct" as there's no wrong answer
+      isCorrect = true;
+    }
+    
+    // Save answer for this question
+    const answer = {
+      questionId: activeQuestion.id,
+      questionIndex: activeQuestionIndex,
+      selectedAnswers,
+      shortAnswer,
+      matchingAnswers,
+      isCorrect
+    };
+    
+    setQuestionAnswers(prev => ({
+      ...prev,
+      [activeQuestionIndex]: answer
+    }));
+    
     setSubmitted(true);
+    
     // TODO: Send answer to backend via socket/API
+    if (socket && sessionCode) {
+      socket.emit('quiz:answer', {
+        sessionCode,
+        questionIndex: activeQuestionIndex,
+        answer
+      });
+    }
   };
 
   const formatTime = (seconds) => {
@@ -382,13 +612,15 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
   const renderRatingScale = () => {
     const items = [];
     const emojis = ['😞', '😕', '😐', '🙂', '😊', '😄', '🤩'];
+    const ratingScale = activeQuestion.ratingScale || formData.ratingScale || 5;
+    const ratingStyle = activeQuestion.ratingStyle || formData.ratingStyle || 'numbers';
     
-    for (let i = 1; i <= formData.ratingScale; i++) {
+    for (let i = 1; i <= ratingScale; i++) {
       let content;
-      if (formData.ratingStyle === 'stars') {
+      if (ratingStyle === 'stars') {
         content = <Star size={24} className="fill-yellow-400 text-yellow-400" />;
-      } else if (formData.ratingStyle === 'emojis') {
-        const emojiIndex = Math.floor((i - 1) / formData.ratingScale * (emojis.length - 1));
+      } else if (ratingStyle === 'emojis') {
+        const emojiIndex = Math.floor((i - 1) / ratingScale * (emojis.length - 1));
         content = <span className="text-2xl">{emojis[emojiIndex]}</span>;
       } else {
         content = <span className="text-xl font-bold">{i}</span>;
@@ -397,16 +629,16 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
       items.push(
         <button
           key={i}
-          onClick={() => setSelectedAnswer(i)}
+          onClick={() => setSelectedAnswers([i])}
           disabled={submitted}
           className={`flex flex-col items-center justify-center p-4 border rounded-lg transition-all ${
-            selectedAnswer === i
+            selectedAnswers.includes(i)
               ? 'bg-purple-500/30 border-purple-500'
               : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-purple-500/50'
           } ${submitted ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {content}
-          {formData.ratingStyle === 'numbers' && (
+          {ratingStyle === 'numbers' && (
             <span className="text-xs text-gray-400 mt-1">{i}</span>
           )}
         </button>
@@ -415,11 +647,116 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
     return items;
   };
 
+  // Handle moving to next question in session mode
+  const handleNextQuestion = () => {
+    if (sessionQuestionIndex < totalQuestions - 1) {
+      setSessionQuestionIndex(sessionQuestionIndex + 1);
+      setSubmitted(false);
+      setSelectedAnswers([]);
+      setShortAnswer('');
+      setMatchingAnswers({});
+    } else {
+      // All questions completed
+      setAllQuestionsCompleted(true);
+      setShowFinalResults(true);
+      if (onComplete) {
+        onComplete();
+      }
+    }
+  };
+
+  // Calculate total score
+  const calculateScore = () => {
+    let correct = 0;
+    let total = 0;
+    Object.values(questionAnswers).forEach(answer => {
+      if (answer.isCorrect !== null) {
+        total++;
+        if (answer.isCorrect) correct++;
+      }
+    });
+    return { correct, total };
+  };
+
+  // Show final results view after all questions completed
+  if (showFinalResults && allQuestionsCompleted) {
+    const score = calculateScore();
+    return (
+      <div className="bg-white/5 rounded-lg p-6">
+        <div className="text-center mb-8">
+          <h3 className="text-3xl font-bold text-white mb-4">Quiz Abgeschlossen!</h3>
+          <div className="text-6xl mb-4">
+            {score.correct === score.total ? '🎉' : score.correct >= score.total / 2 ? '👍' : '📚'}
+          </div>
+          <p className="text-2xl text-white">
+            <span className="text-green-400 font-bold">{score.correct}</span> von <span className="font-bold">{score.total}</span> richtig
+          </p>
+          <p className="text-gray-400 mt-2">
+            {Math.round((score.correct / score.total) * 100)}% korrekt
+          </p>
+        </div>
+        
+        {/* Question review */}
+        <div className="space-y-4">
+          <h4 className="text-lg font-semibold text-white">Übersicht:</h4>
+          {formData.questions.map((q, idx) => {
+            const answer = questionAnswers[idx];
+            return (
+              <div key={q.id} className={`p-4 rounded-lg border ${
+                answer?.isCorrect === true ? 'bg-green-500/10 border-green-500/30' :
+                answer?.isCorrect === false ? 'bg-red-500/10 border-red-500/30' :
+                'bg-blue-500/10 border-blue-500/30'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <span className={`text-lg ${
+                    answer?.isCorrect === true ? 'text-green-400' :
+                    answer?.isCorrect === false ? 'text-red-400' :
+                    'text-blue-400'
+                  }`}>
+                    {answer?.isCorrect === true ? '✓' : answer?.isCorrect === false ? '✗' : '•'}
+                  </span>
+                  <span className="text-white font-medium">Frage {idx + 1}: {q.question}</span>
+                </div>
+                {q.explanation && (
+                  <p className="text-sm text-gray-400 mt-2 ml-6">{q.explanation}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white/5 rounded-lg p-6">
+      {/* Multi-question progress indicator */}
+      {totalQuestions > 1 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-400">Frage {activeQuestionIndex + 1} von {totalQuestions}</span>
+            <span className="text-sm text-gray-400">
+              {Object.keys(questionAnswers).length} beantwortet
+            </span>
+          </div>
+          <div className="flex gap-1">
+            {formData.questions.map((_, idx) => (
+              <div
+                key={idx}
+                className={`h-2 flex-1 rounded-full transition-all ${
+                  idx === activeQuestionIndex ? 'bg-purple-500' :
+                  questionAnswers[idx] ? (questionAnswers[idx].isCorrect ? 'bg-green-500' : 'bg-red-500') :
+                  'bg-white/20'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-2xl font-bold text-white">
-          {formData.question || 'Frage'}
+          {activeQuestion.question || 'Frage'}
         </h3>
         <div className="flex items-center gap-3">
           {/* Timer Display */}
@@ -433,7 +770,7 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
           )}
           
           {/* Admin Reveal Answer Button (only show in preview/admin mode) */}
-          {!isEditing && formData.questionType === 'multiple-choice' && (
+          {!isEditing && isAdmin && activeQuestion.questionType === 'multiple-choice' && (
             <button
               onClick={() => setAdminRevealAnswer(!adminRevealAnswer)}
               className="px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded flex items-center gap-2 text-sm"
@@ -445,46 +782,84 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
           )}
           
           <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-400 rounded">
-            {formData.questionType === 'multiple-choice' && 'Multiple Choice'}
-            {formData.questionType === 'short-answer' && 'Kurzantwort'}
-            {formData.questionType === 'rating-scale' && 'Bewertung'}
+            {activeQuestion.questionType === 'multiple-choice' && 'Multiple Choice'}
+            {activeQuestion.questionType === 'short-answer' && 'Kurzantwort'}
+            {activeQuestion.questionType === 'rating-scale' && 'Bewertung'}
           </span>
         </div>
       </div>
 
       {/* Multiple Choice - Interactive */}
-      {formData.questionType === 'multiple-choice' && (
-        <div className="space-y-3">
-          {formData.options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => setSelectedAnswer(index)}
-              disabled={submitted}
-              className={`w-full px-4 py-3 rounded-lg border transition-all text-left ${
-                (submitted || adminRevealAnswer) && index === formData.correctAnswer
-                  ? 'bg-green-500/20 border-green-500 text-green-400'
-                  : submitted && selectedAnswer === index && index !== formData.correctAnswer
-                  ? 'bg-red-500/20 border-red-500 text-red-400'
-                  : selectedAnswer === index
-                  ? 'bg-purple-500/30 border-purple-500 text-white'
-                  : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-              } ${submitted ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-            >
-              <div className="flex items-center justify-between">
-                <span>{option || `Option ${index + 1}`}</span>
-                {(submitted || adminRevealAnswer) && index === formData.correctAnswer && <span className="text-green-400">✓</span>}
-                {submitted && selectedAnswer === index && index !== formData.correctAnswer && <span className="text-red-400">✗</span>}
-                {adminRevealAnswer && !submitted && index === formData.correctAnswer && (
-                  <span className="text-xs text-yellow-400">(Richtig)</span>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+      {activeQuestion.questionType === 'multiple-choice' && (() => {
+        const correctAnswer = Array.isArray(activeQuestion.correctAnswer) 
+          ? activeQuestion.correctAnswer 
+          : [activeQuestion.correctAnswer];
+        const hasMultipleCorrect = correctAnswer.length > 1;
+        
+        const handleOptionClick = (index) => {
+          if (hasMultipleCorrect) {
+            // Multiple selection allowed
+            setSelectedAnswers(prev => 
+              prev.includes(index) 
+                ? prev.filter(i => i !== index)
+                : [...prev, index]
+            );
+          } else {
+            // Single selection
+            setSelectedAnswers([index]);
+          }
+        };
+        
+        return (
+          <div className="space-y-3">
+            {hasMultipleCorrect && (
+              <p className="text-sm text-purple-400 mb-2">
+                ✓ Mehrere Antworten möglich ({correctAnswer.length} richtige Antworten)
+              </p>
+            )}
+            {activeQuestion.options.map((option, index) => {
+              const isCorrect = correctAnswer.includes(index);
+              const isSelected = selectedAnswers.includes(index);
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => handleOptionClick(index)}
+                  disabled={submitted}
+                  className={`w-full px-4 py-3 rounded-lg border transition-all text-left ${
+                    (submitted || adminRevealAnswer) && isCorrect
+                      ? 'bg-green-500/20 border-green-500 text-green-400'
+                      : submitted && isSelected && !isCorrect
+                      ? 'bg-red-500/20 border-red-500 text-red-400'
+                      : isSelected
+                      ? 'bg-purple-500/30 border-purple-500 text-white'
+                      : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                  } ${submitted ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-5 h-5 ${hasMultipleCorrect ? 'rounded' : 'rounded-full'} border-2 flex items-center justify-center ${
+                      isSelected ? 'border-purple-500' : 'border-white/30'
+                    }`}>
+                      {isSelected && (
+                        <div className={`w-3 h-3 ${hasMultipleCorrect ? 'rounded' : 'rounded-full'} bg-purple-500`} />
+                      )}
+                    </div>
+                    <span className="flex-1">{option || `Option ${index + 1}`}</span>
+                    {(submitted || adminRevealAnswer) && isCorrect && <span className="text-green-400">✓</span>}
+                    {submitted && isSelected && !isCorrect && <span className="text-red-400">✗</span>}
+                    {adminRevealAnswer && !submitted && isCorrect && (
+                      <span className="text-xs text-yellow-400">(Richtig)</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Short Answer - Interactive */}
-      {formData.questionType === 'short-answer' && (
+      {activeQuestion.questionType === 'short-answer' && (
         <div>
           <textarea
             value={shortAnswer}
@@ -493,10 +868,10 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
             className="w-full h-32 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
             placeholder="Ihre Antwort hier eingeben..."
           />
-          {submitted && formData.correctText && (
+          {submitted && activeQuestion.correctText && (
             <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
               <p className="text-sm text-blue-300">
-                <strong>Musterantwort:</strong> {formData.correctText}
+                <strong>Musterantwort:</strong> {activeQuestion.correctText}
               </p>
             </div>
           )}
@@ -504,95 +879,177 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
       )}
 
       {/* Matching Pairs - Interactive */}
-      {formData.questionType === 'matching' && (
+      {activeQuestion.questionType === 'matching' && activeQuestion.matchingPairs && (
         <div className="space-y-4">
-          {/* Left column - Terms */}
-          <div className="grid grid-cols-2 gap-6">
+          <p className="text-sm text-purple-400 text-center mb-2">
+            Ziehen Sie einen Begriff auf die passende Zuordnung (oder umgekehrt). Klicken Sie auf ein Paar, um es zu trennen.
+          </p>
+          
+          {/* Two columns side by side - both draggable, both droppable */}
+          <div className="grid grid-cols-2 gap-8">
+            {/* Left column - Terms (draggable + drop zone for right items) */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-300">Begriffe</h4>
-              {formData.matchingPairs.map((pair, index) => (
-                <div
-                  key={`left-${pair.id}`}
-                  className="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white"
-                >
-                  {pair.left}
-                </div>
-              ))}
+              <h4 className="text-sm font-semibold text-gray-300 text-center">Begriffe</h4>
+              {activeQuestion.matchingPairs.map((pair, index) => {
+                const isMatched = matchingAnswers[pair.left];
+                const isBeingDragged = draggedItem?.type === 'left' && draggedItem?.value === pair.left;
+                
+                return (
+                  <div
+                    key={`left-${pair.id}`}
+                    draggable={!submitted && !isMatched}
+                    onDragStart={(e) => {
+                      if (!submitted && !isMatched) {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', pair.left);
+                        setDraggedItem({ type: 'left', value: pair.left });
+                      }
+                    }}
+                    onDragEnd={() => setDraggedItem(null)}
+                    onDragOver={(e) => {
+                      if (draggedItem?.type === 'right' && !isMatched) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onDragEnter={(e) => {
+                      if (draggedItem?.type === 'right' && !isMatched) {
+                        e.currentTarget.classList.add('ring-2', 'ring-purple-500', 'bg-purple-500/20');
+                      }
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-500/20');
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-500/20');
+                      if (draggedItem?.type === 'right' && !submitted && !isMatched) {
+                        setMatchingAnswers({ ...matchingAnswers, [pair.left]: draggedItem.value });
+                        setDraggedItem(null);
+                      }
+                    }}
+                    onClick={() => {
+                      if (!submitted && isMatched) {
+                        const newAnswers = { ...matchingAnswers };
+                        delete newAnswers[pair.left];
+                        setMatchingAnswers(newAnswers);
+                      }
+                    }}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all select-none ${
+                      submitted && isMatched && matchingAnswers[pair.left] === pair.right
+                        ? 'bg-green-500/20 border-green-500 text-green-400'
+                        : submitted && isMatched
+                        ? 'bg-red-500/20 border-red-500 text-red-400'
+                        : isMatched
+                        ? 'bg-blue-500/20 border-blue-500 text-white cursor-pointer hover:bg-blue-500/30'
+                        : isBeingDragged
+                        ? 'bg-purple-500/40 border-purple-400 text-white cursor-grabbing opacity-50'
+                        : 'bg-white/5 border-white/20 text-white cursor-grab hover:bg-white/10 hover:border-purple-500/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{pair.left}</span>
+                      {isMatched && (
+                        <span className="text-xs text-blue-400">→ {matchingAnswers[pair.left]}</span>
+                      )}
+                      {submitted && isMatched && (
+                        <span className={matchingAnswers[pair.left] === pair.right ? 'text-green-400' : 'text-red-400'}>
+                          {matchingAnswers[pair.left] === pair.right ? '✓' : '✗'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Right column - Draggable options */}
+            {/* Right column - Options (draggable + drop zone for left items) */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-300">Zuordnungen (ziehen Sie diese)</h4>
-              {formData.matchingPairs
-                .map(pair => pair.right)
-                .sort(() => Math.random() - 0.5)
-                .map((rightItem, index) => {
-                  const isUsed = Object.values(matchingAnswers).includes(rightItem);
-                  return (
-                    <div
-                      key={`right-${index}`}
-                      draggable={!submitted && !isUsed}
-                      onDragStart={() => !submitted && !isUsed && setDraggedItem(rightItem)}
-                      onDragEnd={() => setDraggedItem(null)}
-                      className={`px-4 py-3 rounded-lg border transition-all ${
-                        isUsed
-                          ? 'bg-gray-500/20 border-gray-500/30 text-gray-500 cursor-not-allowed'
-                          : submitted
-                          ? 'bg-white/5 border-white/10 text-white cursor-not-allowed'
-                          : 'bg-purple-500/20 border-purple-500/50 text-white cursor-grab active:cursor-grabbing hover:bg-purple-500/30'
-                      }`}
-                    >
-                      {rightItem}
+              <h4 className="text-sm font-semibold text-gray-300 text-center">Zuordnungen</h4>
+              {shuffledMatchingOptions.map((rightItem, index) => {
+                const isMatched = Object.values(matchingAnswers).includes(rightItem);
+                const matchedLeft = Object.keys(matchingAnswers).find(k => matchingAnswers[k] === rightItem);
+                const isBeingDragged = draggedItem?.type === 'right' && draggedItem?.value === rightItem;
+                
+                return (
+                  <div
+                    key={`right-${rightItem}-${index}`}
+                    draggable={!submitted && !isMatched}
+                    onDragStart={(e) => {
+                      if (!submitted && !isMatched) {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', rightItem);
+                        setDraggedItem({ type: 'right', value: rightItem });
+                      }
+                    }}
+                    onDragEnd={() => setDraggedItem(null)}
+                    onDragOver={(e) => {
+                      if (draggedItem?.type === 'left' && !isMatched) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onDragEnter={(e) => {
+                      if (draggedItem?.type === 'left' && !isMatched) {
+                        e.currentTarget.classList.add('ring-2', 'ring-purple-500', 'bg-purple-500/20');
+                      }
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-500/20');
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-500/20');
+                      if (draggedItem?.type === 'left' && !submitted && !isMatched) {
+                        setMatchingAnswers({ ...matchingAnswers, [draggedItem.value]: rightItem });
+                        setDraggedItem(null);
+                      }
+                    }}
+                    onClick={() => {
+                      if (!submitted && isMatched && matchedLeft) {
+                        const newAnswers = { ...matchingAnswers };
+                        delete newAnswers[matchedLeft];
+                        setMatchingAnswers(newAnswers);
+                      }
+                    }}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all select-none ${
+                      submitted && isMatched && matchedLeft && activeQuestion.matchingPairs.find(p => p.left === matchedLeft)?.right === rightItem
+                        ? 'bg-green-500/20 border-green-500 text-green-400'
+                        : submitted && isMatched
+                        ? 'bg-red-500/20 border-red-500 text-red-400'
+                        : isMatched
+                        ? 'bg-blue-500/20 border-blue-500 text-white cursor-pointer hover:bg-blue-500/30'
+                        : isBeingDragged
+                        ? 'bg-purple-500/40 border-purple-400 text-white cursor-grabbing opacity-50'
+                        : 'bg-purple-500/10 border-purple-500/30 text-white cursor-grab hover:bg-purple-500/20 hover:border-purple-500'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      {isMatched && matchedLeft && (
+                        <span className="text-xs text-blue-400">{matchedLeft} ←</span>
+                      )}
+                      <span className={isMatched ? '' : 'w-full'}>{rightItem || `Option ${index + 1}`}</span>
+                      {submitted && isMatched && matchedLeft && (
+                        <span className={activeQuestion.matchingPairs.find(p => p.left === matchedLeft)?.right === rightItem ? 'text-green-400' : 'text-red-400'}>
+                          {activeQuestion.matchingPairs.find(p => p.left === matchedLeft)?.right === rightItem ? '✓' : '✗'}
+                        </span>
+                      )}
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
             </div>
           </div>
-
-          {/* Drop zones */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-gray-300">Ihre Zuordnungen</h4>
-            {formData.matchingPairs.map((pair, index) => (
-              <div
-                key={`drop-${pair.id}`}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => {
-                  if (draggedItem && !submitted) {
-                    setMatchingAnswers({ ...matchingAnswers, [pair.left]: draggedItem });
-                    setDraggedItem(null);
-                  }
-                }}
-                className={`px-4 py-3 rounded-lg border-2 border-dashed transition-all ${
-                  submitted && matchingAnswers[pair.left] === pair.right
-                    ? 'bg-green-500/20 border-green-500'
-                    : submitted && matchingAnswers[pair.left] && matchingAnswers[pair.left] !== pair.right
-                    ? 'bg-red-500/20 border-red-500'
-                    : matchingAnswers[pair.left]
-                    ? 'bg-blue-500/20 border-blue-500'
-                    : 'bg-white/5 border-white/20 hover:border-purple-500/50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-white">{pair.left} →</span>
-                  <span className={`${matchingAnswers[pair.left] ? 'text-white font-semibold' : 'text-gray-500'}`}>
-                    {matchingAnswers[pair.left] || 'Hier ablegen'}
-                  </span>
-                  {submitted && (
-                    <span>
-                      {matchingAnswers[pair.left] === pair.right ? '✓' : '✗'}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+          
+          {/* Match count indicator */}
+          <div className="text-center text-sm text-gray-400">
+            {Object.keys(matchingAnswers).length} / {activeQuestion.matchingPairs.length} Paare zugeordnet
           </div>
         </div>
       )}
 
       {/* Rating Scale - Interactive */}
-      {formData.questionType === 'rating-scale' && (
+      {activeQuestion.questionType === 'rating-scale' && (
         <div className={`grid gap-3 ${
-          formData.ratingScale <= 5 ? 'grid-cols-5' : 'grid-cols-5'
+          activeQuestion.ratingScale <= 5 ? 'grid-cols-5' : 'grid-cols-5'
         }`}>
           {renderRatingScale()}
         </div>
@@ -603,10 +1060,10 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
         <button
           onClick={handleSubmit}
           disabled={
-            (formData.questionType === 'multiple-choice' && selectedAnswer === null) ||
-            (formData.questionType === 'short-answer' && !shortAnswer.trim()) ||
-            (formData.questionType === 'rating-scale' && selectedAnswer === null) ||
-            (formData.questionType === 'matching' && Object.keys(matchingAnswers).length < formData.matchingPairs.length)
+            (activeQuestion.questionType === 'multiple-choice' && selectedAnswers.length === 0) ||
+            (activeQuestion.questionType === 'short-answer' && !shortAnswer.trim()) ||
+            (activeQuestion.questionType === 'rating-scale' && selectedAnswers.length === 0) ||
+            (activeQuestion.questionType === 'matching' && activeQuestion.matchingPairs && Object.keys(matchingAnswers).length < activeQuestion.matchingPairs.length)
           }
           className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
@@ -617,43 +1074,60 @@ function QuizTemplate({ content, onChange, onSave, isEditing }) {
       {/* Result Message */}
       {submitted && (
         <div className={`mt-6 p-4 rounded-lg border ${
-          formData.questionType === 'multiple-choice' && selectedAnswer === formData.correctAnswer
+          activeQuestion.questionType === 'multiple-choice' && questionAnswers[activeQuestionIndex]?.isCorrect
             ? 'bg-green-500/10 border-green-500/30'
-            : formData.questionType === 'multiple-choice'
+            : activeQuestion.questionType === 'multiple-choice'
             ? 'bg-red-500/10 border-red-500/30'
             : 'bg-blue-500/10 border-blue-500/30'
         }`}>
           <p className={`font-semibold ${
-            formData.questionType === 'multiple-choice' && selectedAnswer === formData.correctAnswer
+            activeQuestion.questionType === 'multiple-choice' && questionAnswers[activeQuestionIndex]?.isCorrect
               ? 'text-green-400'
-              : formData.questionType === 'multiple-choice'
+              : activeQuestion.questionType === 'multiple-choice'
               ? 'text-red-400'
               : 'text-blue-400'
           }`}>
-            {formData.questionType === 'multiple-choice' && selectedAnswer === formData.correctAnswer && '✓ Richtig!'}
-            {formData.questionType === 'multiple-choice' && selectedAnswer !== formData.correctAnswer && '✗ Leider falsch'}
-            {formData.questionType !== 'multiple-choice' && '✓ Antwort eingereicht'}
+            {activeQuestion.questionType === 'multiple-choice' && questionAnswers[activeQuestionIndex]?.isCorrect && '✓ Richtig!'}
+            {activeQuestion.questionType === 'multiple-choice' && !questionAnswers[activeQuestionIndex]?.isCorrect && '✗ Leider falsch'}
+            {activeQuestion.questionType !== 'multiple-choice' && '✓ Antwort eingereicht'}
             {timerExpired && ' (Zeit abgelaufen)'}
           </p>
-          {formData.explanation && (
+          {activeQuestion.explanation && (
             <p className="text-sm text-gray-300 mt-2">
-              <strong>Erklärung:</strong> {formData.explanation}
+              <strong>Erklärung:</strong> {activeQuestion.explanation}
             </p>
           )}
         </div>
       )}
 
+      {/* Next Question Button (for multi-question quizzes) */}
+      {submitted && totalQuestions > 1 && (
+        <button
+          onClick={handleNextQuestion}
+          className="w-full mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition-all flex items-center justify-center gap-2"
+        >
+          {activeQuestionIndex < totalQuestions - 1 ? (
+            <>
+              <span>Nächste Frage</span>
+              <ChevronRight size={20} />
+            </>
+          ) : (
+            <span>Ergebnisse anzeigen</span>
+          )}
+        </button>
+      )}
+
       {/* Admin Reveal Explanation */}
-      {adminRevealAnswer && !submitted && formData.explanation && (
+      {adminRevealAnswer && !submitted && activeQuestion.explanation && (
         <div className="mt-6 p-4 rounded-lg border bg-yellow-500/10 border-yellow-500/30">
           <p className="text-sm text-gray-300">
-            <strong className="text-yellow-400">Erklärung (Admin-Vorschau):</strong> {formData.explanation}
+            <strong className="text-yellow-400">Erklärung (Admin-Vorschau):</strong> {activeQuestion.explanation}
           </p>
         </div>
       )}
 
       <div className="mt-4 text-sm text-gray-400">
-        Punkte: {formData.points}
+        Punkte: {activeQuestion.points || 1}
       </div>
     </div>
   );

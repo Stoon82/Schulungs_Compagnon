@@ -14,7 +14,12 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
     colorScheme: content.colorScheme || 'rainbow', // 'rainbow', 'monochrome', 'custom'
     customColors: content.customColors || ['#667eea', '#764ba2', '#f093fb', '#4facfe'],
     fontSizes: content.fontSizes || { min: 12, max: 60 },
-    bannedWords: content.bannedWords || []
+    bannedWords: content.bannedWords || [],
+    // New display options
+    layoutStyle: content.layoutStyle || 'centered', // 'centered', 'top-lines', 'spiral', 'random', 'wave'
+    sizeMethod: content.sizeMethod || 'frequency', // 'frequency', 'timing', 'random', 'equal'
+    animationStyle: content.animationStyle || 'fade', // 'fade', 'grow', 'slide', 'none'
+    wordRotation: content.wordRotation || 'mixed' // 'horizontal', 'vertical', 'mixed', 'diagonal'
   });
 
   const [newBannedWord, setNewBannedWord] = useState('');
@@ -58,6 +63,35 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
     { value: 'cloud', label: 'Nur Wortwolke' },
     { value: 'list', label: 'Nur Liste' },
     { value: 'both', label: 'Beides' }
+  ];
+
+  const layoutStyles = [
+    { value: 'centered', label: 'Zentriert (vom Zentrum aufbauend)', description: 'Wörter werden vom Zentrum der Wolke aus platziert' },
+    { value: 'top-lines', label: 'Zeilen (von oben nach unten)', description: 'Wörter werden in Zeilen von oben nach unten angeordnet' },
+    { value: 'spiral', label: 'Spirale', description: 'Wörter werden spiralförmig angeordnet' },
+    { value: 'random', label: 'Zufällig verteilt', description: 'Wörter werden zufällig in der Wolke platziert' },
+    { value: 'wave', label: 'Welle', description: 'Wörter werden wellenförmig angeordnet' }
+  ];
+
+  const sizeMethods = [
+    { value: 'frequency', label: 'Nach Häufigkeit', description: 'Je öfter ein Wort genannt wird, desto größer' },
+    { value: 'timing', label: 'Nach Zeitpunkt', description: 'Früher eingegebene Wörter sind größer' },
+    { value: 'random', label: 'Zufällige Größe', description: 'Wörter erhalten zufällige Größen' },
+    { value: 'equal', label: 'Gleiche Größe', description: 'Alle Wörter haben die gleiche Größe' }
+  ];
+
+  const animationStyles = [
+    { value: 'fade', label: 'Einblenden' },
+    { value: 'grow', label: 'Wachsen' },
+    { value: 'slide', label: 'Gleiten' },
+    { value: 'none', label: 'Keine Animation' }
+  ];
+
+  const rotationOptions = [
+    { value: 'horizontal', label: 'Nur horizontal' },
+    { value: 'vertical', label: 'Nur vertikal' },
+    { value: 'mixed', label: 'Gemischt (horizontal & vertikal)' },
+    { value: 'diagonal', label: 'Diagonal' }
   ];
 
   // Mock word data for preview
@@ -228,10 +262,41 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
             </button>
           )}
           {submittedWords.length > 0 ? (
-            <div ref={wordCloudRef} className="flex flex-wrap items-center justify-center gap-3">
-              {submittedWords.map((word, index) => {
-                // Calculate font size based on frequency (for now, random variation)
-                const fontSize = Math.floor(Math.random() * 32) + 16; // 16-48px
+            <div 
+              ref={wordCloudRef} 
+              className={`min-h-[300px] ${
+                formData.layoutStyle === 'top-lines' ? 'flex flex-col items-center gap-2' :
+                formData.layoutStyle === 'centered' ? 'flex flex-wrap items-center justify-center gap-3' :
+                formData.layoutStyle === 'spiral' ? 'relative flex items-center justify-center' :
+                formData.layoutStyle === 'wave' ? 'flex flex-wrap items-end justify-center gap-2 pb-8' :
+                'flex flex-wrap gap-3'
+              }`}
+            >
+              {submittedWords.map((word, index, arr) => {
+                // Calculate font size based on sizeMethod
+                let fontSize;
+                const minSize = formData.fontSizes?.min || 16;
+                const maxSize = formData.fontSizes?.max || 48;
+                
+                switch (formData.sizeMethod) {
+                  case 'frequency':
+                    // Count occurrences (for now simulate with index position)
+                    const count = arr.filter(w => w === word).length;
+                    const maxCount = Math.max(...arr.map(w => arr.filter(x => x === w).length));
+                    fontSize = minSize + ((count / maxCount) * (maxSize - minSize));
+                    break;
+                  case 'timing':
+                    // Earlier words are bigger
+                    fontSize = maxSize - ((index / arr.length) * (maxSize - minSize));
+                    break;
+                  case 'equal':
+                    fontSize = (minSize + maxSize) / 2;
+                    break;
+                  case 'random':
+                  default:
+                    fontSize = Math.floor(Math.random() * (maxSize - minSize)) + minSize;
+                }
+                
                 const colors = [
                   'text-purple-400',
                   'text-pink-400',
@@ -244,11 +309,51 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
                 ];
                 const color = colors[index % colors.length];
                 
+                // Calculate rotation based on wordRotation setting
+                let rotation = 0;
+                if (formData.wordRotation === 'vertical') {
+                  rotation = 90;
+                } else if (formData.wordRotation === 'mixed' && index % 3 === 0) {
+                  rotation = 90;
+                } else if (formData.wordRotation === 'diagonal') {
+                  rotation = index % 2 === 0 ? -15 : 15;
+                }
+                
+                // Calculate position for spiral layout
+                let spiralStyle = {};
+                if (formData.layoutStyle === 'spiral') {
+                  const angle = index * 0.5;
+                  const radius = 20 + index * 8;
+                  spiralStyle = {
+                    position: 'absolute',
+                    left: `calc(50% + ${Math.cos(angle) * radius}px)`,
+                    top: `calc(50% + ${Math.sin(angle) * radius}px)`,
+                    transform: `translate(-50%, -50%) rotate(${rotation}deg)`
+                  };
+                }
+                
+                // Wave effect
+                let waveStyle = {};
+                if (formData.layoutStyle === 'wave') {
+                  const waveHeight = Math.sin(index * 0.5) * 30;
+                  waveStyle = { marginBottom: `${30 + waveHeight}px` };
+                }
+                
+                // Animation class
+                const animClass = formData.animationStyle === 'fade' ? 'animate-fade-in' :
+                                  formData.animationStyle === 'grow' ? 'animate-scale-in' :
+                                  formData.animationStyle === 'slide' ? 'animate-slide-in' : '';
+                
                 return (
                   <span
                     key={index}
-                    className={`${color} font-bold transition-all duration-300 hover:scale-110 cursor-default`}
-                    style={{ fontSize: `${fontSize}px` }}
+                    className={`${color} font-bold transition-all duration-300 hover:scale-110 cursor-default ${animClass}`}
+                    style={{ 
+                      fontSize: `${fontSize}px`,
+                      transform: formData.layoutStyle !== 'spiral' ? `rotate(${rotation}deg)` : undefined,
+                      ...spiralStyle,
+                      ...waveStyle
+                    }}
                   >
                     {word}
                   </span>
@@ -387,6 +492,86 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
         </div>
       </div>
 
+      {/* Word Cloud Layout Options */}
+      <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-4 border border-purple-500/20">
+        <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Cloud size={20} className="text-purple-400" />
+          Wolken-Layout Optionen
+        </h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Layout Style */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Layout-Stil
+            </label>
+            <select
+              value={formData.layoutStyle}
+              onChange={(e) => handleChange('layoutStyle', e.target.value)}
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {layoutStyles.map(style => (
+                <option key={style.value} value={style.value}>{style.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">
+              {layoutStyles.find(s => s.value === formData.layoutStyle)?.description}
+            </p>
+          </div>
+
+          {/* Size Method */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Größenberechnung
+            </label>
+            <select
+              value={formData.sizeMethod}
+              onChange={(e) => handleChange('sizeMethod', e.target.value)}
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {sizeMethods.map(method => (
+                <option key={method.value} value={method.value}>{method.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">
+              {sizeMethods.find(m => m.value === formData.sizeMethod)?.description}
+            </p>
+          </div>
+
+          {/* Animation Style */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Animation
+            </label>
+            <select
+              value={formData.animationStyle}
+              onChange={(e) => handleChange('animationStyle', e.target.value)}
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {animationStyles.map(anim => (
+                <option key={anim.value} value={anim.value}>{anim.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Word Rotation */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Wort-Rotation
+            </label>
+            <select
+              value={formData.wordRotation}
+              onChange={(e) => handleChange('wordRotation', e.target.value)}
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {rotationOptions.map(rot => (
+                <option key={rot.value} value={rot.value}>{rot.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Color Scheme */}
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -402,6 +587,68 @@ function WordCloudTemplate({ content = {}, onSave, isEditing = true }) {
           ))}
         </select>
       </div>
+
+      {/* Custom Colors Editor */}
+      {formData.colorScheme === 'custom' && (
+        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm font-medium text-gray-300">
+              Benutzerdefinierte Farben
+            </label>
+            <button
+              onClick={() => {
+                const newColors = [...formData.customColors, '#667eea'];
+                handleChange('customColors', newColors);
+              }}
+              className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1"
+            >
+              <Plus size={16} />
+              Farbe hinzufügen
+            </button>
+          </div>
+          <div className="space-y-2">
+            {formData.customColors.map((color, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => {
+                    const newColors = [...formData.customColors];
+                    newColors[index] = e.target.value;
+                    handleChange('customColors', newColors);
+                  }}
+                  className="w-12 h-10 rounded border-2 border-white/20 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={color}
+                  onChange={(e) => {
+                    const newColors = [...formData.customColors];
+                    newColors[index] = e.target.value;
+                    handleChange('customColors', newColors);
+                  }}
+                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#667eea"
+                />
+                {formData.customColors.length > 1 && (
+                  <button
+                    onClick={() => {
+                      const newColors = formData.customColors.filter((_, i) => i !== index);
+                      handleChange('customColors', newColors);
+                    }}
+                    className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Diese Farben werden zufällig auf die Wörter in der Wolke angewendet
+          </p>
+        </div>
+      )}
 
       {/* Font Size Range */}
       <div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Crown, Shield, UserCheck, X, Copy, Check, LogOut, User, Trophy, Bell, Download } from 'lucide-react';
 import ModuleViewer from './ModuleViewer';
+import ClassSessionView from './ClassSessionView';
 import AdminNavigationBar from './AdminNavigationBar';
 import QRCodeButton from './QRCodeButton';
 import PersonalDashboard from './PersonalDashboard';
@@ -347,12 +348,22 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
 
       {/* Main Content */}
       <div className="flex-1 relative">
-        {module && submodules.length > 0 ? (
+        {/* Multi-module class session - show ClassSessionView */}
+        {session.modules && session.modules.length > 0 ? (
+          <ClassSessionView
+            session={session}
+            isAdmin={isAdmin}
+            socket={socket}
+            onExit={onEndSession}
+            participantData={participantData}
+          />
+        ) : module && submodules.length > 0 ? (
+          /* Single module session - show ModuleViewer directly (legacy) */
           <ModuleViewer
             moduleId={session.module_id}
             socket={socket}
             initialIndex={currentSubmoduleIndex}
-            onExit={isAdmin ? handleEndSession : null}
+            onExit={onEndSession}
             sessionCode={session.session_code}
             isAdmin={isAdmin}
           />

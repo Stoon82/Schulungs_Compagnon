@@ -46,6 +46,14 @@ class Database {
         await this.run(statement);
       }
       
+      // Add theme_override column to classes table if it doesn't exist
+      try {
+        await this.run('ALTER TABLE classes ADD COLUMN theme_override TEXT');
+        console.log('✅ Added theme_override column to classes');
+      } catch (err) {
+        // Column already exists, ignore error
+      }
+      
       console.log('✅ Database migrations completed');
     } catch (error) {
       console.error('Migration error:', error);

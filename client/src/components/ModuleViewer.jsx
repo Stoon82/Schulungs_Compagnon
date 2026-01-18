@@ -33,6 +33,8 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState({});
   const [transitionMode, setTransitionMode] = useState('fade'); // 'fade', 'slide', 'zoom'
+  const [submoduleCompleted, setSubmoduleCompleted] = useState(false); // Track if current submodule is completed
+  const [adminAllowedIndex, setAdminAllowedIndex] = useState(0); // Admin-controlled max index participants can access
 
   // Animation variants
   const transitions = {
@@ -81,9 +83,22 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
       }
     });
 
+    // Listen for admin allowing next submodule
+    socket.on('submodule:advance', (data) => {
+      if (data.moduleId === moduleId) {
+        setAdminAllowedIndex(data.allowedIndex);
+        // Auto-navigate participants to the new submodule
+        if (!isAdmin) {
+          setCurrentIndex(data.allowedIndex);
+          setSubmoduleCompleted(false);
+        }
+      }
+    });
+
     return () => {
       socket.off('module:navigate');
       socket.off('module:sync');
+      socket.off('submodule:advance');
     };
   }, [socket, moduleId]);
 
@@ -123,9 +138,29 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
   };
 
   const goToNext = () => {
+    // In session mode, participants can only advance if admin allows
+    if (sessionCode && !isAdmin) {
+      // Participants can't advance beyond admin-allowed index
+      if (currentIndex >= adminAllowedIndex) {
+        return; // Can't go further than admin allows
+      }
+    }
+    
     if (currentIndex < submodules.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
       markAsViewed(currentIndex);
+      setSubmoduleCompleted(false);
+      
+      // Admin broadcasts navigation to all participants
+      if (isAdmin && socket && sessionCode) {
+        socket.emit('submodule:advance', {
+          sessionCode,
+          moduleId,
+          allowedIndex: nextIndex
+        });
+        setAdminAllowedIndex(nextIndex);
+      }
     }
   };
 
@@ -314,6 +349,11 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
                   <TemplateComponent
                     content={currentSubmodule.content || {}}
                     isEditing={false}
+                    isSessionMode={!!sessionCode}
+                    isAdmin={isAdmin}
+                    socket={socket}
+                    sessionCode={sessionCode}
+                    onComplete={() => setSubmoduleCompleted(true)}
                   />
                 </Suspense>
               </motion.div>
@@ -342,14 +382,35 @@ function ModuleViewer({ moduleId, socket, onExit, initialIndex = 0, sessionCode 
             </p>
           </div>
 
-          <button
-            onClick={goToNext}
-            disabled={currentIndex === submodules.length - 1}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-2"
-          >
-            <span>Weiter</span>
-            <ChevronRight size={20} />
-          </button>
+          {/* Next button - different behavior for admin vs participants in session */}
+          {sessionCode && !isAdmin ? (
+            // Participants: show waiting message if can't advance
+            currentIndex >= adminAllowedIndex ? (
+              <div className="px-6 py-3 bg-yellow-500/20 text-yellow-400 rounded-lg flex items-center gap-2">
+                <Clock size={20} />
+                <span>Warten auf Kursleiter...</span>
+              </div>
+            ) : (
+              <button
+                onClick={goToNext}
+                disabled={currentIndex === submodules.length - 1}
+                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-2"
+              >
+                <span>Weiter</span>
+                <ChevronRight size={20} />
+              </button>
+            )
+          ) : (
+            // Admin or non-session: normal next button
+            <button
+              onClick={goToNext}
+              disabled={currentIndex === submodules.length - 1}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-2"
+            >
+              <span>{isAdmin && sessionCode ? 'Alle weiter' : 'Weiter'}</span>
+              <ChevronRight size={20} />
+            </button>
+          )}
         </div>
       </div>
     </div>

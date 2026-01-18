@@ -152,4 +152,98 @@ router.get('/session/:sessionId', async (req, res) => {
   }
 });
 
+// Get class modules for a live session (public - for participants)
+router.get('/session/:sessionCode/modules', async (req, res) => {
+  try {
+    const { sessionCode } = req.params;
+
+    // Find session by code
+    const session = await db.get(`
+      SELECT s.*, c.name as class_name, c.description as class_description, c.theme_override
+      FROM live_sessions s
+      JOIN classes c ON s.class_id = c.id
+      WHERE s.session_code = ? AND s.status = 'active'
+    `, [sessionCode]);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found or not active'
+      });
+    }
+
+    // Get all modules for this class with lock status
+    const modules = await db.all(`
+      SELECT 
+        cm.id as class_module_id,
+        cm.order_index,
+        cm.is_locked,
+        cm.unlocked_at,
+        m.id, m.title, m.description, m.category, m.difficulty,
+        m.estimated_duration
+      FROM class_modules cm
+      JOIN modules m ON cm.module_id = m.id
+      WHERE cm.class_id = ?
+      ORDER BY cm.order_index ASC
+    `, [session.class_id]);
+
+    res.json({
+      success: true,
+      data: {
+        session: {
+          id: session.id,
+          class_id: session.class_id,
+          class_name: session.class_name,
+          class_description: session.class_description,
+          theme_override: session.theme_override ? JSON.parse(session.theme_override) : null
+        },
+        modules
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching session modules:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch session modules'
+    });
+  }
+});
+
+// Unlock a module in a live session (admin only)
+router.put('/session/:sessionCode/modules/:classModuleId/unlock', async (req, res) => {
+  try {
+    const { sessionCode, classModuleId } = req.params;
+
+    // Find session by code
+    const session = await db.get(`
+      SELECT s.* FROM live_sessions s
+      WHERE s.session_code = ? AND s.status = 'active'
+    `, [sessionCode]);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found or not active'
+      });
+    }
+
+    // Unlock the module
+    await db.run(
+      'UPDATE class_modules SET is_locked = 0, unlocked_at = ? WHERE id = ?',
+      [new Date().toISOString(), classModuleId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Module unlocked'
+    });
+  } catch (error) {
+    console.error('Error unlocking module:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to unlock module'
+    });
+  }
+});
+
 export default router;

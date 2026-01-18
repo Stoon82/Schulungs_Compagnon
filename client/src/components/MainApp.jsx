@@ -109,6 +109,12 @@ function MainApp() {
 
   const handleAdminAuth = (admin) => {
     setAdminUser(admin);
+    // Store admin user and token in localStorage for persistence
+    localStorage.setItem('adminUser', JSON.stringify(admin));
+    if (admin.token) {
+      localStorage.setItem('admin_token', admin.token);
+      api.setAdminToken(admin.token);
+    }
     setShowAuthModal(false);
     setView('classes');
   };
@@ -138,6 +144,7 @@ function MainApp() {
 
   const handleLogout = () => {
     localStorage.removeItem('adminUser');
+    localStorage.removeItem('admin_token');
     localStorage.removeItem('sessionParticipant');
     api.clearAdminToken(); // Clear admin token from API service
     setAdminUser(null);

@@ -10,8 +10,10 @@ class ApiService {
       'Content-Type': 'application/json'
     };
 
-    if (this.sessionToken) {
-      headers['Authorization'] = `Bearer ${this.sessionToken}`;
+    // Always read from localStorage to get the latest token
+    const token = localStorage.getItem('sessionToken');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     return headers;

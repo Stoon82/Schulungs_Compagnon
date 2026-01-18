@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Plus, Trash2, Lock, Unlock, GripVertical } from 'lucide-react';
+import api from '../services/api';
 
 /**
  * ClassModuleManager - Manage modules within a class
@@ -19,7 +20,23 @@ function ClassModuleManager({ classId }) {
 
   const loadClassModules = async () => {
     try {
-      const response = await fetch(`/api/module-creator/classes/${classId}/modules`);
+      const adminToken = api.getAdminToken();
+      if (!adminToken) {
+        console.error('No admin token found. Please log in as admin.');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/module-creator/classes/${classId}/modules`, {
+        headers: api.getAdminHeaders()
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to load class modules:', response.status, await response.text());
+        setLoading(false);
+        return;
+      }
+      
       const data = await response.json();
       if (data.success) {
         setModules(data.data);
@@ -33,10 +50,30 @@ function ClassModuleManager({ classId }) {
 
   const loadAvailableModules = async () => {
     try {
-      const response = await fetch('/api/module-creator/modules');
+      const adminToken = api.getAdminToken();
+      console.log('Admin token present:', !!adminToken);
+      
+      if (!adminToken) {
+        console.error('No admin token found. Please log in as admin.');
+        return;
+      }
+
+      const response = await fetch('/api/module-creator/modules', {
+        headers: api.getAdminHeaders()
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to load modules:', response.status, response.statusText);
+        return;
+      }
+      
       const data = await response.json();
+      console.log('Available modules loaded:', data);
+      
       if (data.success) {
-        setAvailableModules(data.data);
+        setAvailableModules(data.data || []);
+      } else {
+        console.error('API returned error:', data);
       }
     } catch (error) {
       console.error('Error loading available modules:', error);
@@ -47,7 +84,7 @@ function ClassModuleManager({ classId }) {
     try {
       const response = await fetch(`/api/module-creator/classes/${classId}/modules`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: api.getAdminHeaders(),
         body: JSON.stringify({
           moduleId,
           orderIndex: modules.length,
@@ -71,7 +108,8 @@ function ClassModuleManager({ classId }) {
 
     try {
       const response = await fetch(`/api/module-creator/classes/${classId}/modules/${classModuleId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: api.getAdminHeaders()
       });
 
       const data = await response.json();
@@ -87,7 +125,7 @@ function ClassModuleManager({ classId }) {
     try {
       const response = await fetch(`/api/module-creator/classes/${classId}/modules/${classModuleId}/lock`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: api.getAdminHeaders(),
         body: JSON.stringify({ isLocked: !currentLockStatus })
       });
 
@@ -118,7 +156,7 @@ function ClassModuleManager({ classId }) {
     try {
       await fetch(`/api/module-creator/classes/${classId}/modules/reorder`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: api.getAdminHeaders(),
         body: JSON.stringify({ moduleOrder })
       });
     } catch (error) {
@@ -143,13 +181,16 @@ function ClassModuleManager({ classId }) {
                 e.target.value = '';
               }
             }}
-            className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-4 py-2 bg-slate-800 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            style={{ colorScheme: 'dark' }}
           >
-            <option value="">Modul hinzufügen</option>
+            <option value="" className="bg-slate-800 text-white">
+              Modul hinzufügen ({availableModules.length} verfügbar)
+            </option>
             {availableModules
               .filter(m => !modules.find(cm => cm.id === m.id))
               .map(module => (
-                <option key={module.id} value={module.id}>
+                <option key={module.id} value={module.id} className="bg-slate-800 text-white">
                   {module.title}
                 </option>
               ))}

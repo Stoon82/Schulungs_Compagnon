@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Share2, Play, Calendar, Users, BookOpen } from 'lucide-react';
 import api from '../services/api';
+import ClassModuleManager from './ClassModuleManager';
+import ClassViewer from './ClassViewer';
+import StylingEditor from './StylingEditor';
+import ModuleCreatorV2 from './ModuleCreatorV2';
 
 function ClassManagement({ adminUser, onStartSession }) {
   const [classes, setClasses] = useState([]);
@@ -8,6 +12,8 @@ function ClassManagement({ adminUser, onStartSession }) {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingClass, setEditingClass] = useState(null);
+  const [viewingClass, setViewingClass] = useState(null);
+  const [showModuleCreator, setShowModuleCreator] = useState(false);
 
   useEffect(() => {
     loadClasses();
@@ -16,10 +22,29 @@ function ClassManagement({ adminUser, onStartSession }) {
 
   const loadClasses = async () => {
     try {
-      const response = await fetch(`/api/session-management/admin/${adminUser.id}/classes`);
+      const response = await fetch(`/api/session-management/admin/${adminUser.id}/classes`, {
+        headers: api.getAdminHeaders()
+      });
       const data = await response.json();
       if (data.success) {
-        setClasses(data.data);
+        // Load module count for each class
+        const classesWithModuleCount = await Promise.all(
+          data.data.map(async (classItem) => {
+            try {
+              const moduleResponse = await fetch(`/api/module-creator/classes/${classItem.id}/modules`, {
+                headers: api.getAdminHeaders()
+              });
+              const moduleData = await moduleResponse.json();
+              return {
+                ...classItem,
+                moduleCount: moduleData.success ? moduleData.data.length : 0
+              };
+            } catch (error) {
+              return { ...classItem, moduleCount: 0 };
+            }
+          })
+        );
+        setClasses(classesWithModuleCount);
       }
     } catch (error) {
       console.error('Error loading classes:', error);
@@ -93,11 +118,20 @@ function ClassManagement({ adminUser, onStartSession }) {
     }
   };
 
-  const handleStartSession = async (classItem) => {
+  const handleOpenClass = (classItem) => {
+    setViewingClass(classItem);
+  };
+
+  const handleBackToClassList = () => {
+    setViewingClass(null);
+    loadClasses(); // Reload to update module counts
+  };
+
+  const handleStartClassSession = async (classItem) => {
     try {
       const response = await fetch('/api/session-management/sessions/start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: api.getAdminHeaders(),
         body: JSON.stringify({
           classId: classItem.id,
           startedBy: adminUser.id,
@@ -107,10 +141,15 @@ function ClassManagement({ adminUser, onStartSession }) {
 
       const data = await response.json();
       if (data.success) {
+        // Call the parent's onStartSession with the new session data
         onStartSession(data.data);
+      } else {
+        console.error('Failed to start session:', data.error);
+        alert('Fehler beim Starten der Sitzung: ' + (data.error || 'Unbekannter Fehler'));
       }
     } catch (error) {
       console.error('Error starting session:', error);
+      alert('Fehler beim Starten der Sitzung');
     }
   };
 
@@ -119,6 +158,16 @@ function ClassManagement({ adminUser, onStartSession }) {
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
       </div>
+    );
+  }
+
+  // Show ClassViewer if a class is being viewed
+  if (viewingClass) {
+    return (
+      <ClassViewer
+        classId={viewingClass.id}
+        onBack={handleBackToClassList}
+      />
     );
   }
 
@@ -179,12 +228,14 @@ function ClassManagement({ adminUser, onStartSession }) {
                   </span>
                 </div>
 
-                {classItem.module_title && (
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <BookOpen size={16} />
-                    <span>{classItem.module_title}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <BookOpen size={16} />
+                  <span>
+                    {classItem.moduleCount === 0 && 'Keine Module'}
+                    {classItem.moduleCount === 1 && '1 Modul'}
+                    {classItem.moduleCount > 1 && `${classItem.moduleCount} Module`}
+                  </span>
+                </div>
 
                 {classItem.start_date && (
                   <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -202,12 +253,22 @@ function ClassManagement({ adminUser, onStartSession }) {
 
                 <div className="flex items-center gap-2 pt-4 border-t border-white/10">
                   <button
-                    onClick={() => handleStartSession(classItem)}
-                    className="flex-1 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all flex items-center justify-center gap-2"
+                    onClick={() => handleOpenClass(classItem)}
+                    className="flex-1 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all flex items-center justify-center gap-2"
                   >
-                    <Play size={16} />
-                    <span>Starten</span>
+                    <BookOpen size={16} />
+                    <span>Vorschau</span>
                   </button>
+                  
+                  {classItem.access_level === 'owner' && classItem.moduleCount > 0 && (
+                    <button
+                      onClick={() => handleStartClassSession(classItem)}
+                      className="flex-1 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <Play size={16} />
+                      <span>Starten</span>
+                    </button>
+                  )}
                   
                   {classItem.access_level === 'owner' && (
                     <>
@@ -245,13 +306,24 @@ function ClassManagement({ adminUser, onStartSession }) {
             setShowCreateModal(false);
             setEditingClass(null);
           }}
+          onCreateModule={() => setShowModuleCreator(true)}
+        />
+      )}
+
+      {/* Module Creator Modal */}
+      {showModuleCreator && (
+        <ModuleCreatorV2
+          onClose={() => {
+            setShowModuleCreator(false);
+            loadModules(); // Reload modules after creating new one
+          }}
         />
       )}
     </div>
   );
 }
 
-function ClassModal({ classData, modules, onSave, onClose }) {
+function ClassModal({ classData, modules, onSave, onClose, onCreateModule }) {
   const [formData, setFormData] = useState(classData);
 
   const handleSubmit = (e) => {
@@ -288,29 +360,35 @@ function ClassModal({ classData, modules, onSave, onClose }) {
               Beschreibung
             </label>
             <textarea
-              value={formData.description}
+              value={formData.description || ''}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[100px]"
               placeholder="Beschreiben Sie die Schulung..."
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Modul
-            </label>
-            <select
-              value={formData.moduleId}
-              onChange={(e) => setFormData({ ...formData, moduleId: e.target.value })}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="">Kein Modul ausgewählt</option>
-              {modules.map(module => (
-                <option key={module.id} value={module.id}>
-                  {module.title}
-                </option>
-              ))}
-            </select>
+          {/* Module Management Section */}
+          <div className="border-t border-white/10 pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-white">Module verwalten</h4>
+              <button
+                type="button"
+                onClick={onCreateModule}
+                className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg flex items-center gap-2 text-sm transition-all"
+              >
+                <Plus size={16} />
+                Neues Modul erstellen
+              </button>
+            </div>
+            {formData.id ? (
+              <ClassModuleManager classId={formData.id} />
+            ) : (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <p className="text-sm text-blue-400">
+                  💡 Hinweis: Speichern Sie die Klasse zuerst, um Module hinzuzufügen.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -353,69 +431,12 @@ function ClassModal({ classData, modules, onSave, onClose }) {
             />
           </div>
 
-          {/* Theme Override Section */}
-          <div className="border-t border-white/10 pt-4">
-            <h4 className="text-sm font-semibold text-white mb-3">Theme-Anpassung (Optional)</h4>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">
-                  Primärfarbe
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={formData.themeOverride?.primaryColor || '#8b5cf6'}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      themeOverride: { ...formData.themeOverride, primaryColor: e.target.value }
-                    })}
-                    className="w-12 h-10 rounded border-2 border-white/20 cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={formData.themeOverride?.primaryColor || '#8b5cf6'}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      themeOverride: { ...formData.themeOverride, primaryColor: e.target.value }
-                    })}
-                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm font-mono focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">
-                  Hintergrundbild URL
-                </label>
-                <input
-                  type="text"
-                  value={formData.themeOverride?.backgroundImage || ''}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    themeOverride: { ...formData.themeOverride, backgroundImage: e.target.value }
-                  })}
-                  placeholder="https://example.com/background.jpg"
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">
-                  Custom CSS (Erweitert)
-                </label>
-                <textarea
-                  value={formData.themeOverride?.customCSS || ''}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    themeOverride: { ...formData.themeOverride, customCSS: e.target.value }
-                  })}
-                  placeholder=".custom-class { color: red; }"
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 min-h-[80px]"
-                />
-              </div>
-            </div>
-          </div>
+          {/* Styling Section */}
+          <StylingEditor
+            styling={formData.themeOverride || {}}
+            onChange={(newStyling) => setFormData({ ...formData, themeOverride: newStyling })}
+            label="Theme-Anpassung (Optional)"
+          />
 
           <div className="flex gap-3 pt-4">
             <button

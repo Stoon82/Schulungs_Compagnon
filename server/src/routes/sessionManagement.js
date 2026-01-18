@@ -169,11 +169,46 @@ router.get('/admin/:adminId/classes', async (req, res) => {
   }
 });
 
+// Get single class by ID
+router.get('/classes/:classId', async (req, res) => {
+  try {
+    const { classId } = req.params;
+
+    const classData = await db.get(`
+      SELECT c.*, au.display_name as creator_name
+      FROM classes c
+      LEFT JOIN admin_users au ON c.created_by = au.id
+      WHERE c.id = ?
+    `, [classId]);
+
+    if (!classData) {
+      return res.status(404).json({
+        success: false,
+        error: 'Class not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...classData,
+        theme_override: classData.theme_override ? JSON.parse(classData.theme_override) : null
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching class:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch class'
+    });
+  }
+});
+
 // Create new class
 router.post('/admin/:adminId/classes', async (req, res) => {
   try {
     const { adminId } = req.params;
-    const { name, description, moduleId, startDate, endDate, maxParticipants } = req.body;
+    const { name, description, moduleId, startDate, endDate, maxParticipants, themeOverride } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -185,9 +220,9 @@ router.post('/admin/:adminId/classes', async (req, res) => {
     const id = uuidv4();
 
     await db.run(`
-      INSERT INTO classes (id, name, description, created_by, module_id, start_date, end_date, max_participants)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [id, name, description || null, adminId, moduleId || null, startDate || null, endDate || null, maxParticipants || null]);
+      INSERT INTO classes (id, name, description, created_by, module_id, start_date, end_date, max_participants, theme_override)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [id, name, description || null, adminId, moduleId || null, startDate || null, endDate || null, maxParticipants || null, themeOverride ? JSON.stringify(themeOverride) : null]);
 
     const newClass = await db.get('SELECT * FROM classes WHERE id = ?', [id]);
 
@@ -208,7 +243,7 @@ router.post('/admin/:adminId/classes', async (req, res) => {
 router.put('/classes/:classId', async (req, res) => {
   try {
     const { classId } = req.params;
-    const { name, description, moduleId, startDate, endDate, maxParticipants, isActive } = req.body;
+    const { name, description, moduleId, startDate, endDate, maxParticipants, isActive, themeOverride } = req.body;
 
     await db.run(`
       UPDATE classes 
@@ -219,9 +254,10 @@ router.put('/classes/:classId', async (req, res) => {
           end_date = COALESCE(?, end_date),
           max_participants = COALESCE(?, max_participants),
           is_active = COALESCE(?, is_active),
+          theme_override = COALESCE(?, theme_override),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [name, description, moduleId, startDate, endDate, maxParticipants, isActive, classId]);
+    `, [name, description, moduleId, startDate, endDate, maxParticipants, isActive, themeOverride ? JSON.stringify(themeOverride) : null, classId]);
 
     const updatedClass = await db.get('SELECT * FROM classes WHERE id = ?', [classId]);
 
@@ -326,17 +362,42 @@ router.post('/sessions/start', async (req, res) => {
       VALUES (?, ?, ?, ?, ?)
     `, [id, classId, sessionCode, startedBy, presentationMode || 'manual']);
 
+    // Get session with class info
     const session = await db.get(`
-      SELECT s.*, c.module_id, c.name as class_name, m.title as module_title
+      SELECT s.*, c.name as class_name, c.description as class_description,
+             c.theme_override
       FROM live_sessions s
       JOIN classes c ON s.class_id = c.id
-      LEFT JOIN modules m ON c.module_id = m.id
       WHERE s.id = ?
     `, [id]);
 
+    // Get all modules assigned to this class
+    const classModules = await db.all(`
+      SELECT 
+        cm.id as class_module_id,
+        cm.order_index,
+        cm.is_locked,
+        cm.unlocked_at,
+        m.id, m.title, m.description, m.category, m.difficulty,
+        m.estimated_duration, m.author
+      FROM class_modules cm
+      JOIN modules m ON cm.module_id = m.id
+      WHERE cm.class_id = ?
+      ORDER BY cm.order_index ASC
+    `, [classId]);
+
+    // Parse theme_override if exists
+    const themeOverride = session.theme_override ? JSON.parse(session.theme_override) : null;
+
     res.status(201).json({
       success: true,
-      data: session
+      data: {
+        ...session,
+        theme_override: themeOverride,
+        modules: classModules,
+        // For backwards compatibility, set module_id to first unlocked module
+        module_id: classModules.find(m => !m.is_locked)?.id || classModules[0]?.id || null
+      }
     });
   } catch (error) {
     console.error('Error starting session:', error);
