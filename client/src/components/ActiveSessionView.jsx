@@ -34,6 +34,7 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
     console.log('[ActiveSessionView] adminUser:', adminUser);
     console.log('[ActiveSessionView] isAdmin:', isAdmin);
     console.log('[ActiveSessionView] session:', session);
+    console.log('[ActiveSessionView] socket prop:', socket ? 'available' : 'null/undefined');
     
     loadSessionData();
     loadParticipants();
@@ -43,6 +44,7 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
   }, [session.id]);
 
   useEffect(() => {
+    console.log('[ActiveSessionView] Socket useEffect running, socket:', socket ? 'connected' : 'null');
     if (!socket) return;
 
     socket.on('participant:joined', () => {
@@ -60,8 +62,9 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
     });
 
     // Live mood feedback listeners (for admin display)
+    console.log('[ActiveSessionView] Setting up mood:update listener, isAdmin:', isAdmin);
     socket.on('mood:update', (data) => {
-      console.log('[ActiveSessionView] Mood update received:', data);
+      console.log('[ActiveSessionView] 😊 Mood update received:', data);
       const moodEmoji = {
         confused: '😕',
         thinking: '🤔',
@@ -107,6 +110,30 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
       socket.off('feedback:overwhelmed');
     };
   }, [socket, session.id]);
+
+  // Auto-clear old mood reactions after 10 seconds
+  useEffect(() => {
+    if (liveMoodReactions.length === 0) return;
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setLiveMoodReactions(prev => prev.filter(r => now - r.timestamp < 10000));
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [liveMoodReactions.length]);
+
+  // Auto-clear old alerts after 15 seconds
+  useEffect(() => {
+    if (recentAlerts.length === 0) return;
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setRecentAlerts(prev => prev.filter(a => now - a.timestamp < 15000));
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [recentAlerts.length]);
 
   const loadSessionData = async () => {
     try {
@@ -538,7 +565,7 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
       </div>
 
       {/* Live Reactions Display (Admin view - shows on beamer) */}
-      {isAdmin && (liveMoodReactions.length > 0 || recentAlerts.length > 0) && (
+      {isAdmin && (
         <div className="fixed bottom-6 left-6 z-40 space-y-2 max-w-sm">
           {/* Urgent Alerts */}
           {recentAlerts.map((alert) => (
@@ -567,9 +594,9 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
             </div>
           ))}
 
-          {/* Live Mood Reactions */}
+          {/* Live Mood Reactions (filter out pause/overwhelmed as they have their own alerts) */}
           <div className="flex flex-wrap gap-2">
-            {liveMoodReactions.slice(0, 5).map((reaction) => (
+            {liveMoodReactions.filter(r => !['pause_request', 'overwhelmed'].includes(r.mood)).slice(0, 8).map((reaction) => (
               <div
                 key={reaction.id}
                 className="bg-black/40 backdrop-blur-lg rounded-full px-3 py-2 border border-white/20 animate-bounce"
@@ -591,6 +618,7 @@ function ActiveSessionView({ session, adminUser, participantData, socket, onEndS
           currentModuleId={module?.id || null}
           onMoodSelect={async (mood, moduleId) => {
             try {
+              console.log('[ActiveSessionView] Sending mood with participantId:', participantData.id, 'name:', participantData.participant_name);
               // Use session-specific mood endpoint for session participants
               const response = await fetch(`/api/public-session/session/${session.session_code}/mood`, {
                 method: 'POST',

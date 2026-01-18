@@ -22,17 +22,7 @@ class Database {
 
   async runMigrations() {
     try {
-      // Drop existing media_assets table if it has old schema
-      try {
-        await this.run('DROP TABLE IF EXISTS media_assets');
-        await this.run('DROP INDEX IF EXISTS idx_media_assets_type');
-        await this.run('DROP INDEX IF EXISTS idx_media_assets_uploaded');
-        await this.run('DROP INDEX IF EXISTS idx_media_assets_uploader');
-        console.log('✅ Dropped old media_assets table');
-      } catch (err) {
-        console.log('No existing media_assets table to drop');
-      }
-
+      // Create media_assets table if it doesn't exist (don't drop!)
       const migrationPath = join(__dirname, '../migrations/add_media_assets_table.sql');
       const migrationSQL = await fs.readFile(migrationPath, 'utf-8');
       
@@ -53,6 +43,35 @@ class Database {
       } catch (err) {
         // Column already exists, ignore error
       }
+      
+      // Create session_moods table for live feedback
+      await this.run(`
+        CREATE TABLE IF NOT EXISTS session_moods (
+          id TEXT PRIMARY KEY,
+          session_id TEXT NOT NULL,
+          participant_id TEXT NOT NULL,
+          mood TEXT NOT NULL,
+          module_id TEXT,
+          timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (session_id) REFERENCES live_sessions(id),
+          FOREIGN KEY (participant_id) REFERENCES session_participants(id)
+        )
+      `);
+      await this.run('CREATE INDEX IF NOT EXISTS idx_session_moods_session ON session_moods(session_id)');
+      await this.run('CREATE INDEX IF NOT EXISTS idx_session_moods_participant ON session_moods(participant_id)');
+      
+      // Create wordcloud_words table for collaborative word cloud
+      await this.run(`
+        CREATE TABLE IF NOT EXISTS wordcloud_words (
+          id TEXT PRIMARY KEY,
+          session_code TEXT NOT NULL,
+          submodule_id TEXT NOT NULL,
+          word TEXT NOT NULL,
+          participant_id TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      await this.run('CREATE INDEX IF NOT EXISTS idx_wordcloud_session ON wordcloud_words(session_code, submodule_id)');
       
       console.log('✅ Database migrations completed');
     } catch (error) {

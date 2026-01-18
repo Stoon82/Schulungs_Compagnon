@@ -1,4 +1,5 @@
 import express from 'express';
+import { v4 as uuidv4 } from 'uuid';
 import db from '../services/database.js';
 
 const router = express.Router();
@@ -229,10 +230,12 @@ router.post('/session/:sessionCode/mood', async (req, res) => {
     }
 
     // Validate participant belongs to this session
+    console.log(`[Mood] Looking up participant: id=${participantId}, session_id=${session.id}`);
     const participant = await db.get(`
       SELECT * FROM session_participants 
       WHERE id = ? AND session_id = ?
     `, [participantId, session.id]);
+    console.log(`[Mood] Found participant:`, participant ? participant.participant_name : 'NOT FOUND');
 
     if (!participant) {
       return res.status(403).json({
@@ -251,7 +254,7 @@ router.post('/session/:sessionCode/mood', async (req, res) => {
     }
 
     // Record the mood (using session_participant_id)
-    const moodId = require('uuid').v4();
+    const moodId = uuidv4();
     await db.run(`
       INSERT INTO session_moods (id, session_id, participant_id, mood, module_id, timestamp)
       VALUES (?, ?, ?, ?, ?, datetime('now'))
@@ -261,6 +264,7 @@ router.post('/session/:sessionCode/mood', async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       // Emit mood update
+      console.log(`😊 Broadcasting mood:update - mood: ${mood}, participant: ${participant.participant_name}`);
       io.emit('mood:update', {
         participantId,
         participantName: participant.participant_name,
@@ -301,10 +305,12 @@ router.post('/session/:sessionCode/mood', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error recording session mood:', error);
+    console.error('Error recording session mood:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: 'Failed to record mood'
+      error: 'Failed to record mood',
+      details: error.message
     });
   }
 });

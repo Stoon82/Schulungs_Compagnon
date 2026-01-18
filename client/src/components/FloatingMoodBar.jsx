@@ -32,8 +32,13 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
   const handlePauseRequest = async () => {
     try {
       console.log('⏸️ Client sending pause request...');
-      const result = await api.sendMood('pause_request', currentModuleId);
-      console.log('⏸️ Pause request sent successfully:', result);
+      // Use onMoodSelect if available (session-based), otherwise fall back to legacy API
+      if (onMoodSelect) {
+        await onMoodSelect('pause_request', currentModuleId);
+      } else {
+        await api.sendMood('pause_request', currentModuleId);
+      }
+      console.log('⏸️ Pause request sent successfully');
       setShowPauseConfirm(false);
     } catch (error) {
       console.error('❌ Failed to send pause request:', error);
@@ -43,8 +48,13 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
   const handleOverwhelmedAlert = async () => {
     try {
       console.log('🚨 Client sending overwhelmed alert...');
-      const result = await api.sendMood('overwhelmed', currentModuleId);
-      console.log('🚨 Overwhelmed alert sent successfully:', result);
+      // Use onMoodSelect if available (session-based), otherwise fall back to legacy API
+      if (onMoodSelect) {
+        await onMoodSelect('overwhelmed', currentModuleId);
+      } else {
+        await api.sendMood('overwhelmed', currentModuleId);
+      }
+      console.log('🚨 Overwhelmed alert sent successfully');
       setShowOverwhelmedConfirm(false);
     } catch (error) {
       console.error('❌ Failed to send overwhelmed alert:', error);
@@ -61,9 +71,16 @@ function FloatingMoodBar({ currentModuleId, onMoodSelect }) {
           {/* Toggle Button */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full p-4 flex items-center justify-center text-white hover:bg-white/10 rounded-t-2xl transition-all"
+            className={`w-full p-4 flex items-center justify-center text-white hover:bg-white/10 transition-all ${isExpanded ? 'rounded-t-2xl' : 'rounded-2xl'}`}
           >
-            {isExpanded ? <ChevronDown size={24} /> : <ChevronUp size={24} />}
+            {isExpanded ? (
+              <ChevronDown size={24} />
+            ) : (
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-2xl">😊</span>
+                <span className="text-[10px] text-gray-400">•••</span>
+              </div>
+            )}
           </button>
 
           {/* Expanded Content */}
